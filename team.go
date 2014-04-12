@@ -17,6 +17,7 @@ type Team struct {
 	GameObjs       map[int]GameObject
 	TeamName       string
 	ClientConnInfo ConnInfo
+	spp            *SpatialPartition
 }
 
 func (m *Team) ToString() string {
@@ -26,7 +27,7 @@ func (m *Team) ToString() string {
 func NewTeam(w *World, conn net.Conn) *Team {
 	t := Team{
 		ID:             <-IdGenCh,
-		CmdCh:          make(chan Cmd, 100),
+		CmdCh:          make(chan Cmd),
 		PWorld:         w,
 		ClientConnInfo: *NewConnInfo(conn),
 		GameObjs:       make(map[int]GameObject),
@@ -45,18 +46,38 @@ loop:
 		select {
 		case <-timer1secCh:
 			log.Printf("team:%v\n", t.ClientConnInfo.Stat.ToString())
-			t.PWorld.CmdCh <- Cmd{
-				Cmd:  "statInfo",
-				Args: t.ClientConnInfo.Stat,
+			select {
+			case t.PWorld.CmdCh <- Cmd{Cmd: "statInfo", Args: t.ClientConnInfo.Stat}:
+				t.ClientConnInfo.Stat.Reset()
 			}
-			t.ClientConnInfo.Stat = *NewStatInfo()
-
 		case <-timer60Ch:
+			for _, v := range t.GameObjs {
+				near := t.spp.GetNear2(&v.pos)
+				clist := v.GetCollisionList(near)
+				for _, o := range clist {
+					if o.enabled {
+						o.enabled = false
+					}
+				}
+			}
+			for _, v := range t.GameObjs {
+				if v.enabled == false {
+					t.delGameObject(&v)
+				} else {
+					near := t.spp.GetNear2(&v.pos)
+					v.aiAction(&v, near)
+					v.lastMoveTime = time.Now()
+					v.curStep += 1
+				}
+			}
+			if len(t.GameObjs) < 1 {
+				t.addNewGameObject()
+			}
 		case packet := <-t.ClientConnInfo.ReadCh:
+			//log.Printf("%v\n", packet)
 			t.ClientConnInfo.WriteCh <- packet
-			log.Println("send/recv")
+			//log.Println("send/recv")
 		case cmd := <-t.CmdCh:
-			log.Printf("cmd %v", cmd)
 			switch cmd.Cmd {
 			case "quit":
 				for _, v := range t.GameObjs {
@@ -65,15 +86,7 @@ loop:
 				t.ClientConnInfo.Conn.Close()
 				break loop
 			case "envInfo":
-				for _, v := range t.GameObjs {
-					v.CmdCh <- cmd
-				}
-			case "attacked":
-				var attacked *GameObject = cmd.Args.(*GameObject)
-				t.delGameObject(attacked)
-				if len(t.GameObjs) < 1 {
-					t.addNewGameObject()
-				}
+				t.spp = cmd.Args.(*SpatialPartition)
 			default:
 				log.Printf("unknown cmd %v\n", cmd)
 			}

@@ -34,7 +34,7 @@ func NewGameObject(PTeam *Team, t string, mover AIActionFn) *GameObject {
 	Max := PTeam.PWorld.MaxPos
 	o := GameObject{
 		ID:              <-IdGenCh,
-		CmdCh:           make(chan Cmd, 100),
+		CmdCh:           make(chan Cmd),
 		curStep:         0,
 		enabled:         true,
 		objType:         t,
@@ -51,50 +51,7 @@ func NewGameObject(PTeam *Team, t string, mover AIActionFn) *GameObject {
 		MaxPos:          Max,
 	}
 	log.Printf("new %v", o.ToString())
-	go o.Loop()
 	return &o
-}
-
-func (m *GameObject) Loop() {
-	timer60Ch := time.Tick(1000 / 60 * time.Millisecond)
-	timer1secCh := time.Tick(1 * time.Second)
-loop:
-	for {
-		select {
-		case <-timer1secCh:
-		case <-timer60Ch:
-		case cmd := <-m.CmdCh:
-			switch cmd.Cmd {
-			case "quit":
-				break loop
-			case "envInfo":
-				var spp *SpatialPartition = cmd.Args.(*SpatialPartition)
-				near := spp.GetNear2(&m.pos)
-				clist := m.GetCollisionList(near)
-				for _, o := range clist {
-					o.CmdCh <- Cmd{
-						Cmd:  "attackedBy",
-						Args: m,
-					}
-				}
-				m.aiAction(m, near)
-				m.lastMoveTime = time.Now()
-				m.curStep += 1
-
-			case "attackedBy":
-				//var attacker *GameObject = cmd.Args.(*GameObject)
-				m.enabled = false
-				m.PTeam.CmdCh <- Cmd{
-					Cmd:  "attacked",
-					Args: m,
-				}
-				break loop
-			default:
-				log.Printf("unknown cmd %v\n", cmd)
-			}
-
-		}
-	}
 }
 
 type GameObjectList []*GameObject
@@ -114,7 +71,7 @@ func (m *GameObject) GetCollisionList(near GameObjectList) GameObjectList {
 }
 
 func (m *GameObject) ToString() string {
-	return fmt.Sprintf("%v %v %v %v", reflect.TypeOf(m), m.ID, m.pos, m.curStep)
+	return fmt.Sprintf("%v %v %v %v", reflect.TypeOf(m), m.ID, m.objType, m.curStep)
 }
 
 type AIActionFn func(m *GameObject, near GameObjectList)

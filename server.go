@@ -26,7 +26,7 @@ func NewGameService(listenTo string) *GameService {
 	g := GameService{
 		ID:       <-IdGenCh,
 		StatInfo: *NewStatInfo(),
-		CmdCh:    make(chan Cmd, 100),
+		CmdCh:    make(chan Cmd),
 		Worlds:   make(map[int]World),
 		ListenTo: listenTo,
 	}
@@ -74,7 +74,7 @@ func (g *GameService) Loop() {
 			}
 		case <-timer1secCh:
 			log.Printf("service:%v\n", g.StatInfo.ToString())
-			g.StatInfo = *NewStatInfo()
+			g.StatInfo.Reset()
 		}
 	}
 }

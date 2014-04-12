@@ -10,7 +10,7 @@ import (
 func main() {
 	connectTo := "localhost:6666"
 	var rundur = flag.Int("rundur", 60, "run time sec")
-	var gocount = flag.Int("gocount", 1, "goroutine count")
+	var gocount = flag.Int("gocount", 4, "goroutine count")
 	flag.Parse()
 	log.Printf("%v %v %v", connectTo, *rundur, *gocount)
 

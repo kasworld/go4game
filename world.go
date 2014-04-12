@@ -25,7 +25,7 @@ func NewWorld(g *GameService) *World {
 	w := World{
 		ID:       <-IdGenCh,
 		StatInfo: *NewStatInfo(),
-		CmdCh:    make(chan Cmd, 100),
+		CmdCh:    make(chan Cmd),
 		PService: g,
 		MinPos:   Vector3D{0, 0, 0},
 		MaxPos:   Vector3D{1000, 1000, 1000},
@@ -43,12 +43,12 @@ loop:
 	for {
 		select {
 		case <-timer1secCh:
-			w.PService.CmdCh <- Cmd{
-				Cmd:  "statInfo",
-				Args: &w.StatInfo,
-			}
-			log.Printf("world:%v", w.StatInfo.ToString())
-			w.StatInfo = *NewStatInfo()
+			log.Printf("world:%v, team:%v",
+				w.StatInfo.ToString(),
+				len(w.Teams),
+			)
+		case w.PService.CmdCh <- Cmd{Cmd: "statInfo", Args: &w.StatInfo}:
+			w.StatInfo.Reset()
 
 		case <-timer60Ch:
 			spp := w.MakeSpatialPartition()

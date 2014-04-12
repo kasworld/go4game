@@ -99,6 +99,14 @@ func NewStatInfo() *StatInfo {
 	}
 }
 
+func (d *StatInfo) Reset() {
+	d.RCount = 0
+	d.RLen = 0
+	d.WCount = 0
+	d.WLen = 0
+	d.StartTime = time.Now()
+}
+
 func (d *StatInfo) Add(s *StatInfo) {
 	d.RCount += s.RCount
 	d.RLen += s.RLen
@@ -131,7 +139,7 @@ type Cmd struct {
 }
 
 type ConnInfo struct {
-	Stat    StatInfo
+	Stat    *StatInfo
 	CmdCh   chan Cmd
 	Conn    net.Conn
 	ReadCh  chan interface{}
@@ -140,11 +148,11 @@ type ConnInfo struct {
 
 func NewConnInfo(conn net.Conn) *ConnInfo {
 	c := ConnInfo{
-		Stat:    *NewStatInfo(),
+		Stat:    NewStatInfo(),
 		CmdCh:   make(chan Cmd),
 		Conn:    conn,
-		ReadCh:  make(chan interface{}),
-		WriteCh: make(chan interface{}),
+		ReadCh:  make(chan interface{}, 10),
+		WriteCh: make(chan interface{}, 10),
 	}
 	go c.readLoop()
 	go c.writeLoop()

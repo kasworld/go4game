@@ -34,7 +34,7 @@ func NewGameObject(PTeam *Team, t string, mover AIActionFn) *GameObject {
 	Max := PTeam.PWorld.MaxPos
 	o := GameObject{
 		ID:              <-IdGenCh,
-		CmdCh:           make(chan Cmd),
+		CmdCh:           make(chan Cmd, 100),
 		curStep:         0,
 		enabled:         true,
 		objType:         t,
@@ -88,6 +88,7 @@ loop:
 					Cmd:  "attacked",
 					Args: m,
 				}
+				break loop
 			default:
 				log.Printf("unknown cmd %v\n", cmd)
 			}

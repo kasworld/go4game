@@ -26,7 +26,7 @@ func NewGameService(listenTo string) *GameService {
 	g := GameService{
 		ID:       <-IdGenCh,
 		StatInfo: *NewStatInfo(),
-		CmdCh:    make(chan Cmd),
+		CmdCh:    make(chan Cmd, 100),
 		Worlds:   make(map[int]World),
 		ListenTo: listenTo,
 	}
@@ -54,12 +54,15 @@ func (g *GameService) Loop() {
 		case <-timer60Ch:
 			// do frame action
 		case cmd := <-g.CmdCh:
-			if cmd.Cmd == "quit" {
+			switch cmd.Cmd {
+			case "quit":
 				for _, v := range g.Worlds {
 					v.CmdCh <- Cmd{Cmd: "quit"}
 				}
-			} else if cmd.Cmd == "info" {
+			case "statInfo":
 				g.StatInfo.Add(cmd.Args.(*StatInfo))
+			default:
+				log.Printf("unknown cmd %v", cmd)
 			}
 		case conn := <-g.clientConnectionCh: // new team
 			for _, v := range g.Worlds {
@@ -70,7 +73,7 @@ func (g *GameService) Loop() {
 				break
 			}
 		case <-timer1secCh:
-			fmt.Printf("service:%v\n", g.StatInfo.ToString())
+			log.Printf("service:%v\n", g.StatInfo.ToString())
 			g.StatInfo = *NewStatInfo()
 		}
 	}

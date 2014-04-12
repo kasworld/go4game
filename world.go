@@ -25,7 +25,7 @@ func NewWorld(g *GameService) *World {
 	w := World{
 		ID:       <-IdGenCh,
 		StatInfo: *NewStatInfo(),
-		CmdCh:    make(chan Cmd),
+		CmdCh:    make(chan Cmd, 100),
 		PService: g,
 		MinPos:   Vector3D{0, 0, 0},
 		MaxPos:   Vector3D{1000, 1000, 1000},
@@ -44,10 +44,10 @@ loop:
 		select {
 		case <-timer1secCh:
 			w.PService.CmdCh <- Cmd{
-				Cmd:  "info",
+				Cmd:  "statInfo",
 				Args: &w.StatInfo,
 			}
-			fmt.Printf("world:%v\n", w.StatInfo.ToString())
+			log.Printf("world:%v", w.StatInfo.ToString())
 			w.StatInfo = *NewStatInfo()
 
 		case <-timer60Ch:
@@ -67,10 +67,10 @@ loop:
 				break loop
 			case "newTeam":
 				w.addNewTeam(cmd.Args.(net.Conn))
+			case "statInfo":
+				w.StatInfo.Add(cmd.Args.(*StatInfo))
 			default:
 				log.Printf("unknown cmd %v\n", cmd)
-			}
-
 			}
 		}
 	}

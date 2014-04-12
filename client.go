@@ -8,7 +8,7 @@ import (
 )
 
 func ClientMain(connectTo string, gocount int) {
-	println("Starting client")
+	log.Println("Starting client")
 	for i := 0; i < gocount; i++ {
 		go repeatReq(connectTo)
 		time.Sleep(1 * time.Millisecond)
@@ -55,5 +55,5 @@ clientloop:
 			_ = p
 		}
 	}
-	//fmt.Printf("client conn exit\n")
+	//log.Printf("client conn exit\n")
 }

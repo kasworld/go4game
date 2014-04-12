@@ -10,7 +10,6 @@ import (
 )
 
 type Team struct {
-	StatInfo
 	ID             int
 	CmdCh          chan Cmd
 	Name           string
@@ -27,36 +26,37 @@ func (m *Team) ToString() string {
 func NewTeam(w *World, conn net.Conn) *Team {
 	t := Team{
 		ID:             <-IdGenCh,
-		StatInfo:       *NewStatInfo(),
-		CmdCh:          make(chan Cmd),
+		CmdCh:          make(chan Cmd, 100),
 		PWorld:         w,
 		ClientConnInfo: *NewConnInfo(conn),
 		GameObjs:       make(map[int]GameObject),
 	}
-	t.addNewGameObject()
-	log.Printf("new %v", t.ToString())
+	log.Printf("new %v\n", t.ToString())
 	go t.Loop()
 	return &t
 }
 
 func (t *Team) Loop() {
+	t.addNewGameObject()
 	timer60Ch := time.Tick(1000 / 60 * time.Millisecond)
 	timer1secCh := time.Tick(1 * time.Second)
 loop:
 	for {
 		select {
 		case <-timer1secCh:
+			log.Printf("team:%v\n", t.ClientConnInfo.Stat.ToString())
 			t.PWorld.CmdCh <- Cmd{
-				Cmd:  "info",
-				Args: t.StatInfo,
+				Cmd:  "statInfo",
+				Args: t.ClientConnInfo.Stat,
 			}
-			fmt.Printf("world:%v\n", t.StatInfo.ToString())
-			t.StatInfo = *NewStatInfo()
+			t.ClientConnInfo.Stat = *NewStatInfo()
 
 		case <-timer60Ch:
 		case packet := <-t.ClientConnInfo.ReadCh:
 			t.ClientConnInfo.WriteCh <- packet
+			log.Println("send/recv")
 		case cmd := <-t.CmdCh:
+			log.Printf("cmd %v", cmd)
 			switch cmd.Cmd {
 			case "quit":
 				for _, v := range t.GameObjs {

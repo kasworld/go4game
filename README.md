@@ -3,19 +3,15 @@ go4game
 
 game server framework using  golang
 
-
-    serverMain : start point
-        World : client connect to
-            NPCTeam : AI action
-                gameObject : move , display
-            UserTeam : client : user action ( or user simulated ai action )
-                gameObject : move , display
+    GameService : server.go 
+        World : world.go 
+            Team : team.go 
+                GameObject : gameobject.go 
 
 
-    GameService
-        World
-            Team
-                GameObject
+execute server and client 
+go run runserver/main.go -client 1000
+
 
 ### korean discription
 
@@ -27,8 +23,4 @@ World : World : ai와 user가 접속해서 interaction하는 공간. 실 game co
 
 Team : gameObject list , AI , user 경쟁의 단위
 
-AI team : ai 가 조종하는 server side의 team == NPC
-
-user(client) team : user 또는 user simulateAI 가 조종하는 client side의 team
-
-anyway live reload?
+GameObject : team을 구성하는 object 

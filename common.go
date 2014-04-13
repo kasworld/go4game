@@ -81,56 +81,79 @@ func writeJson(conn net.Conn, sendPacket interface{}) (uint32, error) {
 	return hlen, nil
 }
 
+type CountLen struct {
+	Count int
+	Len   int
+}
+
+func (cl *CountLen) Inc(l int) {
+	cl.Count += 1
+	cl.Len += l
+}
+
+func (cl *CountLen) Add(c *CountLen) {
+	cl.Count += c.Count
+	cl.Len += c.Len
+}
+
+func (cl *CountLen) Clear() {
+	cl.Count = 0
+	cl.Len = 0
+}
+
+func (cl *CountLen) CalcLap(dur time.Duration) string {
+	return fmt.Sprintf("count:%v/%5.1f len:%v/%5.1f",
+		cl.Count, float64(cl.Count)/dur.Seconds(),
+		cl.Len, float64(cl.Len)/dur.Seconds())
+}
+
 type StatInfo struct {
-	RCount    int
-	RLen      int
-	WCount    int
-	WLen      int
-	StartTime time.Time
+	ReadCL      CountLen
+	WriteCL     CountLen
+	ReadSum     CountLen
+	WriteSum    CountLen
+	StartTime   time.Time
+	LastLapTime time.Time
+}
+
+func (d *StatInfo) String() string {
+	lapdur := time.Now().Sub(d.LastLapTime)
+	dur := time.Now().Sub(d.StartTime)
+	return fmt.Sprintf("Stat:read(total:%v lap:%v) write(total:%v lap:%v)",
+		d.ReadSum.CalcLap(dur),
+		d.ReadCL.CalcLap(lapdur),
+		d.WriteSum.CalcLap(dur),
+		d.WriteCL.CalcLap(lapdur))
 }
 
 func NewStatInfo() *StatInfo {
 	return &StatInfo{
-		RCount:    0,
-		RLen:      0,
-		WCount:    0,
-		WLen:      0,
-		StartTime: time.Now(),
+		StartTime:   time.Now(),
+		LastLapTime: time.Now(),
 	}
 }
 
-func (d *StatInfo) Reset() {
-	d.RCount = 0
-	d.RLen = 0
-	d.WCount = 0
-	d.WLen = 0
-	d.StartTime = time.Now()
+func (d *StatInfo) NewLap() {
+	d.ReadCL.Clear()
+	d.WriteCL.Clear()
+	d.LastLapTime = time.Now()
 }
 
-func (d *StatInfo) Add(s *StatInfo) {
-	d.RCount += s.RCount
-	d.RLen += s.RLen
-	d.WCount += s.WCount
-	d.WLen += s.WLen
+func (d *StatInfo) AddLap(s *StatInfo) {
+	d.ReadCL.Add(&s.ReadCL)
+	d.WriteCL.Add(&s.WriteCL)
+	d.ReadSum.Add(&s.ReadCL)
+	d.WriteSum.Add(&s.WriteCL)
 }
 
-func (d *StatInfo) AddR(c int, l int) {
-	d.RCount += c
-	d.RLen += l
+func (d *StatInfo) IncR(l int) {
+	d.ReadCL.Inc(l)
+	d.ReadSum.Inc(l)
 }
 
-func (d *StatInfo) AddW(c int, l int) {
-	d.WCount += c
-	d.WLen += l
-}
-
-func (d *StatInfo) ToString() string {
-	dur := time.Now().Sub(d.StartTime)
-	return fmt.Sprintf("Stat:rcount:%v/%v rlen:%v/%v wcount:%v/%v wlen:%v/%v",
-		d.RCount, float64(d.RCount)/dur.Seconds(),
-		d.RLen, float64(d.RLen)/dur.Seconds(),
-		d.WCount, float64(d.WCount)/dur.Seconds(),
-		d.WLen, float64(d.WLen)/dur.Seconds())
+func (d *StatInfo) IncW(l int) {
+	d.WriteCL.Inc(l)
+	d.WriteSum.Inc(l)
 }
 
 type Cmd struct {
@@ -171,9 +194,10 @@ func (c *ConnInfo) readLoop() {
 			break
 		} else {
 			c.ReadCh <- packet
-			c.Stat.AddR(1, int(n))
+			c.Stat.IncR(int(n))
 		}
 	}
+	c.CmdCh <- Cmd{Cmd: "quit"}
 }
 
 func (c *ConnInfo) writeLoop() {
@@ -189,7 +213,8 @@ writeloop:
 				}
 				break writeloop
 			}
-			c.Stat.AddW(1, int(n))
+			c.Stat.IncW(int(n))
 		}
 	}
+	c.CmdCh <- Cmd{Cmd: "quit"}
 }

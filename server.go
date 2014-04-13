@@ -18,7 +18,7 @@ type GameService struct {
 	clientConnectionCh chan net.Conn
 }
 
-func (m *GameService) ToString() string {
+func (m GameService) String() string {
 	return fmt.Sprintf("%v %v %v %v", reflect.TypeOf(m), m.ID, m.Name, len(m.Worlds))
 }
 
@@ -32,7 +32,7 @@ func NewGameService(listenTo string) *GameService {
 	}
 	g.clientConnectionCh = g.listenLoop()
 	g.addNewWorld()
-	log.Printf("new %v", g.ToString())
+	log.Printf("New %v", g)
 	go g.Loop()
 	return &g
 }
@@ -51,6 +51,9 @@ func (g *GameService) Loop() {
 	timer60Ch := time.Tick(1000 / 60 * time.Millisecond)
 	for {
 		select {
+		case <-timer1secCh:
+			log.Printf("service:%v\n", g.StatInfo.String())
+			g.StatInfo.NewLap()
 		case <-timer60Ch:
 			// do frame action
 		case cmd := <-g.CmdCh:
@@ -60,7 +63,7 @@ func (g *GameService) Loop() {
 					v.CmdCh <- Cmd{Cmd: "quit"}
 				}
 			case "statInfo":
-				g.StatInfo.Add(cmd.Args.(*StatInfo))
+				g.StatInfo.AddLap(cmd.Args.(*StatInfo))
 			default:
 				log.Printf("unknown cmd %v", cmd)
 			}
@@ -72,9 +75,6 @@ func (g *GameService) Loop() {
 				}
 				break
 			}
-		case <-timer1secCh:
-			log.Printf("service:%v\n", g.StatInfo.ToString())
-			g.StatInfo.Reset()
 		}
 	}
 }

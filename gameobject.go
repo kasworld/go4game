@@ -3,7 +3,7 @@ package go4game
 import (
 	"fmt"
 	//"math"
-	"log"
+	//"log"
 	"math/rand"
 	"reflect"
 	"time"
@@ -11,7 +11,6 @@ import (
 
 type GameObject struct {
 	ID              int
-	CmdCh           chan Cmd
 	PTeam           *Team
 	curStep         int
 	enabled         bool
@@ -29,12 +28,16 @@ type GameObject struct {
 	bounceDamping   float64
 }
 
+func (m GameObject) String() string {
+	return fmt.Sprintf("%v ID:%v Type:%v Owner:%v",
+		reflect.TypeOf(m), m.ID, m.objType, m.PTeam)
+}
+
 func NewGameObject(PTeam *Team, t string, mover AIActionFn) *GameObject {
 	Min := PTeam.PWorld.MinPos
 	Max := PTeam.PWorld.MaxPos
 	o := GameObject{
 		ID:              <-IdGenCh,
-		CmdCh:           make(chan Cmd),
 		curStep:         0,
 		enabled:         true,
 		objType:         t,
@@ -49,8 +52,9 @@ func NewGameObject(PTeam *Team, t string, mover AIActionFn) *GameObject {
 		bounceDamping:   rand.Float64(),
 		MinPos:          Min,
 		MaxPos:          Max,
+		PTeam:           PTeam,
 	}
-	log.Printf("new %v", o.ToString())
+	//log.Printf("New %v\n", o)
 	return &o
 }
 
@@ -68,10 +72,6 @@ func (m *GameObject) GetCollisionList(near GameObjectList) GameObjectList {
 		}
 	}
 	return rtn
-}
-
-func (m *GameObject) ToString() string {
-	return fmt.Sprintf("%v %v %v %v", reflect.TypeOf(m), m.ID, m.objType, m.curStep)
 }
 
 type AIActionFn func(m *GameObject, near GameObjectList)

@@ -20,19 +20,19 @@ type Team struct {
 	spp            *SpatialPartition
 }
 
-func (m *Team) ToString() string {
+func (m Team) String() string {
 	return fmt.Sprintf("%v %v %v %v", reflect.TypeOf(m), m.ID, m.Name, len(m.GameObjs))
 }
 
 func NewTeam(w *World, conn net.Conn) *Team {
 	t := Team{
 		ID:             <-IdGenCh,
-		CmdCh:          make(chan Cmd),
+		CmdCh:          make(chan Cmd, 10),
 		PWorld:         w,
 		ClientConnInfo: *NewConnInfo(conn),
 		GameObjs:       make(map[int]GameObject),
 	}
-	log.Printf("new %v\n", t.ToString())
+	//log.Printf("New %v", t)
 	go t.Loop()
 	return &t
 }
@@ -45,53 +45,61 @@ loop:
 	for {
 		select {
 		case <-timer1secCh:
-			log.Printf("team:%v\n", t.ClientConnInfo.Stat.ToString())
+			//log.Printf("team:%v\n", t.ClientConnInfo.Stat.String())
 			select {
 			case t.PWorld.CmdCh <- Cmd{Cmd: "statInfo", Args: t.ClientConnInfo.Stat}:
-				t.ClientConnInfo.Stat.Reset()
+				t.ClientConnInfo.Stat.NewLap()
 			}
 		case <-timer60Ch:
-			for _, v := range t.GameObjs {
-				near := t.spp.GetNear2(&v.pos)
-				clist := v.GetCollisionList(near)
-				for _, o := range clist {
-					if o.enabled {
-						o.enabled = false
+			t.spp = <-t.PWorld.SppCh
+			if t.spp != nil {
+				for _, v := range t.GameObjs {
+					near := t.spp.GetNear2(&v.pos)
+					clist := v.GetCollisionList(near)
+					for _, o := range clist {
+						if o.enabled {
+							o.enabled = false
+						}
 					}
 				}
-			}
-			for _, v := range t.GameObjs {
-				if v.enabled == false {
-					t.delGameObject(&v)
-				} else {
-					near := t.spp.GetNear2(&v.pos)
-					v.aiAction(&v, near)
-					v.lastMoveTime = time.Now()
-					v.curStep += 1
+				for _, v := range t.GameObjs {
+					if v.enabled == false {
+						t.delGameObject(&v)
+					} else {
+						near := t.spp.GetNear2(&v.pos)
+						v.aiAction(&v, near)
+						v.lastMoveTime = time.Now()
+						v.curStep += 1
+					}
 				}
 			}
 			if len(t.GameObjs) < 1 {
 				t.addNewGameObject()
 			}
+		case cmd := <-t.ClientConnInfo.CmdCh:
+			switch cmd.Cmd {
+			case "quit":
+				break loop
+			}
+		case cmd := <-t.CmdCh:
+			switch cmd.Cmd {
+			case "quit":
+				break loop
+			// case "envInfo":
+			// 	t.spp = cmd.Args.(*SpatialPartition)
+			default:
+				log.Printf("unknown cmd %v\n", cmd)
+			}
 		case packet := <-t.ClientConnInfo.ReadCh:
 			//log.Printf("%v\n", packet)
 			t.ClientConnInfo.WriteCh <- packet
 			//log.Println("send/recv")
-		case cmd := <-t.CmdCh:
-			switch cmd.Cmd {
-			case "quit":
-				for _, v := range t.GameObjs {
-					v.CmdCh <- Cmd{Cmd: "quit"}
-				}
-				t.ClientConnInfo.Conn.Close()
-				break loop
-			case "envInfo":
-				t.spp = cmd.Args.(*SpatialPartition)
-			default:
-				log.Printf("unknown cmd %v\n", cmd)
-			}
 		}
 	}
+	//log.Printf("team ending:%v\n", t.ClientConnInfo.Stat.String())
+	t.PWorld.CmdCh <- Cmd{Cmd: "delTeam", Args: t}
+	t.ClientConnInfo.Conn.Close()
+	//log.Printf("quit %v", t)
 }
 
 func (t *Team) addNewGameObject() {

@@ -31,7 +31,7 @@ func NewWorld(g *GameService) *World {
 	w := World{
 		ID:       <-IdGenCh,
 		StatInfo: *NewStatInfo(),
-		CmdCh:    make(chan Cmd),
+		CmdCh:    make(chan Cmd, 10),
 		PService: g,
 		MinPos:   Vector3D{0, 0, 0},
 		MaxPos:   Vector3D{1000, 1000, 1000},
@@ -56,21 +56,6 @@ func (w *World) Loop() {
 loop:
 	for {
 		select {
-		case <-timer1secCh:
-			log.Printf("world:%v, team:%v",
-				w.StatInfo.String(),
-				len(w.Teams),
-			)
-		case <-timer60Ch:
-			w.spp = w.MakeSpatialPartition()
-			// for _, t := range w.Teams {
-			// 	t.CmdCh <- Cmd{
-			// 		Cmd:  "envInfo",
-			// 		Args: spp,
-			// 	}
-			// }
-		case w.PService.CmdCh <- Cmd{Cmd: "statInfo", Args: &w.StatInfo}:
-			w.StatInfo.NewLap()
 		case cmd := <-w.CmdCh:
 			switch cmd.Cmd {
 			case "quit":
@@ -83,12 +68,23 @@ loop:
 			case "delTeam":
 				w.delTeam(cmd.Args.(*Team))
 			case "statInfo":
-				w.StatInfo.AddLap(cmd.Args.(*StatInfo))
+				s := cmd.Args.(StatInfo)
+				w.StatInfo.AddLap(&s)
+				//log.Println("world stat added")
 			default:
 				log.Printf("unknown cmd %v\n", cmd)
 			}
+		case <-timer60Ch:
+			w.spp = w.MakeSpatialPartition()
+		case <-timer1secCh:
+			log.Printf("world:%v, team:%v", w.StatInfo.String(), len(w.Teams))
+			select {
+			case w.PService.CmdCh <- Cmd{Cmd: "statInfo", Args: w.StatInfo}:
+				w.StatInfo.NewLap()
+			}
 		}
 	}
+	log.Printf("quit %v", w)
 }
 
 func (w *World) addNewTeam(conn net.Conn) {

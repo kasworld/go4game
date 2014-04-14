@@ -19,4 +19,6 @@ func main() {
 	time.Sleep(1 * time.Second)
 	go4game.ClientMain(connectTo, *client)
 	time.Sleep(time.Duration(*rundur) * time.Second)
+	service.CmdCh <- go4game.Cmd{Cmd: "quit"}
+	time.Sleep(5 * time.Second)
 }

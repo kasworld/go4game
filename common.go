@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	//"log"
 	"math/rand"
 	"net"
 	"runtime"
@@ -101,7 +101,7 @@ func (cl *CountLen) Clear() {
 	cl.Len = 0
 }
 
-func (cl *CountLen) CalcLap(dur time.Duration) string {
+func (cl CountLen) CalcLap(dur time.Duration) string {
 	return fmt.Sprintf("count:%v/%5.1f len:%v/%5.1f",
 		cl.Count, float64(cl.Count)/dur.Seconds(),
 		cl.Len, float64(cl.Len)/dur.Seconds())
@@ -116,7 +116,7 @@ type StatInfo struct {
 	LastLapTime time.Time
 }
 
-func (d *StatInfo) String() string {
+func (d StatInfo) String() string {
 	lapdur := time.Now().Sub(d.LastLapTime)
 	dur := time.Now().Sub(d.StartTime)
 	return fmt.Sprintf("Stat:read(total:%v lap:%v) write(total:%v lap:%v)",
@@ -163,19 +163,19 @@ type Cmd struct {
 
 type ConnInfo struct {
 	Stat    *StatInfo
-	CmdCh   chan Cmd
+	PTeam   *Team
 	Conn    net.Conn
 	ReadCh  chan interface{}
 	WriteCh chan interface{}
 }
 
-func NewConnInfo(conn net.Conn) *ConnInfo {
+func NewConnInfo(t *Team, conn net.Conn) *ConnInfo {
 	c := ConnInfo{
 		Stat:    NewStatInfo(),
-		CmdCh:   make(chan Cmd),
 		Conn:    conn,
 		ReadCh:  make(chan interface{}, 10),
 		WriteCh: make(chan interface{}, 10),
+		PTeam:   t,
 	}
 	go c.readLoop()
 	go c.writeLoop()
@@ -188,16 +188,13 @@ func (c *ConnInfo) readLoop() {
 		var packet GamePacket
 		n, err := readJson(c.Conn, &packet)
 		if err != nil {
-			if err.Error() != "EOF" {
-				log.Print(err)
-			}
+			c.PTeam.CmdCh <- Cmd{Cmd: "quitRead", Args: err}
 			break
 		} else {
 			c.ReadCh <- packet
 			c.Stat.IncR(int(n))
 		}
 	}
-	c.CmdCh <- Cmd{Cmd: "quit"}
 }
 
 func (c *ConnInfo) writeLoop() {
@@ -208,13 +205,10 @@ writeloop:
 		case packet := <-c.WriteCh:
 			n, err := writeJson(c.Conn, packet)
 			if err != nil {
-				if err.Error() != "EOF" {
-					log.Print(err)
-				}
+				c.PTeam.CmdCh <- Cmd{Cmd: "quitWrite", Args: err}
 				break writeloop
 			}
 			c.Stat.IncW(int(n))
 		}
 	}
-	c.CmdCh <- Cmd{Cmd: "quit"}
 }

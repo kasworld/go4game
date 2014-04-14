@@ -26,7 +26,7 @@ func NewGameService(listenTo string) *GameService {
 	g := GameService{
 		ID:       <-IdGenCh,
 		StatInfo: *NewStatInfo(),
-		CmdCh:    make(chan Cmd),
+		CmdCh:    make(chan Cmd, 10),
 		Worlds:   make(map[int]World),
 		ListenTo: listenTo,
 	}
@@ -49,24 +49,9 @@ func (g *GameService) delWorld(w *World) {
 func (g *GameService) Loop() {
 	timer1secCh := time.Tick(1 * time.Second)
 	timer60Ch := time.Tick(1000 / 60 * time.Millisecond)
+loop:
 	for {
 		select {
-		case <-timer1secCh:
-			log.Printf("service:%v\n", g.StatInfo.String())
-			g.StatInfo.NewLap()
-		case <-timer60Ch:
-			// do frame action
-		case cmd := <-g.CmdCh:
-			switch cmd.Cmd {
-			case "quit":
-				for _, v := range g.Worlds {
-					v.CmdCh <- Cmd{Cmd: "quit"}
-				}
-			case "statInfo":
-				g.StatInfo.AddLap(cmd.Args.(*StatInfo))
-			default:
-				log.Printf("unknown cmd %v", cmd)
-			}
 		case conn := <-g.clientConnectionCh: // new team
 			for _, v := range g.Worlds {
 				v.CmdCh <- Cmd{
@@ -75,8 +60,28 @@ func (g *GameService) Loop() {
 				}
 				break
 			}
+		case cmd := <-g.CmdCh:
+			//log.Println(cmd)
+			switch cmd.Cmd {
+			case "quit":
+				for _, v := range g.Worlds {
+					v.CmdCh <- Cmd{Cmd: "quit"}
+				}
+				break loop
+			case "statInfo":
+				s := cmd.Args.(StatInfo)
+				g.StatInfo.AddLap(&s)
+			default:
+				log.Printf("unknown cmd %v", cmd)
+			}
+		case <-timer60Ch:
+			// do frame action
+		case <-timer1secCh:
+			log.Printf("service:%v\n", g.StatInfo.String())
+			g.StatInfo.NewLap()
 		}
 	}
+	log.Printf("quit %v", g)
 }
 
 func (g *GameService) listenLoop() chan net.Conn {

@@ -4,22 +4,23 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"reflect"
+	//"reflect"
+	"runtime"
 	"time"
 )
 
 type GameService struct {
 	StatInfo
-	ID                 int
-	CmdCh              chan Cmd
-	Name               string
+	ID    int
+	CmdCh chan Cmd
+	//Name               string
 	Worlds             map[int]World
 	ListenTo           string
 	clientConnectionCh chan net.Conn
 }
 
 func (m GameService) String() string {
-	return fmt.Sprintf("%v %v %v %v", reflect.TypeOf(m), m.ID, m.Name, len(m.Worlds))
+	return fmt.Sprintf("GameService:%v Worlds:%v", m.ID, len(m.Worlds))
 }
 
 func NewGameService(listenTo string) *GameService {
@@ -31,19 +32,29 @@ func NewGameService(listenTo string) *GameService {
 		ListenTo: listenTo,
 	}
 	g.clientConnectionCh = g.listenLoop()
-	g.addNewWorld()
+	//g.addNewWorld()
 	log.Printf("New %v", g)
 	go g.Loop()
 	return &g
 }
 
-func (g *GameService) addNewWorld() {
-	w := *NewWorld(g)
-	g.Worlds[w.ID] = w
+func (g *GameService) addNewWorld() *World {
+	w := NewWorld(g)
+	g.Worlds[w.ID] = *w
+	return w
 }
 
 func (g *GameService) delWorld(w *World) {
 	delete(g.Worlds, w.ID)
+}
+
+func (g *GameService) findFreeWorld(teamCount int) *World {
+	for _, w := range g.Worlds {
+		if len(w.Teams) < teamCount {
+			return &w
+		}
+	}
+	return g.addNewWorld()
 }
 
 func (g *GameService) Loop() {
@@ -53,12 +64,10 @@ loop:
 	for {
 		select {
 		case conn := <-g.clientConnectionCh: // new team
-			for _, v := range g.Worlds {
-				v.CmdCh <- Cmd{
-					Cmd:  "newTeam",
-					Args: conn,
-				}
-				break
+			w := g.findFreeWorld(32)
+			w.CmdCh <- Cmd{
+				Cmd:  "newTeam",
+				Args: conn,
 			}
 		case cmd := <-g.CmdCh:
 			//log.Println(cmd)
@@ -71,13 +80,20 @@ loop:
 			case "statInfo":
 				s := cmd.Args.(StatInfo)
 				g.StatInfo.AddLap(&s)
+			case "delWorld":
+				g.delWorld(cmd.Args.(*World))
 			default:
 				log.Printf("unknown cmd %v", cmd)
 			}
 		case <-timer60Ch:
 			// do frame action
 		case <-timer1secCh:
-			log.Printf("service:%v\n", g.StatInfo.String())
+			tsum := 0
+			for _, w := range g.Worlds {
+				tsum += len(w.Teams)
+			}
+			log.Printf("%v teams:%v goroutine:%v\n%v",
+				g, tsum, runtime.NumGoroutine(), g.StatInfo)
 			g.StatInfo.NewLap()
 		}
 	}

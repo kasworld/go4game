@@ -23,7 +23,7 @@ type GameObject struct {
 	pos             Vector3D
 	move            Vector3D
 	accel           Vector3D
-	aiAction        AIActionFn
+	autoMoveAction  AutoMoveFn
 	collisionRadius float64
 	bounceDamping   float64
 }
@@ -33,7 +33,7 @@ func (m GameObject) String() string {
 		reflect.TypeOf(m), m.ID, m.objType, m.PTeam)
 }
 
-func NewGameObject(PTeam *Team, t string, mover AIActionFn) *GameObject {
+func NewGameObject(PTeam *Team, t string, mover AutoMoveFn) *GameObject {
 	Min := PTeam.PWorld.MinPos
 	Max := PTeam.PWorld.MaxPos
 	o := GameObject{
@@ -47,7 +47,7 @@ func NewGameObject(PTeam *Team, t string, mover AIActionFn) *GameObject {
 		pos:             RandVector(Min, Max),
 		move:            RandVector3D(-0.5, 0.5),
 		accel:           RandVector3D(-0.5, 0.5),
-		aiAction:        mover,
+		autoMoveAction:  mover,
 		collisionRadius: rand.Float64(),
 		bounceDamping:   rand.Float64(),
 		MinPos:          Min,
@@ -58,7 +58,23 @@ func NewGameObject(PTeam *Team, t string, mover AIActionFn) *GameObject {
 	return &o
 }
 
-type GameObjectList []*GameObject
+func (o *GameObject) AutoMoveByTime(t time.Time) {
+	// check if collision , disable
+	// modify own status only
+	near := o.PTeam.spp.GetNear2(&o.pos)
+	clist := o.GetCollisionList(near)
+	if len(clist) > 0 {
+		o.enabled = false
+		return
+	}
+
+	// change pos by movevector
+	o.autoMoveAction(o, near)
+	o.lastMoveTime = t
+	o.curStep += 1
+
+	// check wall action ( wrap, bounce )
+}
 
 func (m *GameObject) IsCollision(target *GameObject) bool {
 	return m.pos.LenTo(&target.pos) <= m.collisionRadius+target.collisionRadius
@@ -74,9 +90,11 @@ func (m *GameObject) GetCollisionList(near GameObjectList) GameObjectList {
 	return rtn
 }
 
-type AIActionFn func(m *GameObject, near GameObjectList)
+type GameObjectList []*GameObject
 
-func autoMove1(m *GameObject, near GameObjectList) {
+type AutoMoveFn func(m *GameObject, near GameObjectList)
+
+func autoMoveWrap(m *GameObject, near GameObjectList) {
 	m.pos = *m.pos.Add(&m.move)
 	m.move = *m.move.Add(&m.accel)
 	m.move.Normalize()
@@ -92,7 +110,7 @@ func autoMove1(m *GameObject, near GameObjectList) {
 
 }
 
-func autoMove2(m *GameObject, near GameObjectList) {
+func autoMoveBounce(m *GameObject, near GameObjectList) {
 	m.pos = *m.pos.Add(&m.move)
 	m.move = *m.move.Add(&m.accel)
 

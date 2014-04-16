@@ -3,14 +3,19 @@ go4game
 
 game server framework using  golang
 
-    GameService : server.go 
-        World : world.go 
-            Team : team.go 
-                GameObject : gameobject.go 
+    GameService : server.go : main service entry
+        World : world.go : game world or zone, terrain
+            Team : team.go : AI or user controlled object
+                GameObject : gameobject.go : component of team
+                ConnInfo : common.go : tcp connection to channel
+                    StatInfo : packet statistics
 
 
-execute server and client 
-go run runserver/main.go -client 1000
+execute server
+go run runserver/main.go -rundur 60
+
+execute client
+go run runclient/main.go -client 1000 -rundur 60 -connectTo localhost:6666
 
 
 ### korean discription
@@ -23,4 +28,11 @@ World : World : ai와 user가 접속해서 interaction하는 공간. 실 game co
 
 Team : gameObject list , AI , user 경쟁의 단위
 
-GameObject : team을 구성하는 object 
+GameObject : team을 구성하는 object
+
+ConnInfo : net.Conn to channel, 2 goroutine
+
+StatInfo : packet 통계용
+
+Cmd : cmd channel object
+

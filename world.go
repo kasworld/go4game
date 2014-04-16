@@ -6,7 +6,7 @@ import (
 	//"math"
 	//"math/rand"
 	"net"
-	"reflect"
+	//"reflect"
 	"time"
 )
 
@@ -15,7 +15,6 @@ type World struct {
 	ID       int
 	CmdCh    chan Cmd
 	PService *GameService
-	Name     string
 	MinPos   Vector3D
 	MaxPos   Vector3D
 	Teams    map[int]Team
@@ -24,7 +23,7 @@ type World struct {
 }
 
 func (m World) String() string {
-	return fmt.Sprintf("%v %v %v %v", reflect.TypeOf(m), m.ID, m.Name, len(m.Teams))
+	return fmt.Sprintf("World:%v Team:%v", m.ID, len(m.Teams))
 }
 
 func NewWorld(g *GameService) *World {
@@ -38,19 +37,27 @@ func NewWorld(g *GameService) *World {
 		Teams:    make(map[int]Team),
 		SppCh:    make(chan *SpatialPartition),
 	}
-	log.Printf("New %v", w)
+	//log.Printf("New %v", w)
 	go w.Loop()
 	return &w
 }
 
-func (w *World) SppBroadCast() {
+func (w *World) SppBroadCast(CmdCh chan Cmd) {
+loop:
 	for {
-		w.SppCh <- w.spp
+		select {
+		case <-CmdCh:
+			break loop
+		case w.SppCh <- w.spp:
+			// broadcast
+		}
 	}
 }
 
 func (w *World) Loop() {
-	go w.SppBroadCast()
+	SppCmdCh := make(chan Cmd, 1)
+	go w.SppBroadCast(SppCmdCh)
+
 	timer60Ch := time.Tick(1000 / 60 * time.Millisecond)
 	timer1secCh := time.Tick(1 * time.Second)
 loop:
@@ -67,6 +74,10 @@ loop:
 				w.addNewTeam(cmd.Args.(net.Conn))
 			case "delTeam":
 				w.delTeam(cmd.Args.(*Team))
+				if len(w.Teams) == 0 {
+					w.PService.CmdCh <- Cmd{Cmd: "delWorld", Args: w}
+					break loop
+				}
 			case "statInfo":
 				s := cmd.Args.(StatInfo)
 				w.StatInfo.AddLap(&s)
@@ -77,14 +88,15 @@ loop:
 		case <-timer60Ch:
 			w.spp = w.MakeSpatialPartition()
 		case <-timer1secCh:
-			log.Printf("world:%v, team:%v", w.StatInfo.String(), len(w.Teams))
+			//log.Printf("%v\n%v", w, w.StatInfo)
 			select {
 			case w.PService.CmdCh <- Cmd{Cmd: "statInfo", Args: w.StatInfo}:
 				w.StatInfo.NewLap()
 			}
 		}
 	}
-	log.Printf("quit %v", w)
+	SppCmdCh <- Cmd{Cmd: "quit"}
+	//log.Printf("quit %v", w)
 }
 
 func (w *World) addNewTeam(conn net.Conn) {

@@ -8,17 +8,14 @@ import (
 )
 
 func main() {
-	connectTo := "localhost:6666"
+	connectTo := "0.0.0.0:6666"
 	var rundur = flag.Int("rundur", 60, "run time sec")
-	var client = flag.Int("client", 4, "client count")
 	flag.Parse()
-	log.Printf("%v %v %v", connectTo, *rundur, *client)
+	log.Printf("%v %v", connectTo, *rundur)
 
 	service := *go4game.NewGameService(connectTo)
 	service.CmdCh <- go4game.Cmd{Cmd: "start"}
-	time.Sleep(1 * time.Second)
-	go4game.ClientMain(connectTo, *client)
 	time.Sleep(time.Duration(*rundur) * time.Second)
 	service.CmdCh <- go4game.Cmd{Cmd: "quit"}
-	time.Sleep(5 * time.Second)
+	time.Sleep(2 * time.Second)
 }

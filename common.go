@@ -119,7 +119,7 @@ type StatInfo struct {
 func (d StatInfo) String() string {
 	lapdur := time.Now().Sub(d.LastLapTime)
 	dur := time.Now().Sub(d.StartTime)
-	return fmt.Sprintf("Stat:read(total:%v lap:%v) write(total:%v lap:%v)",
+	return fmt.Sprintf("recv(total:%v lap:%v)\nsend(total:%v lap:%v)",
 		d.ReadSum.CalcLap(dur),
 		d.ReadCL.CalcLap(lapdur),
 		d.WriteSum.CalcLap(dur),
@@ -163,6 +163,7 @@ type Cmd struct {
 
 type ConnInfo struct {
 	Stat    *StatInfo
+	CmdCh   chan Cmd
 	PTeam   *Team
 	Conn    net.Conn
 	ReadCh  chan interface{}
@@ -172,9 +173,10 @@ type ConnInfo struct {
 func NewConnInfo(t *Team, conn net.Conn) *ConnInfo {
 	c := ConnInfo{
 		Stat:    NewStatInfo(),
+		CmdCh:   make(chan Cmd, 2),
 		Conn:    conn,
-		ReadCh:  make(chan interface{}, 10),
-		WriteCh: make(chan interface{}, 10),
+		ReadCh:  make(chan interface{}, 1),
+		WriteCh: make(chan interface{}, 1),
 		PTeam:   t,
 	}
 	go c.readLoop()
@@ -195,6 +197,7 @@ func (c *ConnInfo) readLoop() {
 			c.Stat.IncR(int(n))
 		}
 	}
+	//log.Print("quit read")
 }
 
 func (c *ConnInfo) writeLoop() {
@@ -202,6 +205,11 @@ func (c *ConnInfo) writeLoop() {
 writeloop:
 	for {
 		select {
+		case cmd := <-c.CmdCh:
+			switch cmd.Cmd {
+			case "quit":
+				break writeloop
+			}
 		case packet := <-c.WriteCh:
 			n, err := writeJson(c.Conn, packet)
 			if err != nil {
@@ -211,4 +219,5 @@ writeloop:
 			c.Stat.IncW(int(n))
 		}
 	}
+	//log.Print("quit write")
 }

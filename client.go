@@ -2,27 +2,28 @@ package go4game
 
 import (
 	"log"
-	"math/rand"
+	//"math/rand"
 	"net"
 	"time"
 )
 
-func ClientMain(connectTo string, clientcount int) {
+func ClientMain(connectTo string, clientcount int, rundur int) {
 	log.Println("client Starting")
 	for i := 0; i < clientcount; i++ {
-		go repeatReq(connectTo)
+		// time.Duration(rand.Float64()*60)
+		go repeatReq(connectTo, time.Duration(rundur))
 		//time.Sleep(1 * time.Millisecond)
 	}
 }
 
-func repeatReq(connectTo string) {
+func repeatReq(connectTo string, rundur time.Duration) {
 	conn, err := net.Dial("tcp", connectTo)
 	if err != nil {
 		log.Printf("client %v", err)
 		return
 	}
 	defer conn.Close()
-	timerCh := time.After(time.Duration(rand.Float64()*60) * time.Second)
+	timerCh := time.After(rundur * time.Second)
 	timer60Ch := time.Tick(1000 / 60 * time.Millisecond)
 clientloop:
 	for {

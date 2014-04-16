@@ -39,8 +39,15 @@ func NewTeam(w *World, conn net.Conn) *Team {
 	return &t
 }
 
+func (t *Team) EndTeam() {
+	t.ClientConnInfo.CmdCh <- Cmd{Cmd: "quit"}
+	t.ClientConnInfo.Conn.Close()
+	t.PWorld.CmdCh <- Cmd{Cmd: "delTeam", Args: t}
+}
+
 func (t *Team) Loop() {
-	t.addNewGameObject()
+	defer t.EndTeam()
+
 	timer60Ch := time.Tick(1000 / 60 * time.Millisecond)
 	timer1secCh := time.Tick(1 * time.Second)
 loop:
@@ -49,43 +56,31 @@ loop:
 		case cmd := <-t.CmdCh:
 			switch cmd.Cmd {
 			case "quit":
-				t.ClientConnInfo.Conn.Close()
 				break loop
 			case "quitRead":
-				//log.Printf("%v", cmd.Args.(error))
-				t.PWorld.CmdCh <- Cmd{Cmd: "delTeam", Args: t}
 				break loop
 			case "quitWrite":
-				//log.Printf("%v", cmd.Args.(error))
-				t.PWorld.CmdCh <- Cmd{Cmd: "delTeam", Args: t}
 				break loop
 			default:
 				log.Printf("unknown cmd %v\n", cmd)
 			}
 		case packet := <-t.ClientConnInfo.ReadCh:
-			//log.Printf("%v\n", packet)
-			t.ClientConnInfo.WriteCh <- packet
-			//log.Println("send/recv")
-		case <-timer60Ch:
-			t.spp = <-t.PWorld.SppCh
-			if t.spp != nil {
-				for _, v := range t.GameObjs {
-					near := t.spp.GetNear2(&v.pos)
-					clist := v.GetCollisionList(near)
-					for _, o := range clist {
-						if o.enabled {
-							o.enabled = false
+			// get ai action
+			// apply ai action
+			select {
+			case t.ClientConnInfo.WriteCh <- packet:
+			}
+
+		case ftime := <-timer60Ch:
+			// do automove by time
+			select {
+			case t.spp = <-t.PWorld.SppCh:
+				if t.spp != nil {
+					for _, v := range t.GameObjs {
+						v.AutoMoveByTime(ftime)
+						if v.enabled == false {
+							t.delGameObject(&v)
 						}
-					}
-				}
-				for _, v := range t.GameObjs {
-					if v.enabled == false {
-						t.delGameObject(&v)
-					} else {
-						near := t.spp.GetNear2(&v.pos)
-						v.aiAction(&v, near)
-						v.lastMoveTime = time.Now()
-						v.curStep += 1
 					}
 				}
 			}
@@ -105,11 +100,18 @@ loop:
 }
 
 func (t *Team) addNewGameObject() {
-	ais := []AIActionFn{autoMove1, autoMove2}
+	ais := []AutoMoveFn{autoMoveWrap, autoMoveBounce}
 	o := *NewGameObject(t, "main", ais[rand.Intn(len(ais))])
 	t.GameObjs[o.ID] = o
 }
 
 func (t *Team) delGameObject(o *GameObject) {
 	delete(t.GameObjs, o.ID)
+}
+
+type AIAction struct {
+}
+
+func (t *Team) ApplyAIAction(aa *AIAction) {
+	// change accel, fire bullet
 }

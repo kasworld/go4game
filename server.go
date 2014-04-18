@@ -14,7 +14,7 @@ type GameService struct {
 	ID    int
 	CmdCh chan Cmd
 	//Name               string
-	Worlds             map[int]World
+	Worlds             map[int]*World
 	ListenTo           string
 	clientConnectionCh chan net.Conn
 }
@@ -28,7 +28,7 @@ func NewGameService(listenTo string) *GameService {
 		ID:       <-IdGenCh,
 		StatInfo: *NewStatInfo(),
 		CmdCh:    make(chan Cmd, 10),
-		Worlds:   make(map[int]World),
+		Worlds:   make(map[int]*World),
 		ListenTo: listenTo,
 	}
 	g.clientConnectionCh = g.listenLoop()
@@ -40,7 +40,7 @@ func NewGameService(listenTo string) *GameService {
 
 func (g *GameService) addNewWorld() *World {
 	w := NewWorld(g)
-	g.Worlds[w.ID] = *w
+	g.Worlds[w.ID] = w
 	return w
 }
 
@@ -51,7 +51,7 @@ func (g *GameService) delWorld(w *World) {
 func (g *GameService) findFreeWorld(teamCount int) *World {
 	for _, w := range g.Worlds {
 		if len(w.Teams) < teamCount {
-			return &w
+			return w
 		}
 	}
 	return g.addNewWorld()

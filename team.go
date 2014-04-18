@@ -4,7 +4,7 @@ import (
 	//"errors"
 	"fmt"
 	"log"
-	"math/rand"
+	//"math/rand"
 	"net"
 	"reflect"
 	"time"
@@ -15,7 +15,7 @@ type Team struct {
 	CmdCh          chan Cmd
 	Name           string
 	PWorld         *World
-	GameObjs       map[int]GameObject
+	GameObjs       map[int]*GameObject
 	TeamName       string
 	ClientConnInfo ConnInfo
 	spp            *SpatialPartition
@@ -30,7 +30,7 @@ func NewTeam(w *World, conn net.Conn) *Team {
 		ID:       <-IdGenCh,
 		CmdCh:    make(chan Cmd, 10),
 		PWorld:   w,
-		GameObjs: make(map[int]GameObject),
+		GameObjs: make(map[int]*GameObject),
 	}
 	t.ClientConnInfo = *NewConnInfo(&t, conn)
 
@@ -55,18 +55,18 @@ loop:
 		select {
 		case cmd := <-t.CmdCh:
 			switch cmd.Cmd {
-			case "quit":
-				break loop
-			case "quitRead":
-				break loop
-			case "quitWrite":
+			case "quit", "quitRead", "quitWrite":
 				break loop
 			default:
 				log.Printf("unknown cmd %v\n", cmd)
 			}
-		case packet := <-t.ClientConnInfo.ReadCh:
-			// get ai action
-			// apply ai action
+		case p := <-t.ClientConnInfo.ReadCh:
+			packet := p.(GamePacket)
+			switch packet.Cmd {
+			case "makeTeam":
+			case "action":
+
+			}
 			select {
 			case t.ClientConnInfo.WriteCh <- packet:
 			}
@@ -77,9 +77,9 @@ loop:
 			case t.spp = <-t.PWorld.SppCh:
 				if t.spp != nil {
 					for _, v := range t.GameObjs {
-						v.AutoMoveByTime(ftime)
+						v.ActByTime(ftime)
 						if v.enabled == false {
-							t.delGameObject(&v)
+							t.delGameObject(v)
 						}
 					}
 				}
@@ -100,9 +100,8 @@ loop:
 }
 
 func (t *Team) addNewGameObject() {
-	ais := []AutoMoveFn{autoMoveWrap, autoMoveBounce}
-	o := *NewGameObject(t, "main", ais[rand.Intn(len(ais))])
-	t.GameObjs[o.ID] = o
+	o := *NewGameObject(t, "main")
+	t.GameObjs[o.ID] = &o
 }
 
 func (t *Team) delGameObject(o *GameObject) {

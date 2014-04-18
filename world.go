@@ -17,7 +17,7 @@ type World struct {
 	PService *GameService
 	MinPos   Vector3D
 	MaxPos   Vector3D
-	Teams    map[int]Team
+	Teams    map[int]*Team
 	SppCh    chan *SpatialPartition
 	spp      *SpatialPartition
 }
@@ -34,7 +34,7 @@ func NewWorld(g *GameService) *World {
 		PService: g,
 		MinPos:   Vector3D{0, 0, 0},
 		MaxPos:   Vector3D{1000, 1000, 1000},
-		Teams:    make(map[int]Team),
+		Teams:    make(map[int]*Team),
 		SppCh:    make(chan *SpatialPartition),
 	}
 	//log.Printf("New %v", w)
@@ -100,7 +100,7 @@ loop:
 }
 
 func (w *World) addNewTeam(conn net.Conn) {
-	t := *NewTeam(w, conn)
+	t := NewTeam(w, conn)
 	w.Teams[t.ID] = t
 }
 

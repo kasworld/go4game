@@ -83,8 +83,8 @@ func (w *World) MakeSpatialPartition() *SpatialPartition {
 	for _, t := range w.Teams {
 		for _, obj := range t.GameObjs {
 			if obj.enabled {
-				partPos := rtn.GetPartPos(&obj.pos)
-				rtn.AddPartPos(partPos, &obj)
+				partPos := rtn.GetPartPos(&obj.posVector)
+				rtn.AddPartPos(partPos, obj)
 			}
 		}
 	}

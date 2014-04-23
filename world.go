@@ -11,7 +11,7 @@ import (
 )
 
 type World struct {
-	StatInfo
+	PacketStat
 	ID       int
 	CmdCh    chan Cmd
 	PService *GameService
@@ -28,14 +28,14 @@ func (m World) String() string {
 
 func NewWorld(g *GameService) *World {
 	w := World{
-		ID:       <-IdGenCh,
-		StatInfo: *NewStatInfo(),
-		CmdCh:    make(chan Cmd, 10),
-		PService: g,
-		MinPos:   Vector3D{0, 0, 0},
-		MaxPos:   Vector3D{1000, 1000, 1000},
-		Teams:    make(map[int]*Team),
-		SppCh:    make(chan *SpatialPartition),
+		ID:         <-IdGenCh,
+		PacketStat: *NewStatInfo(),
+		CmdCh:      make(chan Cmd, 10),
+		PService:   g,
+		MinPos:     Vector3D{0, 0, 0},
+		MaxPos:     Vector3D{1000, 1000, 1000},
+		Teams:      make(map[int]*Team),
+		SppCh:      make(chan *SpatialPartition),
 	}
 	//log.Printf("New %v", w)
 	go w.Loop()
@@ -79,8 +79,8 @@ loop:
 					break loop
 				}
 			case "statInfo":
-				s := cmd.Args.(StatInfo)
-				w.StatInfo.AddLap(&s)
+				s := cmd.Args.(PacketStat)
+				w.PacketStat.AddLap(&s)
 				//log.Println("world stat added")
 			default:
 				log.Printf("unknown cmd %v\n", cmd)
@@ -88,10 +88,10 @@ loop:
 		case <-timer60Ch:
 			w.spp = w.MakeSpatialPartition()
 		case <-timer1secCh:
-			//log.Printf("%v\n%v", w, w.StatInfo)
+			//log.Printf("%v\n%v", w, w.PacketStat)
 			select {
-			case w.PService.CmdCh <- Cmd{Cmd: "statInfo", Args: w.StatInfo}:
-				w.StatInfo.NewLap()
+			case w.PService.CmdCh <- Cmd{Cmd: "statInfo", Args: w.PacketStat}:
+				w.PacketStat.NewLap()
 			}
 		}
 	}

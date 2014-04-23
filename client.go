@@ -3,6 +3,7 @@ package go4game
 import (
 	"log"
 	//"math/rand"
+	"encoding/json"
 	"net"
 	"time"
 )
@@ -25,31 +26,40 @@ func repeatReq(connectTo string, rundur time.Duration) {
 	defer conn.Close()
 	timerCh := time.After(rundur * time.Second)
 	timer60Ch := time.Tick(1000 / 60 * time.Millisecond)
+	enc := json.NewEncoder(conn)
+	dec := json.NewDecoder(conn)
+
 clientloop:
 	for {
 		select {
 		case <-timer60Ch:
-			sendPacket := GamePacket{
-				Cmd:       "makeTeam",
-				Teamname:  "aaa",
-				Teamcolor: []int{1, 2, 3},
+			sp := GamePacket{
+				Cmd: ReqMakeTeam,
+				TeamInfo: &TeamInfoPacket{
+					Teamname:  "aaa",
+					Teamcolor: []int{1, 2, 3},
+				},
 			}
-			_, err = writeJson(conn, &sendPacket)
+			err := enc.Encode(&sp)
 			if err != nil {
-				//log.Printf("client %v", err)
+				log.Printf("client %v", err)
 				_ = err
 				break clientloop
 			}
-
-			var p GamePacket
-			_, err := readJson(conn, &p)
+			//log.Printf("%v\n", plen)
+			var rp GamePacket
+			err = dec.Decode(&rp)
 			if err != nil {
-				//log.Printf("client %v", err)
-				_ = err
-				break clientloop
+				log.Printf("%v", err)
 			}
-			//log.Println(p)
-			_ = p
+			switch rp.Cmd {
+			case RspMakeTeam:
+				//log.Printf("%v", packet)
+			case RspWorldInfo:
+			case RspAIAct:
+			default:
+				log.Printf("unknown packet %v", rp)
+			}
 		case <-timerCh:
 			break clientloop
 		}

@@ -8,7 +8,7 @@ game server framework using  golang
             Team : team.go : AI or user controlled object
                 GameObject : gameobject.go : component of team
                 ConnInfo : common.go : tcp connection to channel
-                    StatInfo : packet statistics
+                    PacketStat : packet statistics
 
 
 execute server
@@ -32,7 +32,7 @@ GameObject : team을 구성하는 object
 
 ConnInfo : net.Conn to channel, 2 goroutine
 
-StatInfo : packet 통계용
+PacketStat : packet 통계용
 
 Cmd : cmd channel object
 

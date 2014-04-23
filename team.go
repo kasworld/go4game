@@ -6,23 +6,21 @@ import (
 	"log"
 	//"math/rand"
 	"net"
-	"reflect"
+	//"reflect"
 	"time"
 )
 
 type Team struct {
 	ID             int
 	CmdCh          chan Cmd
-	Name           string
 	PWorld         *World
 	GameObjs       map[int]*GameObject
-	TeamName       string
 	ClientConnInfo ConnInfo
 	spp            *SpatialPartition
 }
 
 func (m Team) String() string {
-	return fmt.Sprintf("%v %v %v %v", reflect.TypeOf(m), m.ID, m.Name, len(m.GameObjs))
+	return fmt.Sprintf("Team:%v Obj:%v", m.ID, len(m.GameObjs))
 }
 
 func NewTeam(w *World, conn net.Conn) *Team {
@@ -61,14 +59,20 @@ loop:
 				log.Printf("unknown cmd %v\n", cmd)
 			}
 		case p := <-t.ClientConnInfo.ReadCh:
-			packet := p.(GamePacket)
-			switch packet.Cmd {
-			case "makeTeam":
-			case "action":
-
+			//packet, err := parsePacket(p)
+			// if err != nil {
+			// 	log.Printf("%v", err)
+			// }
+			switch p.Cmd {
+			case ReqMakeTeam:
+				//log.Printf("%v", packet)
+			case ReqWorldInfo:
+			case ReqAIAct:
+			default:
+				log.Printf("unknown packet %#v", p)
 			}
 			select {
-			case t.ClientConnInfo.WriteCh <- packet:
+			case t.ClientConnInfo.WriteCh <- p:
 			}
 
 		case ftime := <-timer60Ch:

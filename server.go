@@ -10,7 +10,7 @@ import (
 )
 
 type GameService struct {
-	StatInfo
+	PacketStat
 	ID    int
 	CmdCh chan Cmd
 	//Name               string
@@ -25,11 +25,11 @@ func (m GameService) String() string {
 
 func NewGameService(listenTo string) *GameService {
 	g := GameService{
-		ID:       <-IdGenCh,
-		StatInfo: *NewStatInfo(),
-		CmdCh:    make(chan Cmd, 10),
-		Worlds:   make(map[int]*World),
-		ListenTo: listenTo,
+		ID:         <-IdGenCh,
+		PacketStat: *NewStatInfo(),
+		CmdCh:      make(chan Cmd, 10),
+		Worlds:     make(map[int]*World),
+		ListenTo:   listenTo,
 	}
 	g.clientConnectionCh = g.listenLoop()
 	//g.addNewWorld()
@@ -78,8 +78,8 @@ loop:
 				}
 				break loop
 			case "statInfo":
-				s := cmd.Args.(StatInfo)
-				g.StatInfo.AddLap(&s)
+				s := cmd.Args.(PacketStat)
+				g.PacketStat.AddLap(&s)
 			case "delWorld":
 				g.delWorld(cmd.Args.(*World))
 			default:
@@ -93,8 +93,8 @@ loop:
 				tsum += len(w.Teams)
 			}
 			log.Printf("%v teams:%v goroutine:%v\n%v",
-				g, tsum, runtime.NumGoroutine(), g.StatInfo)
-			g.StatInfo.NewLap()
+				g, tsum, runtime.NumGoroutine(), g.PacketStat)
+			g.PacketStat.NewLap()
 		}
 	}
 	log.Printf("quit %v", g)

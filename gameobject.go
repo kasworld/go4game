@@ -3,7 +3,7 @@ package go4game
 import (
 	"fmt"
 	//"math"
-	"log"
+	//"log"
 	//"math/rand"
 	//"reflect"
 	"time"
@@ -85,14 +85,45 @@ func NewGameObject(PTeam *Team, t string) *GameObject {
 		startTime: time.Now(),
 		endTime:   time.Now().Add(time.Second * 60),
 
-		MinPos:            Min,
-		MaxPos:            Max,
-		posVector:         RandVector(Min, Max),
-		moveVector:        RandVector3D(-0.5, 0.5),
+		lastMoveTime: time.Now(),
+		MinPos:       Min,
+		MaxPos:       Max,
+		posVector:    RandVector(Min, Max),
+		moveVector:   RandVector3D(-0.5, 0.5),
+		accelVector:  RandVector3D(-0.5, 0.5),
+
 		moveLimit:         1.0,
-		accelVector:       RandVector3D(-0.5, 0.5),
 		bounceDamping:     1.0,
-		lastMoveTime:      time.Now(),
+		collisionRadius:   0.1,
+		moveByTimeFn:      moveByTimeFn_default,
+		borderActionFn:    borderActionFn_Bounce,
+		collisionActionFn: collisionFn_default,
+		expireActionFn:    expireFn_default,
+	}
+	//log.Printf("New %v\n", o)
+	return &o
+}
+
+func NewGameObject_main(PTeam *Team) *GameObject {
+	Min := PTeam.PWorld.MinPos
+	Max := PTeam.PWorld.MaxPos
+	o := GameObject{
+		ID:        <-IdGenCh,
+		PTeam:     PTeam,
+		enabled:   true,
+		objType:   "main",
+		startTime: time.Now(),
+		endTime:   time.Now().Add(time.Second * 60),
+
+		lastMoveTime: time.Now(),
+		MinPos:       Min,
+		MaxPos:       Max,
+		posVector:    RandVector(Min, Max),
+		moveVector:   RandVector3D(-0.5, 0.5),
+		accelVector:  RandVector3D(-0.5, 0.5),
+
+		moveLimit:         1.0,
+		bounceDamping:     1.0,
 		collisionRadius:   0.1,
 		moveByTimeFn:      moveByTimeFn_default,
 		borderActionFn:    borderActionFn_Bounce,
@@ -204,6 +235,16 @@ func borderActionFn_Wrap(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 		}
 		if m.posVector[i] < m.MinPos[i] {
 			m.posVector[i] = m.MaxPos[i]
+		}
+	}
+	return true
+}
+
+func borderActionFn_None(m *GameObject, envInfo *ActionFnEnvInfo) bool {
+	for i := range m.posVector {
+		if (m.posVector[i] > m.MaxPos[i]) || (m.posVector[i] < m.MinPos[i]) {
+			m.enabled = false
+			return false
 		}
 	}
 	return true

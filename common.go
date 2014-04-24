@@ -5,7 +5,8 @@ import (
 	"encoding/json"
 	//"errors"
 	"fmt"
-	//"log"
+	"github.com/gorilla/websocket"
+	"log"
 	"math/rand"
 	"net"
 	"runtime"
@@ -102,27 +103,29 @@ type Cmd struct {
 	Args interface{}
 }
 
+const (
+	writeWait      = 10 * time.Second    // Time allowed to write a message to the peer.
+	pongWait       = 60 * time.Second    // Time allowed to read the next pong message from the peer.
+	pingPeriod     = (pongWait * 9) / 10 // Send pings to peer with this period. Must be less than pongWait.
+	maxMessageSize = 0xffff              // Maximum message size allowed from peer.
+)
+
 type ConnInfo struct {
 	Stat    *PacketStat
-	CmdCh   chan Cmd
 	PTeam   *Team
 	Conn    net.Conn
+	WsConn  *websocket.Conn
 	ReadCh  chan *GamePacket
 	WriteCh chan *GamePacket
-	// ReadCh  chan []byte
-	// WriteCh chan interface{}
 }
 
 func NewConnInfo(t *Team, conn net.Conn) *ConnInfo {
 	c := ConnInfo{
 		Stat:    NewStatInfo(),
-		CmdCh:   make(chan Cmd, 2),
 		Conn:    conn,
 		ReadCh:  make(chan *GamePacket, 1),
 		WriteCh: make(chan *GamePacket, 1),
-		// ReadCh:  make(chan []byte, 1),
-		// WriteCh: make(chan interface{}, 1),
-		PTeam: t,
+		PTeam:   t,
 	}
 	go c.readLoop()
 	go c.writeLoop()
@@ -130,96 +133,110 @@ func NewConnInfo(t *Team, conn net.Conn) *ConnInfo {
 }
 
 func (c *ConnInfo) readLoop() {
-	defer c.Conn.Close()
+	defer func() {
+		c.Conn.Close()
+		close(c.ReadCh)
+	}()
 	dec := json.NewDecoder(c.Conn)
 	for {
-		//buf, err := readI32Packet(c.Conn)
 		var v GamePacket
 		err := dec.Decode(&v)
 		if err != nil {
-			c.PTeam.CmdCh <- Cmd{Cmd: "quitRead", Args: err}
 			break
-		} else {
-			c.ReadCh <- &v
-			c.Stat.IncR()
 		}
+		c.ReadCh <- &v
+		c.Stat.IncR()
 	}
-	//log.Print("quit read")
 }
 
-// func readI32Packet(conn net.Conn) ([]byte, error) {
-// 	var hlen uint32
-// 	err := binary.Read(conn, binary.LittleEndian, &hlen)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	buf := make([]byte, hlen)
-// 	n, err := conn.Read(buf)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	if uint32(n) != hlen {
-// 		errmsg := fmt.Sprintf("read incomplete %v %v", n, hlen)
-// 		return buf, errors.New(errmsg)
-// 	}
-// 	return buf, nil
-// }
-
-// func readJson(conn net.Conn, recvpacket interface{}) (int, error) {
-// 	buf, err := readI32Packet(conn)
-// 	//log.Printf("%v", string(buf))
-// 	if err != nil {
-// 		return len(buf), err
-// 	}
-// 	return len(buf), json.Unmarshal(buf, &recvpacket)
-// }
-
 func (c *ConnInfo) writeLoop() {
-	defer c.Conn.Close()
+	defer func() {
+		c.Conn.Close()
+	}()
 	enc := json.NewEncoder(c.Conn)
-writeloop:
+loop:
 	for {
 		select {
-		case cmd := <-c.CmdCh:
-			switch cmd.Cmd {
-			case "quit":
-				break writeloop
+		case packet, ok := <-c.WriteCh:
+			if !ok {
+				break loop
 			}
-		case packet := <-c.WriteCh:
-			//n, err := writeJson(c.Conn, packet)
 			err := enc.Encode(packet)
 			if err != nil {
-				c.PTeam.CmdCh <- Cmd{Cmd: "quitWrite", Args: err}
-				break writeloop
+				break loop
 			}
 			c.Stat.IncW()
 		}
 	}
-	//log.Print("quit write")
 }
 
-// func writeI32Packet(conn net.Conn, packet []byte) (int, error) {
-// 	hlen := len(packet)
-// 	err := binary.Write(conn, binary.LittleEndian, uint32(hlen))
-// 	if err != nil {
-// 		return 0, err
-// 	}
-// 	n, err := conn.Write(packet)
-// 	if err != nil {
-// 		return 0, err
-// 	}
-// 	if n != hlen {
-// 		errmsg := fmt.Sprintf("write incomplete %v %v", n, hlen)
-// 		return n, errors.New(errmsg)
-// 	}
-// 	return hlen, nil
-// }
+func NewWsConnInfo(t *Team, conn *websocket.Conn) *ConnInfo {
+	c := ConnInfo{
+		Stat:    NewStatInfo(),
+		WsConn:  conn,
+		ReadCh:  make(chan *GamePacket, 1),
+		WriteCh: make(chan *GamePacket, 1),
+		PTeam:   t,
+	}
+	go c.wsReadLoop()
+	go c.wsWriteLoop()
+	return &c
+}
 
-// func writeJson(conn net.Conn, sendPacket interface{}) (int, error) {
-// 	packet, err := json.Marshal(sendPacket)
-// 	if err != nil {
-// 		return 0, err
-// 	}
-// 	return writeI32Packet(conn, packet)
-// }
+func (c *ConnInfo) wsReadLoop() {
+	defer func() {
+		c.WsConn.Close()
+		close(c.ReadCh)
+		//log.Println("quit wsReadLoop")
+	}()
+	c.WsConn.SetReadLimit(maxMessageSize)
+	c.WsConn.SetReadDeadline(time.Now().Add(pongWait))
+	c.WsConn.SetPongHandler(func(string) error {
+		c.WsConn.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
+	for {
+		var v GamePacket
+		err := c.WsConn.ReadJSON(&v)
+		if err != nil {
+			break
+		}
+		c.ReadCh <- &v
+		c.Stat.IncR()
+	}
+}
+
+func (c *ConnInfo) write(mt int, payload []byte) error {
+	c.WsConn.SetWriteDeadline(time.Now().Add(writeWait))
+	return c.WsConn.WriteMessage(mt, payload)
+}
+
+func (c *ConnInfo) wsWriteLoop() {
+	timerPing := time.Tick(pingPeriod)
+	defer func() {
+		c.WsConn.Close()
+		//log.Println("quit wsWriteLoop")
+	}()
+	for {
+		select {
+		case packet, ok := <-c.WriteCh:
+			if !ok {
+				c.write(websocket.CloseMessage, []byte{})
+				return
+			}
+			message, err := json.Marshal(&packet)
+			log.Println(message)
+			if err != nil {
+				return
+			}
+			if err := c.write(websocket.TextMessage, message); err != nil {
+				return
+			}
+			c.Stat.IncW()
+		case <-timerPing:
+			if err := c.write(websocket.PingMessage, []byte{}); err != nil {
+				return
+			}
+		}
+	}
+}

@@ -5,7 +5,7 @@ import (
 	"log"
 	//"math"
 	//"math/rand"
-	"net"
+	//"net"
 	//"reflect"
 	"time"
 )
@@ -71,7 +71,7 @@ loop:
 				}
 				break loop
 			case "newTeam":
-				w.addNewTeam(cmd.Args.(net.Conn))
+				w.addNewTeam(cmd.Args)
 			case "delTeam":
 				w.delTeam(cmd.Args.(*Team))
 				if len(w.Teams) == 0 {
@@ -99,7 +99,7 @@ loop:
 	//log.Printf("quit %v", w)
 }
 
-func (w *World) addNewTeam(conn net.Conn) {
+func (w *World) addNewTeam(conn interface{}) {
 	t := NewTeam(w, conn)
 	w.Teams[t.ID] = t
 }

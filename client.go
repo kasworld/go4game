@@ -33,13 +33,19 @@ clientloop:
 	for {
 		select {
 		case <-timer60Ch:
+			// sp := GamePacket{
+			// 	Cmd: ReqMakeTeam,
+			// 	TeamInfo: &TeamInfoPacket{
+			// 		Teamname:  "aaa",
+			// 		Teamcolor: []int{1, 2, 3},
+			// 	},
+			// }
 			sp := GamePacket{
-				Cmd: ReqMakeTeam,
-				TeamInfo: &TeamInfoPacket{
-					Teamname:  "aaa",
-					Teamcolor: []int{1, 2, 3},
-				},
+				Cmd: ReqAIAct,
 			}
+			// sp := GamePacket{
+			// 	Cmd: ReqWorldInfo,
+			// }
 			err := enc.Encode(&sp)
 			if err != nil {
 				log.Printf("client %v", err)
@@ -56,6 +62,7 @@ clientloop:
 			case RspMakeTeam:
 				//log.Printf("%v", packet)
 			case RspWorldInfo:
+				//log.Printf("%v", rp)
 			case RspAIAct:
 			default:
 				log.Printf("unknown packet %v", rp)

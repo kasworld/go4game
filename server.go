@@ -5,34 +5,45 @@ import (
 	"log"
 	"net"
 	//"reflect"
+	//"encoding/json"
+	//"flag"
+	"github.com/gorilla/websocket"
+	"net/http"
 	"runtime"
+	"text/template"
 	"time"
 )
 
 type GameService struct {
 	PacketStat
-	ID    int
-	CmdCh chan Cmd
-	//Name               string
-	Worlds             map[int]*World
+	ID     int
+	CmdCh  chan Cmd
+	Worlds map[int]*World
+
 	ListenTo           string
 	clientConnectionCh chan net.Conn
+
+	wsClientConnectionCh chan *websocket.Conn
+	wsListen             string
 }
 
 func (m GameService) String() string {
 	return fmt.Sprintf("GameService:%v Worlds:%v", m.ID, len(m.Worlds))
 }
 
-func NewGameService(listenTo string) *GameService {
+func NewGameService(listenTo string, wsListen string) *GameService {
 	g := GameService{
-		ID:         <-IdGenCh,
-		PacketStat: *NewStatInfo(),
-		CmdCh:      make(chan Cmd, 10),
-		Worlds:     make(map[int]*World),
-		ListenTo:   listenTo,
+		ID:                   <-IdGenCh,
+		PacketStat:           *NewStatInfo(),
+		CmdCh:                make(chan Cmd, 10),
+		Worlds:               make(map[int]*World),
+		ListenTo:             listenTo,
+		clientConnectionCh:   make(chan net.Conn),
+		wsClientConnectionCh: make(chan *websocket.Conn),
+		wsListen:             wsListen,
 	}
-	g.clientConnectionCh = g.listenLoop()
-	//g.addNewWorld()
+	go g.listenLoop()
+	go g.wsServer()
 	log.Printf("New %v", g)
 	go g.Loop()
 	return &g
@@ -69,6 +80,12 @@ loop:
 				Cmd:  "newTeam",
 				Args: conn,
 			}
+		case conn := <-g.wsClientConnectionCh: // new team
+			w := g.findFreeWorld(32)
+			w.CmdCh <- Cmd{
+				Cmd:  "newTeam",
+				Args: conn,
+			}
 		case cmd := <-g.CmdCh:
 			//log.Println(cmd)
 			switch cmd.Cmd {
@@ -100,22 +117,62 @@ loop:
 	log.Printf("quit %v", g)
 }
 
-func (g *GameService) listenLoop() chan net.Conn {
-	clientConnectionCh := make(chan net.Conn)
-	go func(clientConnectionCh chan net.Conn) {
-		listener, err := net.Listen("tcp", g.ListenTo)
+func (g *GameService) listenLoop() {
+	listener, err := net.Listen("tcp", g.ListenTo)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+	defer listener.Close()
+	for {
+		conn, err := listener.Accept()
 		if err != nil {
 			log.Print(err)
-			//os.Exit(1)
 		}
-		defer listener.Close()
-		for {
-			conn, err := listener.Accept()
-			if err != nil {
-				log.Print(err)
-			}
-			clientConnectionCh <- conn
+		g.clientConnectionCh <- conn
+	}
+}
+
+// web socket server
+func (g *GameService) wsServer() {
+	http.HandleFunc("/", g.wsServeHome)
+	http.HandleFunc("/ws", g.wsServe)
+	err := http.ListenAndServe(g.wsListen, nil)
+	if err != nil {
+		log.Println("ListenAndServe: ", err)
+	}
+}
+
+func (g *GameService) wsServeHome(w http.ResponseWriter, r *http.Request) {
+	var homeTempl = template.Must(template.ParseFiles("home.html"))
+	if r.URL.Path != "/" {
+		http.Error(w, "Not found", 404)
+		return
+	}
+	if r.Method != "GET" {
+		http.Error(w, "Method nod allowed", 405)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	homeTempl.Execute(w, r.Host)
+}
+
+func (g *GameService) wsServe(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "Method not allowed", 405)
+		return
+	}
+	var upgrader = websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+	}
+
+	ws, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		if _, ok := err.(websocket.HandshakeError); !ok {
+			log.Println(err)
 		}
-	}(clientConnectionCh)
-	return clientConnectionCh
+		return
+	}
+	g.wsClientConnectionCh <- ws
 }

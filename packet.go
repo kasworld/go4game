@@ -99,28 +99,3 @@ type AiActionPacket struct {
 	Fire2TargetID int
 	Fire3TargetID int
 }
-
-// func parsePacket(buf []byte) (interface{}, error) {
-// 	var pk CmdPacket
-// 	err := json.Unmarshal(buf, &pk)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	switch pk.Cmd {
-// 	case "makeTeam":
-// 		var pk MakeTeamPacket
-// 		err := json.Unmarshal(buf, &pk)
-// 		return &pk, err
-// 	case "aiAction":
-// 		var pk AiActionPacket
-// 		err := json.Unmarshal(buf, &pk)
-// 		return &pk, err
-// 	case "worldInfo":
-// 		var pk WorldInfoPacket
-// 		err := json.Unmarshal(buf, &pk)
-// 		return &pk, err
-// 	default:
-// 		errmsg := fmt.Sprintf("unknown packet %v", pk.Cmd)
-// 		return nil, errors.New(errmsg)
-// 	}
-// }

@@ -3,7 +3,7 @@ package go4game
 import (
 	"fmt"
 	//"math"
-	//"log"
+	"log"
 	//"math/rand"
 	//"reflect"
 	"time"
@@ -130,7 +130,7 @@ func NewGameObject_main(PTeam *Team) *GameObject {
 		collisionActionFn: collisionFn_default,
 		expireActionFn:    expireFn_default,
 	}
-	//log.Printf("New %v\n", o)
+	log.Printf("New %v\n", o)
 	return &o
 }
 

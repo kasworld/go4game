@@ -127,8 +127,8 @@ loop:
 }
 
 func (t *Team) addNewGameObject() {
-	o := *NewGameObject(t, "main")
-	t.GameObjs[o.ID] = &o
+	o := NewGameObject(t, "main")
+	t.GameObjs[o.ID] = o
 }
 
 func (t *Team) delGameObject(o *GameObject) {

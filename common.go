@@ -6,7 +6,7 @@ import (
 	//"errors"
 	"fmt"
 	"github.com/gorilla/websocket"
-	"log"
+	//"log"
 	"math/rand"
 	"net"
 	"runtime"
@@ -225,7 +225,6 @@ func (c *ConnInfo) wsWriteLoop() {
 				return
 			}
 			message, err := json.Marshal(&packet)
-			log.Println(message)
 			if err != nil {
 				return
 			}

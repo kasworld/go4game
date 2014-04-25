@@ -4,24 +4,26 @@ import (
 	//"encoding/json"
 	//"errors"
 	"fmt"
+	//"log"
 )
 
 type GameObjectSeiralize struct {
 	ID              int
-	objType         string
-	posVector       Vector3D
-	moveVector      Vector3D
-	collisionRadius float64
+	ObjType         string
+	PosVector       Vector3D
+	MoveVector      Vector3D
+	CollisionRadius float64
 }
 
 func NewGameObjectSeiralize(o *GameObject) *GameObjectSeiralize {
 	gi := GameObjectSeiralize{
 		ID:              o.ID,
-		objType:         o.objType,
-		posVector:       o.posVector,
-		moveVector:      o.moveVector,
-		collisionRadius: o.collisionRadius,
+		ObjType:         o.objType,
+		PosVector:       o.posVector,
+		MoveVector:      o.moveVector,
+		CollisionRadius: o.collisionRadius,
 	}
+	//log.Printf("%#v", gi)
 	return &gi
 }
 
@@ -33,7 +35,7 @@ type TeamSeialize struct {
 func NewTeamSeialize(t *Team) *TeamSeialize {
 	ts := TeamSeialize{
 		ID:     t.ID,
-		GOList: make([]GameObjectSeiralize, len(t.GameObjs)),
+		GOList: make([]GameObjectSeiralize, 0, len(t.GameObjs)),
 	}
 	for _, o := range t.GameObjs {
 		ts.GOList = append(ts.GOList, *NewGameObjectSeiralize(o))
@@ -53,7 +55,7 @@ func NewWorldSerialize(w *World) *WorldSerialize {
 		ID:       w.ID,
 		MinPos:   w.MinPos,
 		MaxPos:   w.MaxPos,
-		TeamList: make([]TeamSeialize, len(w.Teams)),
+		TeamList: make([]TeamSeialize, 0, len(w.Teams)),
 	}
 	for _, t := range w.Teams {
 		ws.TeamList = append(ws.TeamList, *NewTeamSeialize(t))

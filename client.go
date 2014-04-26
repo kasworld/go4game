@@ -25,7 +25,8 @@ func repeatReq(connectTo string, rundur time.Duration) {
 	}
 	defer conn.Close()
 	timerCh := time.After(rundur * time.Second)
-	timer60Ch := time.Tick(1000 / 10 * time.Millisecond)
+	timer60Ch := time.Tick(1000 / 60 * time.Millisecond)
+	//timer60Ch := time.Tick(1 * time.Microsecond)
 	enc := json.NewEncoder(conn)
 	dec := json.NewDecoder(conn)
 
@@ -40,12 +41,12 @@ clientloop:
 			// 		Teamcolor: []int{1, 2, 3},
 			// 	},
 			// }
-			// sp := GamePacket{
-			// 	Cmd: ReqAIAct,
-			// }
 			sp := GamePacket{
-				Cmd: ReqWorldInfo,
+				Cmd: ReqAIAct,
 			}
+			// sp := GamePacket{
+			// 	Cmd: ReqWorldInfo,
+			// }
 			err := enc.Encode(&sp)
 			if err != nil {
 				log.Printf("client %v", err)
@@ -62,8 +63,8 @@ clientloop:
 			case RspMakeTeam:
 				//log.Printf("%v", packet)
 			case RspWorldInfo:
-				s, _ := json.MarshalIndent(rp.WorldInfo, "", "  ")
-				log.Printf("%v", string(s))
+				//s, _ := json.MarshalIndent(rp.WorldInfo, "", "  ")
+				//log.Printf("%v", string(s))
 			case RspAIAct:
 			default:
 				log.Printf("unknown packet %v", rp)

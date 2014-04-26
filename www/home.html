@@ -6,6 +6,17 @@
 <script type="text/javascript">
     $(function() {
 
+    setInterval(
+        function(){
+            sendWorldInfo()
+        },
+        100);
+    function sendWorldInfo() {
+        if (!conn) {
+            return false;
+        }
+        conn.send('{"Cmd":3}');
+    }
     var conn;
     var msg = $("#msg");
     var log = $("#log");
@@ -27,17 +38,25 @@
             return false;
         }
         conn.send(msg.val());
-        msg.val("");
+        msg.val('{"Cmd":3}');
         return false
     });
 
     if (window["WebSocket"]) {
-        conn = new WebSocket("ws://{{$}}/ws");
+        //conn = new WebSocket("ws://{{$}}/ws");
+        conn = new WebSocket("ws://" + window.location.host +"/ws");
         conn.onclose = function(evt) {
             appendLog($("<div><b>Connection closed.</b></div>"))
         }
         conn.onmessage = function(evt) {
-            appendLog($("<div/>").text(evt.data))
+            var jobj = JSON.parse(evt.data)
+            var msgpp = JSON.stringify(jobj, undefined, 2);
+            //alert(msgpp)
+            //appendLog($("<pre></pre>").text(msgpp))
+            //log.text()
+            log.html( $("<pre></pre>").text(msgpp)) // .appendTo(log)
+
+            //appendLog($("<div/>").text(msgpp))
         }
     } else {
         appendLog($("<div><b>Your browser does not support WebSockets.</b></div>"))
@@ -86,7 +105,7 @@ body {
 <div id="log"></div>
 <form id="form">
     <input type="submit" value="Send" />
-    <input type="text" id="msg" size="128"/>
+    <input type="text" id="msg" size="128" value='{"Cmd":3}'/>
 </form>
 </body>
 </html>

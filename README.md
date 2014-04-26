@@ -1,7 +1,7 @@
 go4game
 =======
 
-game server framework using  golang
+### game server framework using  golang
 
     GameService : server.go : main service entry
         World : world.go : game world or zone, terrain
@@ -11,12 +11,33 @@ game server framework using  golang
                     PacketStat : packet statistics
 
 
+### requirement for websocket, web client
+
+for 3d web
+
+- threejs from threejs.org
+
+- ( included in www/js folder )
+
+for websocket
+
+- https://github.com/gorilla/websocket
+
+- ( clone yourself )
+
+
+### execute
 execute server
-go run runserver/main.go -rundur 60
+
+    go run server/main.go -rundur 60
 
 execute client
-go run runclient/main.go -client 1000 -rundur 60 -connectTo localhost:6666
 
+    go run client/main.go -client 1000 -rundur 60 -connectTo localhost:6666
+
+exec web client
+
+    http://localhost:8080/www/client3d.html
 
 ### korean discription
 

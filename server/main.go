@@ -10,7 +10,7 @@ import (
 func main() {
 	connectTo := "0.0.0.0:6666"
 	wsCconnectTo := "0.0.0.0:8080"
-	var rundur = flag.Int("rundur", 60, "run time sec")
+	var rundur = flag.Int("rundur", 3600, "run time sec")
 	flag.Parse()
 	log.Printf("%v %v", connectTo, *rundur)
 

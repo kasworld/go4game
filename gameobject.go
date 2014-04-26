@@ -3,7 +3,7 @@ package go4game
 import (
 	"fmt"
 	//"math"
-	"log"
+	//"log"
 	//"math/rand"
 	//"reflect"
 	"time"
@@ -89,12 +89,12 @@ func NewGameObject(PTeam *Team, t string) *GameObject {
 		MinPos:       Min,
 		MaxPos:       Max,
 		posVector:    RandVector(Min, Max),
-		moveVector:   RandVector3D(-0.5, 0.5),
-		accelVector:  RandVector3D(-0.5, 0.5),
+		moveVector:   RandVector3D(-50., 50.),
+		accelVector:  RandVector3D(-50., 50.),
 
-		moveLimit:         1.0,
+		moveLimit:         100.0,
 		bounceDamping:     1.0,
-		collisionRadius:   0.1,
+		collisionRadius:   10.,
 		moveByTimeFn:      moveByTimeFn_default,
 		borderActionFn:    borderActionFn_Bounce,
 		collisionActionFn: collisionFn_default,
@@ -104,35 +104,35 @@ func NewGameObject(PTeam *Team, t string) *GameObject {
 	return &o
 }
 
-func NewGameObject_main(PTeam *Team) *GameObject {
-	Min := PTeam.PWorld.MinPos
-	Max := PTeam.PWorld.MaxPos
-	o := GameObject{
-		ID:        <-IdGenCh,
-		PTeam:     PTeam,
-		enabled:   true,
-		objType:   "main",
-		startTime: time.Now(),
-		endTime:   time.Now().Add(time.Second * 60),
+// func NewGameObject_main(PTeam *Team) *GameObject {
+// 	Min := PTeam.PWorld.MinPos
+// 	Max := PTeam.PWorld.MaxPos
+// 	o := GameObject{
+// 		ID:        <-IdGenCh,
+// 		PTeam:     PTeam,
+// 		enabled:   true,
+// 		objType:   "main",
+// 		startTime: time.Now(),
+// 		endTime:   time.Now().Add(time.Second * 60),
 
-		lastMoveTime: time.Now(),
-		MinPos:       Min,
-		MaxPos:       Max,
-		posVector:    RandVector(Min, Max),
-		moveVector:   RandVector3D(-0.5, 0.5),
-		accelVector:  RandVector3D(-0.5, 0.5),
+// 		lastMoveTime: time.Now(),
+// 		MinPos:       Min,
+// 		MaxPos:       Max,
+// 		posVector:    RandVector(Min, Max),
+// 		moveVector:   RandVector3D(-500.0, 500.0),
+// 		accelVector:  RandVector3D(-500.0, 500.0),
 
-		moveLimit:         1.0,
-		bounceDamping:     1.0,
-		collisionRadius:   0.1,
-		moveByTimeFn:      moveByTimeFn_default,
-		borderActionFn:    borderActionFn_Bounce,
-		collisionActionFn: collisionFn_default,
-		expireActionFn:    expireFn_default,
-	}
-	log.Printf("New %v\n", o)
-	return &o
-}
+// 		moveLimit:         1000.0,
+// 		bounceDamping:     1.0,
+// 		collisionRadius:   10.0,
+// 		moveByTimeFn:      moveByTimeFn_default,
+// 		borderActionFn:    borderActionFn_Bounce,
+// 		collisionActionFn: collisionFn_default,
+// 		expireActionFn:    expireFn_default,
+// 	}
+// 	//log.Printf("New %v\n", o)
+// 	return &o
+// }
 
 type ActionFnEnvInfo struct {
 	spp       *SpatialPartition

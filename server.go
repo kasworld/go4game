@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/websocket"
 	"net/http"
 	"runtime"
-	"text/template"
+	//"text/template"
 	"time"
 )
 
@@ -135,27 +135,29 @@ func (g *GameService) listenLoop() {
 
 // web socket server
 func (g *GameService) wsServer() {
-	http.HandleFunc("/", g.wsServeHome)
+	//http.HandleFunc("/", g.wsServeHome)
 	http.HandleFunc("/ws", g.wsServe)
+	//http.Handle("/www", http.FileServer(http.Dir("./www")))
+	http.Handle("/www/", http.StripPrefix("/www/", http.FileServer(http.Dir("./www"))))
 	err := http.ListenAndServe(g.wsListen, nil)
 	if err != nil {
 		log.Println("ListenAndServe: ", err)
 	}
 }
 
-func (g *GameService) wsServeHome(w http.ResponseWriter, r *http.Request) {
-	var homeTempl = template.Must(template.ParseFiles("home.html"))
-	if r.URL.Path != "/" {
-		http.Error(w, "Not found", 404)
-		return
-	}
-	if r.Method != "GET" {
-		http.Error(w, "Method nod allowed", 405)
-		return
-	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	homeTempl.Execute(w, r.Host)
-}
+// func (g *GameService) wsServeHome(w http.ResponseWriter, r *http.Request) {
+// 	var homeTempl = template.Must(template.ParseFiles("home.html"))
+// 	if r.URL.Path != "/" {
+// 		http.Error(w, "Not found", 404)
+// 		return
+// 	}
+// 	if r.Method != "GET" {
+// 		http.Error(w, "Method nod allowed", 405)
+// 		return
+// 	}
+// 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+// 	homeTempl.Execute(w, r.Host)
+// }
 
 func (g *GameService) wsServe(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {

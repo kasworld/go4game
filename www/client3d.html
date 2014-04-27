@@ -20,26 +20,11 @@
 <script type="text/javascript">
 
 // web socket comm
-var conn;
 // setInterval(
 //     function(){
-//         try {
-//             sendWorldInfo();
-//         }
-//         catch( err )
-//         {}
+//         reqWorldInfo();
 //     },
 //     100);
-
-
-function sendWorldInfo() {
-    if (!conn) {
-        return false;
-    }
-    conn.send('{"Cmd":3}');
-}
-var worldinfo
-
 // {
 //   "Cmd": 4,
 //   "TeamInfo": null,
@@ -81,82 +66,110 @@ var worldinfo
 //   "AiAct": null
 // }
 
-
-if (window["WebSocket"]) {
-    //conn = new WebSocket("ws://{{$}}/ws");
-    conn = new WebSocket("ws://" + window.location.host +"/ws");
-    conn.onclose = function(evt) {
-        alert("Connection closed.")
+var worldinfo;
+var conn;
+function initWebSocket() {
+    if (conn && conn.readyState == 1) {
+        return true;
     }
-    conn.onmessage = function(evt) {
-        worldinfo = JSON.parse(evt.data)
-
-        //var msgpp = JSON.stringify(worldinfo, undefined, 2);
-        //info.innerHTML = msgpp;
-        //alert(msgpp)
-        //appendLog($("<pre></pre>").text(msgpp))
-        //log.text()
-        //log.html( $("<pre></pre>").text(msgpp)) // .appendTo(log)
-        //appendLog($("<div/>").text(msgpp))
+    if (window["WebSocket"]) {
+        conn = new WebSocket("ws://" + window.location.host +"/ws");
+        conn.onclose = function(evt) {
+            updateInfo("Connection closed.");
+            window.setTimeout( function() { initWebSocket(); }, 1000);
+        }
+        conn.onmessage = function(evt) {
+            worldinfo = JSON.parse(evt.data)
+            //var msgpp = JSON.stringify(worldinfo, undefined, 2);
+            //info.innerHTML = msgpp;
+        }
+        updateInfo("Connected to server.");
+        return true;
+    } else {
+        updateInfo("Your browser does not support WebSockets.");
+        return false;
     }
-} else {
-    alert("Your browser does not support WebSockets.")
+}
+function reqWorldInfo(conn) {
+    if (!conn ) {
+        updateInfo("Connection not ready.");
+        window.setTimeout( function() { updateInfo(""); }, 100);
+        return false;
+    }
+    if (conn.readyState != 1) {
+        return false;
+    }
+    try {
+        conn.send('{"Cmd":3}');
+    }
+    catch( err ) {
+        return false;
+    }
+    return true;
 }
 
+var keyPress = {
+    moveForward: false,
+    moveBackwards: false,
+    moveLeft: false,
+    moveRight: false,
+    moveUp: false,
+    moveDown: false,
+    targetMoveLeft: false,
+    targetMoveRight: false
+};
+function onDocumentKeyDown( event ) {
+    switch ( event.keyCode ) {
+        case 38: keyPress.moveForward = true; break; // up
+        case 40: keyPress.moveBackwards = true; break; // down
+        case 37: keyPress.moveLeft = true; break; // left
+        case 39: keyPress.moveRight = true; break; // right
+        case 87: keyPress.moveUp = true; break; // w
+        case 83: keyPress.moveDown = true; break; // s
+        case 65: keyPress.targetMoveLeft = true; break; // a
+        case 68: keyPress.targetMoveRight = true; break; // d
+    }
+}
+
+function onDocumentKeyUp( event ) {
+    switch ( event.keyCode ) {
+        case 38: keyPress.moveForward = false; break; // up
+        case 40: keyPress.moveBackwards = false; break; // down
+        case 37: keyPress.moveLeft = false; break; // left
+        case 39: keyPress.moveRight = false; break; // right
+        case 87: keyPress.moveUp = false; break; // w
+        case 83: keyPress.moveDown = false; break; // s
+        case 65: keyPress.targetMoveLeft = false; break; // a
+        case 68: keyPress.targetMoveRight = false; break; // d
+    }
+}
+
+function moveCamera(camera) {
+    if ( keyPress.moveForward ) camera.position.z -= 10;
+    if ( keyPress.moveBackwards ) camera.position.z += 10;
+
+    if ( keyPress.moveLeft ) camera.position.x -= 10;
+    if ( keyPress.moveRight ) camera.position.x += 10;
+
+    if ( keyPress.moveUp ) camera.position.y += 10;
+    if ( keyPress.moveDown ) camera.position.y -= 10;
+
+    if ( keyPress.targetMoveLeft ) camera.target.x -= 10;
+    if ( keyPress.targetMoveRight ) camera.target.x += 10;
+    camera.lookAt( camera.target );
+}
 
 var container, stats;
-
-var camera, scene, renderer, objects;
-var pointLight;
-
-var sphere;
-
-var targetRotation = 0;
-var targetRotationOnMouseDown = 0;
-
-var mouseX = 0;
-var mouseXOnMouseDown = 0;
-
-var windowHalfX = window.innerWidth / 2;
-var windowHalfY = window.innerHeight / 2;
-
-var moveForward = false;
-var moveBackwards = false;
-var moveLeft = false;
-var moveRight = false;
-var moveUp = false;
-var moveDown = false;
-
-var targetMoveLeft = false;
-var targetMoveRight = false;
-
+var camera, scene, renderer;
+var objects = [];
 var debugContext;
+var info;
 
-var info
-
+initWebSocket();
 init();
 animate();
 
-function init() {
-
-    container = document.createElement( 'div' );
-    document.body.appendChild( container );
-
-    info = document.createElement( 'div' );
-    info.style.position = 'absolute';
-    info.style.top = '10px';
-    info.style.width = '100%';
-    info.style.textAlign = 'center';
-    info.innerHTML = '';
-    container.appendChild( info );
-
-    camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 10000 );
-    camera.position.set( 0, 1000, 1000 );
-    camera.target = new THREE.Vector3( 0, 150, 0 );
-
-    scene = new THREE.Scene();
-
-
+function initGrid(scene) {
     var helper = new THREE.GridHelper( 1000, 100 );
     helper.setColors( 0x0000ff, 0x808080 );
     helper.position.y = - 1000;
@@ -168,72 +181,11 @@ function init() {
 
     var axisHelper = new THREE.AxisHelper( 1000 );
     scene.add( axisHelper );
+}
 
-    // geometry = new THREE.BoxGeometry( 1000, 1000, 1000 );
-    // material = new THREE.MeshBasicMaterial( { color: 0x000000, wireframe: true, wireframeLinewidth: 1 } );
-    // mesh = new THREE.Mesh( geometry, material );
-    // scene.add( mesh );
 
-    // Grid
-
-    // var size = 1000, step = 100;
-
-    // var geometry = new THREE.Geometry();
-
-    // for ( var i = - size; i <= size; i += step ) {
-
-    //     geometry.vertices.push( new THREE.Vector3( - size, 0, i ) );
-    //     geometry.vertices.push( new THREE.Vector3(   size, 0, i ) );
-
-    //     geometry.vertices.push( new THREE.Vector3( i, 0, - size ) );
-    //     geometry.vertices.push( new THREE.Vector3( i, 0,   size ) );
-
-    // }
-
-    // var material = new THREE.LineBasicMaterial( { color: 0x000000, opacity: 0.5 } );
-
-    // var line = new THREE.Line( geometry, material );
-    // line.type = THREE.LinePieces;
-    // scene.add( line );
-
-    // Spheres
-
-    objects = [];
-
-    //geometry = new THREE.IcosahedronGeometry( 100, 1 );
-    var geometry = new THREE.SphereGeometry( 50, 16, 16 );
-    var materials = [
-        new THREE.MeshBasicMaterial( { color: 0x00ffff, wireframe: true, side: THREE.DoubleSide } ),
-        new THREE.MeshBasicMaterial( { color: 0xff0000, blending: THREE.AdditiveBlending } ),
-        new THREE.MeshLambertMaterial( { color: 0xffffff, shading: THREE.FlatShading, overdraw: true } ),
-        new THREE.MeshLambertMaterial( { color: 0xffffff, shading: THREE.SmoothShading, overdraw: true } ),
-        new THREE.MeshDepthMaterial( { overdraw: true } ),
-        new THREE.MeshNormalMaterial( { overdraw: true } ),
-        new THREE.MeshNormalMaterial( { shading: THREE.SmoothShading, overdraw: true } ),
-    ];
-
-    for ( var i = 0; i < 1; i ++ ) {
-
-        sphere = new THREE.Mesh( geometry, materials[6] );
-
-        sphere.position.x = Math.random() * 1000 - 500;
-        sphere.position.y = Math.random() * 1000 - 500;
-        sphere.position.z = Math.random() * 1000 - 500;
-
-        sphere.rotation.x = Math.random() * 200 - 100;
-        sphere.rotation.y = Math.random() * 200 - 100;
-        sphere.rotation.z = Math.random() * 200 - 100;
-
-        sphere.scale.x = sphere.scale.y = sphere.scale.z = Math.random() + 0.5;
-
-        objects.push( sphere );
-
-        scene.add( sphere );
-
-    }
-
+function initLight(scene) {
     // Lights
-
     var ambientLight = new THREE.AmbientLight( Math.random() * 0x202020 );
     scene.add( ambientLight );
 
@@ -244,15 +196,39 @@ function init() {
     directionalLight.position.normalize();
     scene.add( directionalLight );
 
-    pointLight = new THREE.PointLight( 0xff0000, 1 );
+    var pointLight = new THREE.PointLight( 0xff0000, 1 );
     scene.add( pointLight );
+}
 
-    //renderer = new THREE.CanvasRenderer();
-    renderer = new THREE.WebGLRenderer();
-    renderer.setClearColor( 0xf0f0f0 );
-    renderer.setSize( window.innerWidth, window.innerHeight );
-    container.appendChild( renderer.domElement );
+function initCamera() {
+    var camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 10000 );
+    camera.position.set( 0, 1000, 1000 );
+    camera.target = new THREE.Vector3( 0, 150, 0 );
+    return camera;
+}
 
+function initInfo(container) {
+    var info = document.createElement( 'div' );
+    info.style.position = 'absolute';
+    info.style.top = '10px';
+    info.style.width = '100%';
+    info.style.textAlign = 'center';
+    //info.innerHTML = "info inited";
+    container.appendChild( info );
+    return info;
+}
+
+function updateInfo(msg) {
+    if ( info ) {
+        info.innerHTML = msg;
+        return true;
+    } else {
+        console.log(msg)
+        return false;
+    }
+}
+
+function initDebugContext(container) {
     var debugCanvas = document.createElement( 'canvas' );
     debugCanvas.width = 512;
     debugCanvas.height = 512;
@@ -262,9 +238,74 @@ function init() {
 
     container.appendChild( debugCanvas );
 
-    debugContext = debugCanvas.getContext( '2d' );
+    var debugContext = debugCanvas.getContext( '2d' );
     debugContext.setTransform( 1, 0, 0, 1, 256, 256 );
     debugContext.strokeStyle = '#000000';
+    return debugContext;
+}
+
+function newGameObject( radius) {
+    var geometry = new THREE.SphereGeometry( radius, 16, 16 );
+    var material = new THREE.MeshNormalMaterial( { shading: THREE.SmoothShading, overdraw: true } )
+    var sphere = new THREE.Mesh( geometry, material );
+    sphere.position.x = 0;
+    sphere.position.y = 0;
+    sphere.position.z = 0;
+    return sphere;
+}
+
+function moveGameObject( object , PosVector ) {
+    object.position.x = PosVector[0];
+    object.position.y = PosVector[1];
+    object.position.z = PosVector[2];
+}
+
+function worldinfo2objects() {
+    if (!worldinfo) {
+        return false;
+    }
+    var teams = worldinfo.WorldInfo.TeamList;
+
+    var thisobjs = [];
+    for ( var ti in teams ) {
+        var tobj = teams[ti]
+        for ( goi in tobj.GOList) {
+            var gobj = tobj.GOList[goi]
+            if ( !(gobj.ID in objects) ) {
+                var sphere = newGameObject(gobj.CollisionRadius);
+                objects[gobj.ID] = sphere;
+                scene.add( sphere );
+            }
+            moveGameObject(objects[gobj.ID], gobj.PosVector );
+            thisobjs[gobj.ID] = true;
+        }
+    }
+    for ( var oi in objects ) {
+        if ( !(oi in thisobjs ) ) {
+            scene.remove( objects[oi] );
+            delete objects[oi];
+        }
+    }
+}
+
+function init() {
+    container = document.createElement( 'div' );
+    document.body.appendChild( container );
+    camera = initCamera();
+    scene = new THREE.Scene();
+
+    info = initInfo(container);
+    initGrid(scene);
+
+    initLight(scene);
+
+    //renderer = new THREE.CanvasRenderer();
+    renderer = new THREE.WebGLRenderer();
+    renderer.setClearColor( 0xf0f0f0 );
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    container.appendChild( renderer.domElement );
+
+    debugContext = initDebugContext(container);
 
     stats = new Stats();
     stats.domElement.style.position = 'absolute';
@@ -274,92 +315,29 @@ function init() {
     document.addEventListener( 'keydown', onDocumentKeyDown, false );
     document.addEventListener( 'keyup', onDocumentKeyUp, false );
 
-    //
-
     window.addEventListener( 'resize', onWindowResize, false );
-
 }
 
 function onWindowResize() {
-
-    windowHalfX = window.innerWidth / 2;
-    windowHalfY = window.innerHeight / 2;
+    // windowHalfX = window.innerWidth / 2;
+    // windowHalfY = window.innerHeight / 2;
 
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
 
     renderer.setSize( window.innerWidth, window.innerHeight );
-
 }
-
-function onDocumentKeyDown( event ) {
-
-    switch ( event.keyCode ) {
-
-        case 38: moveForward = true; break; // up
-        case 40: moveBackwards = true; break; // down
-        case 37: moveLeft = true; break; // left
-        case 39: moveRight = true; break; // right
-        case 87: moveUp = true; break; // w
-        case 83: moveDown = true; break; // s
-        case 65: targetMoveLeft = true; break; // a
-        case 68: targetMoveRight = true; break; // d
-
-    }
-
-}
-
-function onDocumentKeyUp( event ) {
-
-    switch ( event.keyCode ) {
-
-        case 38: moveForward = false; break; // up
-        case 40: moveBackwards = false; break; // down
-        case 37: moveLeft = false; break; // left
-        case 39: moveRight = false; break; // right
-        case 87: moveUp = false; break; // w
-        case 83: moveDown = false; break; // s
-        case 65: targetMoveLeft = false; break; // a
-        case 68: targetMoveRight = false; break; // d
-
-    }
-
-}
-
-//
 
 function animate() {
-        try {
-            sendWorldInfo();
-        }
-        catch( err )
-        {}
+    reqWorldInfo(conn);
 
     requestAnimationFrame( animate );
-
     render();
     stats.update();
-
 }
 
-function render() {
-
-    if ( moveForward ) camera.position.z -= 10;
-    if ( moveBackwards ) camera.position.z += 10;
-
-    if ( moveLeft ) camera.position.x -= 10;
-    if ( moveRight ) camera.position.x += 10;
-
-    if ( moveUp ) camera.position.y += 10;
-    if ( moveDown ) camera.position.y -= 10;
-
-    if ( targetMoveLeft ) camera.target.x -= 10;
-    if ( targetMoveRight ) camera.target.x += 10;
-
-    camera.lookAt( camera.target );
-
+function renderDebugContext(){
     debugContext.clearRect( -256, -256, 512, 512 );
-
     debugContext.beginPath();
 
     // center
@@ -369,40 +347,31 @@ function render() {
     debugContext.lineTo( 0, 10 );
 
     // camera
-
     debugContext.moveTo( camera.position.x * 0.1, camera.position.z * 0.1 );
     debugContext.lineTo( camera.target.x * 0.1, camera.target.z * 0.1 );
     debugContext.rect( camera.position.x * 0.1 - 5, camera.position.z * 0.1 - 5, 10, 10 );
     debugContext.rect( camera.target.x * 0.1 - 5, camera.target.z * 0.1 - 5, 10, 10 );
     debugContext.rect( - 50, - 50, 100, 100 );
 
-    for ( var i = 0, l = objects.length; i < l; i++ ) {
-
+    for ( var i in objects) {
         var object = objects[ i ];
-
-        //object.rotation.x += 0.01;
-        //object.rotation.y += 0.005;
-        object.position.y = Math.sin( object.rotation.x ) * 200;
-
         debugContext.rect( object.position.x * 0.1 - 5, object.position.z * 0.1 - 5, 10, 10 );
-
     }
-
-
-    if (worldinfo) {
-        objects[0].position.x = worldinfo["WorldInfo"]["TeamList"][0]["GOList"][0]["PosVector"][0];
-        objects[0].position.y = worldinfo["WorldInfo"]["TeamList"][0]["GOList"][0]["PosVector"][1];
-        objects[0].position.z = worldinfo["WorldInfo"]["TeamList"][0]["GOList"][0]["PosVector"][2];
-    }
-
-
     debugContext.closePath();
     debugContext.stroke();
-
-    renderer.render( scene, camera );
-
 }
 
+function render() {
+    moveCamera(camera);
+
+    worldinfo2objects();
+
+    renderDebugContext();
+
+    // scene.remove( object )
+    // console.log( 'msg', object)
+    renderer.render( scene, camera );
+}
 
 </script>
 </body>

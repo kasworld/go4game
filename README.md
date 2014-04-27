@@ -41,6 +41,10 @@ exec web client
 
 ### korean discription
 
+http://kasw.blogspot.kr/2014/04/go4game.html
+
+http://kasw.blogspot.kr/2014/04/go4game-go.html
+
 주요 object 정의
 
 Server : serverMain 과 같은 것, 실행된 서버 instance , 여러개의 world를 관장한다.

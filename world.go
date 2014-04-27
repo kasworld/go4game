@@ -32,8 +32,8 @@ func NewWorld(g *GameService) *World {
 		PacketStat: *NewStatInfo(),
 		CmdCh:      make(chan Cmd, 10),
 		PService:   g,
-		MinPos:     Vector3D{0, 0, 0},
-		MaxPos:     Vector3D{1000, 1000, 1000},
+		MinPos:     Vector3D{-500, -500, -500},
+		MaxPos:     Vector3D{500, 500, 500},
 		Teams:      make(map[int]*Team),
 		SppCh:      make(chan *SpatialPartition),
 	}

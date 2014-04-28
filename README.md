@@ -3,7 +3,7 @@ go4game
 
 ### game server framework using  golang
 
-![web client screenshot](/kasworld/go4game/Screenshot.png?raw=true)
+![web client screenshot](/Screenshot.png?raw=true)
 
 
     GameService : server.go : main service entry

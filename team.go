@@ -4,7 +4,7 @@ import (
 	//"errors"
 	"fmt"
 	"log"
-	//"math/rand"
+	"math/rand"
 	"net"
 	//"reflect"
 	"github.com/gorilla/websocket"
@@ -24,6 +24,7 @@ type Team struct {
 	GameObjs       map[int]*GameObject
 	ClientConnInfo ConnInfo
 	spp            *SpatialPartition
+	Color          int
 }
 
 func (m Team) String() string {
@@ -36,12 +37,15 @@ func NewTeam(w *World, conn interface{}) *Team {
 		CmdCh:    make(chan Cmd, 10),
 		PWorld:   w,
 		GameObjs: make(map[int]*GameObject),
+		Color:    rand.Intn(0x1000000),
 	}
 	switch conn.(type) {
 	case net.Conn:
-		t.ClientConnInfo = *NewConnInfo(&t, conn.(net.Conn))
+		t.ClientConnInfo = *NewTcpConnInfo(&t, conn.(net.Conn))
 	case *websocket.Conn:
 		t.ClientConnInfo = *NewWsConnInfo(&t, conn.(*websocket.Conn))
+	case *AIConn:
+		t.ClientConnInfo = *NewAIConnInfo(&t, conn.(*AIConn))
 	default:
 		log.Printf("unknown type %#v", conn)
 	}
@@ -100,19 +104,21 @@ loop:
 
 		case ftime := <-timer60Ch:
 			// do automove by time
-			select {
-			case t.spp = <-t.PWorld.SppCh:
-				if t.spp != nil {
-					for _, v := range t.GameObjs {
-						v.ActByTime(ftime)
-						if v.enabled == false {
-							t.delGameObject(v)
-						}
+			var ok bool
+			t.spp, ok = <-t.PWorld.SppCh
+			if !ok {
+				break loop
+			}
+			if t.spp != nil {
+				for _, v := range t.GameObjs {
+					v.ActByTime(ftime)
+					if v.enabled == false {
+						t.delGameObject(v)
 					}
 				}
 			}
-			if len(t.GameObjs) < 1 {
-				t.addNewGameObject()
+			if len(t.GameObjs) < 16 {
+				t.addNewGameObject(GameObjMain)
 			}
 		case <-timer1secCh:
 			//log.Printf("team:%v\n", t.ClientConnInfo.Stat.String())
@@ -126,8 +132,8 @@ loop:
 	//log.Printf("quit %v\n", t)
 }
 
-func (t *Team) addNewGameObject() {
-	o := NewGameObject(t, "main")
+func (t *Team) addNewGameObject(got GameObjectType) {
+	o := NewGameObject(t, got)
 	t.GameObjs[o.ID] = o
 }
 

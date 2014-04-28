@@ -110,29 +110,95 @@ const (
 	maxMessageSize = 0xffff              // Maximum message size allowed from peer.
 )
 
+const (
+	_ = iota
+	TCPClient
+	WebSockClient
+	AIClient
+)
+
+type ClientType int
+
 type ConnInfo struct {
-	Stat    *PacketStat
-	PTeam   *Team
-	Conn    net.Conn
-	WsConn  *websocket.Conn
-	ReadCh  chan *GamePacket
-	WriteCh chan *GamePacket
+	Stat       *PacketStat
+	PTeam      *Team
+	ReadCh     chan *GamePacket
+	WriteCh    chan *GamePacket
+	clientType ClientType
+	Conn       net.Conn
+	WsConn     *websocket.Conn
+	AiConn     *AIConn
 }
 
-func NewConnInfo(t *Team, conn net.Conn) *ConnInfo {
-	c := ConnInfo{
-		Stat:    NewStatInfo(),
-		Conn:    conn,
-		ReadCh:  make(chan *GamePacket, 1),
-		WriteCh: make(chan *GamePacket, 1),
-		PTeam:   t,
+/*
+req spp
+make aiaction and send
+*/
+type AIConn struct {
+	pteam *Team
+}
+
+func (a *AIConn) makeAIAction(spp *SpatialPartition) *GamePacket {
+	return &GamePacket{
+		Cmd:   ReqAIAct,
+		AiAct: &AiActionPacket{},
 	}
-	go c.readLoop()
-	go c.writeLoop()
+}
+
+func NewAIConnInfo(t *Team, aiconn *AIConn) *ConnInfo {
+	c := ConnInfo{
+		Stat:       NewStatInfo(),
+		ReadCh:     make(chan *GamePacket, 1),
+		WriteCh:    make(chan *GamePacket, 1),
+		PTeam:      t,
+		AiConn:     aiconn,
+		clientType: AIClient,
+	}
+	aiconn.pteam = t
+	go c.aiLoop()
 	return &c
 }
 
-func (c *ConnInfo) readLoop() {
+func (c *ConnInfo) aiLoop() {
+	defer func() {
+		close(c.ReadCh)
+	}()
+	timer60Ch := time.Tick(1000 / 60 * time.Millisecond)
+loop:
+	for {
+		select {
+		case <-timer60Ch:
+			// send ai action
+			sp := c.AiConn.makeAIAction(c.PTeam.spp)
+			c.ReadCh <- sp
+			//c.Stat.IncR()
+
+		case packet, ok := <-c.WriteCh: // get rsp from server
+			if !ok {
+				break loop
+			}
+			//c.Stat.IncW()
+			_ = packet
+			// make ai action
+		}
+	}
+}
+
+func NewTcpConnInfo(t *Team, conn net.Conn) *ConnInfo {
+	c := ConnInfo{
+		Stat:       NewStatInfo(),
+		Conn:       conn,
+		ReadCh:     make(chan *GamePacket, 1),
+		WriteCh:    make(chan *GamePacket, 1),
+		PTeam:      t,
+		clientType: TCPClient,
+	}
+	go c.tcpReadLoop()
+	go c.tcpWriteLoop()
+	return &c
+}
+
+func (c *ConnInfo) tcpReadLoop() {
 	defer func() {
 		c.Conn.Close()
 		close(c.ReadCh)
@@ -149,7 +215,7 @@ func (c *ConnInfo) readLoop() {
 	}
 }
 
-func (c *ConnInfo) writeLoop() {
+func (c *ConnInfo) tcpWriteLoop() {
 	defer func() {
 		c.Conn.Close()
 	}()
@@ -172,11 +238,12 @@ loop:
 
 func NewWsConnInfo(t *Team, conn *websocket.Conn) *ConnInfo {
 	c := ConnInfo{
-		Stat:    NewStatInfo(),
-		WsConn:  conn,
-		ReadCh:  make(chan *GamePacket, 1),
-		WriteCh: make(chan *GamePacket, 1),
-		PTeam:   t,
+		Stat:       NewStatInfo(),
+		WsConn:     conn,
+		ReadCh:     make(chan *GamePacket, 1),
+		WriteCh:    make(chan *GamePacket, 1),
+		PTeam:      t,
+		clientType: WebSockClient,
 	}
 	go c.wsReadLoop()
 	go c.wsWriteLoop()

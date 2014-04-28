@@ -9,7 +9,7 @@ import (
 
 type GameObjectSeiralize struct {
 	ID              int
-	ObjType         string
+	ObjType         GameObjectType
 	PosVector       Vector3D
 	MoveVector      Vector3D
 	CollisionRadius float64
@@ -29,12 +29,14 @@ func NewGameObjectSeiralize(o *GameObject) *GameObjectSeiralize {
 
 type TeamSeialize struct {
 	ID     int
+	Color  int
 	GOList []GameObjectSeiralize
 }
 
 func NewTeamSeialize(t *Team) *TeamSeialize {
 	ts := TeamSeialize{
 		ID:     t.ID,
+		Color:  t.Color,
 		GOList: make([]GameObjectSeiralize, 0, len(t.GameObjs)),
 	}
 	for _, o := range t.GameObjs {

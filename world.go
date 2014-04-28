@@ -38,6 +38,10 @@ func NewWorld(g *GameService) *World {
 		SppCh:      make(chan *SpatialPartition),
 	}
 	//log.Printf("New %v", w)
+	for i := 0; i < 16; i++ {
+		w.addNewTeam(&AIConn{})
+	}
+
 	go w.Loop()
 	return &w
 }
@@ -54,9 +58,26 @@ loop:
 	}
 }
 
+func (w *World) teamCount(ct ClientType) int {
+	n := 0
+	for _, t := range w.Teams {
+		if t.ClientConnInfo.clientType == ct {
+			n++
+		}
+	}
+	return n
+}
+
 func (w *World) Loop() {
 	SppCmdCh := make(chan Cmd, 1)
 	go w.SppBroadCast(SppCmdCh)
+	defer func() {
+		SppCmdCh <- Cmd{Cmd: "quit"}
+		for _, t := range w.Teams {
+			t.CmdCh <- Cmd{Cmd: "quit"}
+		}
+		w.PService.CmdCh <- Cmd{Cmd: "delWorld", Args: w}
+	}()
 
 	timer60Ch := time.Tick(1000 / 60 * time.Millisecond)
 	timer1secCh := time.Tick(1 * time.Second)
@@ -66,16 +87,12 @@ loop:
 		case cmd := <-w.CmdCh:
 			switch cmd.Cmd {
 			case "quit":
-				for _, t := range w.Teams {
-					t.CmdCh <- Cmd{Cmd: "quit"}
-				}
 				break loop
 			case "newTeam":
 				w.addNewTeam(cmd.Args)
 			case "delTeam":
 				w.delTeam(cmd.Args.(*Team))
-				if len(w.Teams) == 0 {
-					w.PService.CmdCh <- Cmd{Cmd: "delWorld", Args: w}
+				if len(w.Teams) == w.teamCount(AIClient) {
 					break loop
 				}
 			case "statInfo":
@@ -95,7 +112,7 @@ loop:
 			}
 		}
 	}
-	SppCmdCh <- Cmd{Cmd: "quit"}
+
 	//log.Printf("quit %v", w)
 }
 

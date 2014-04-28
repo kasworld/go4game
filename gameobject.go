@@ -46,11 +46,20 @@ func (m *GameObject) GetCollisionList(near GameObjectList) GameObjectList {
 	return rtn
 }
 
+const (
+	_ = iota
+	GameObjMain
+	GameObjShield
+	GameObjBullet
+)
+
+type GameObjectType int
+
 type GameObject struct {
 	ID        int
 	PTeam     *Team
 	enabled   bool
-	objType   string
+	objType   GameObjectType
 	startTime time.Time
 	endTime   time.Time
 
@@ -74,7 +83,7 @@ type GameObject struct {
 	expireActionFn    GameObjectActFn
 }
 
-func NewGameObject(PTeam *Team, t string) *GameObject {
+func NewGameObject(PTeam *Team, t GameObjectType) *GameObject {
 	Min := PTeam.PWorld.MinPos
 	Max := PTeam.PWorld.MaxPos
 	o := GameObject{
@@ -104,35 +113,11 @@ func NewGameObject(PTeam *Team, t string) *GameObject {
 	return &o
 }
 
-// func NewGameObject_main(PTeam *Team) *GameObject {
-// 	Min := PTeam.PWorld.MinPos
-// 	Max := PTeam.PWorld.MaxPos
-// 	o := GameObject{
-// 		ID:        <-IdGenCh,
-// 		PTeam:     PTeam,
-// 		enabled:   true,
-// 		objType:   "main",
-// 		startTime: time.Now(),
-// 		endTime:   time.Now().Add(time.Second * 60),
-
-// 		lastMoveTime: time.Now(),
-// 		MinPos:       Min,
-// 		MaxPos:       Max,
-// 		posVector:    RandVector(Min, Max),
-// 		moveVector:   RandVector3D(-500.0, 500.0),
-// 		accelVector:  RandVector3D(-500.0, 500.0),
-
-// 		moveLimit:         1000.0,
-// 		bounceDamping:     1.0,
-// 		collisionRadius:   10.0,
-// 		moveByTimeFn:      moveByTimeFn_default,
-// 		borderActionFn:    borderActionFn_Bounce,
-// 		collisionActionFn: collisionFn_default,
-// 		expireActionFn:    expireFn_default,
-// 	}
-// 	//log.Printf("New %v\n", o)
-// 	return &o
-// }
+func (o *GameObject) MakeMainType() {
+	o.moveLimit = 200.0
+	o.collisionRadius = 50
+	o.objType = GameObjMain
+}
 
 type ActionFnEnvInfo struct {
 	spp       *SpatialPartition

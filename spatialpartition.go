@@ -5,7 +5,7 @@ import (
 )
 
 type SpatialPartition struct {
-	HyperRect
+	Min, Max Vector3D
 	PartSize int
 	refs     [][][]GameObjectList
 }
@@ -58,14 +58,14 @@ func (p *SpatialPartition) GetNear2(pos *Vector3D) GameObjectList {
 }
 
 func (w *World) MakeSpatialPartition() *SpatialPartition {
-	rtn := new(SpatialPartition)
+	rtn := SpatialPartition{
+		Min: w.MinPos,
+		Max: w.MaxPos,
+	}
 	objcount := 0
 	for _, t := range w.Teams {
 		objcount += len(t.GameObjs)
 	}
-
-	rtn.Min = w.MinPos
-	rtn.Max = w.MaxPos
 
 	rtn.PartSize = int(math.Pow(float64(objcount), 1.0/3.0))
 	if rtn.PartSize < 2 {
@@ -82,11 +82,11 @@ func (w *World) MakeSpatialPartition() *SpatialPartition {
 
 	for _, t := range w.Teams {
 		for _, obj := range t.GameObjs {
-			if obj.enabled {
+			if obj != nil && obj.enabled {
 				partPos := rtn.GetPartPos(&obj.posVector)
 				rtn.AddPartPos(partPos, obj)
 			}
 		}
 	}
-	return rtn
+	return &rtn
 }

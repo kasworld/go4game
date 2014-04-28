@@ -19,53 +19,6 @@
 
 <script type="text/javascript">
 
-// web socket comm
-// setInterval(
-//     function(){
-//         reqWorldInfo();
-//     },
-//     100);
-// {
-//   "Cmd": 4,
-//   "TeamInfo": null,
-//   "WorldInfo": {
-//     "ID": 21,
-//     "MinPos": [
-//       0,
-//       0,
-//       0
-//     ],
-//     "MaxPos": [
-//       1000,
-//       1000,
-//       1000
-//     ],
-//     "TeamList": [
-//       {
-//         "ID": 22,
-//         "GOList": [
-//           {
-//             "ID": 23,
-//             "ObjType": "main",
-//             "PosVector": [
-//               433.3088868934216,
-//               583.1317133043318,
-//               506.4092461786612
-//             ],
-//             "MoveVector": [
-//               -0.6528174876859653,
-//               -0.6266321866793497,
-//               -0.44665885304449776
-//             ],
-//             "CollisionRadius": 0.1
-//           }
-//         ]
-//       }
-//     ]
-//   },
-//   "AiAct": null
-// }
-
 var worldinfo;
 var conn;
 function initWebSocket() {
@@ -171,11 +124,11 @@ animate();
 
 function initGrid(scene) {
     var helper = new THREE.GridHelper( 1000, 100 );
-    helper.setColors( 0x0000ff, 0x808080 );
+    helper.setColors( 0x0000ff, 0x404040 );
     helper.position.y = - 1000;
     scene.add( helper );
     var helper = new THREE.GridHelper( 1000, 100 );
-    helper.setColors( 0x0000ff, 0x808080 );
+    helper.setColors( 0x0000ff, 0x404040 );
     helper.position.y = 1000;
     scene.add( helper );
 
@@ -184,21 +137,6 @@ function initGrid(scene) {
 }
 
 
-function initLight(scene) {
-    // Lights
-    var ambientLight = new THREE.AmbientLight( Math.random() * 0x202020 );
-    scene.add( ambientLight );
-
-    var directionalLight = new THREE.DirectionalLight( Math.random() * 0xffffff );
-    directionalLight.position.x = Math.random() - 0.5;
-    directionalLight.position.y = Math.random() - 0.5;
-    directionalLight.position.z = Math.random() - 0.5;
-    directionalLight.position.normalize();
-    scene.add( directionalLight );
-
-    var pointLight = new THREE.PointLight( 0xff0000, 1 );
-    scene.add( pointLight );
-}
 
 function initCamera() {
     var camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 10000 );
@@ -244,9 +182,47 @@ function initDebugContext(container) {
     return debugContext;
 }
 
-function newGameObject( radius) {
-    var geometry = new THREE.SphereGeometry( radius, 16, 16 );
-    var material = new THREE.MeshNormalMaterial( { shading: THREE.SmoothShading, overdraw: true } )
+function initLight(scene) {
+    // Lights
+    // var ambientLight = new THREE.AmbientLight( 0x404040 );
+    // scene.add( ambientLight );
+
+    // var directionalLight = new THREE.DirectionalLight( Math.random() * 0xffffff );
+    // directionalLight.position.x = Math.random() - 0.5;
+    // directionalLight.position.y = Math.random() - 0.5;
+    // directionalLight.position.z = Math.random() - 0.5;
+    // directionalLight.position.normalize();
+    // scene.add( directionalLight );
+
+    var pointLight = new THREE.PointLight( 0x808080, 1 );
+    // pointLight.position.x = 1000;
+    // pointLight.position.y = 1000;
+    // pointLight.position.z = 1000;
+    scene.add( pointLight );
+}
+
+function newGameObject( radius, color ) {
+    var geometry = new THREE.SphereGeometry( radius, 32, 16 );
+    // var material = new THREE.MeshNormalMaterial( { shading: THREE.SmoothShading, overdraw: true } );
+
+    // var material = new THREE.MeshLambertMaterial( { color: 0xdddddd, shading: THREE.FlatShading } ) ;
+    // var material = new THREE.MeshPhongMaterial( { ambient: 0x030303, color: 0xdddddd, specular: 0x009900, shininess: 30, shading: THREE.FlatShading } ) ;
+    // var material = new THREE.MeshNormalMaterial( ) ;
+    //var material = new THREE.MeshBasicMaterial( { color: 0xffaa00, transparent: true, blending: THREE.AdditiveBlending } ) ;
+    //var material = new THREE.MeshBasicMaterial( { color: 0xff0000, blending: THREE.SubtractiveBlending } ) ;
+
+    //var material = new THREE.MeshLambertMaterial( { color: 0xdddddd, shading: THREE.SmoothShading } ) ;
+    //var material = new THREE.MeshNormalMaterial( { shading: THREE.SmoothShading } ) ;
+    // var material = new THREE.MeshBasicMaterial( { color: 0xffaa00, wireframe: true } ) ;
+
+    //var material = new THREE.MeshDepthMaterial() ;
+
+    //var material = new THREE.MeshLambertMaterial( { color: 0x666666, emissive: 0xff0000, ambient: 0x000000, shading: THREE.SmoothShading } ) ;
+    //var material = new THREE.MeshPhongMaterial( { color: 0x000000, specular: 0x666666, emissive: 0xff0000, ambient: 0x000000, shininess: 10, shading: THREE.SmoothShading, opacity: 0.9, transparent: true } ) ;
+
+    var material = new THREE.MeshPhongMaterial(
+        { color: 0x808080, emissive: color, shininess: 30, shading: THREE.SmoothShading }
+        );
     var sphere = new THREE.Mesh( geometry, material );
     sphere.position.x = 0;
     sphere.position.y = 0;
@@ -269,10 +245,11 @@ function worldinfo2objects() {
     var thisobjs = [];
     for ( var ti in teams ) {
         var tobj = teams[ti]
+
         for ( goi in tobj.GOList) {
             var gobj = tobj.GOList[goi]
             if ( !(gobj.ID in objects) ) {
-                var sphere = newGameObject(gobj.CollisionRadius);
+                var sphere = newGameObject(gobj.CollisionRadius, tobj.Color);
                 objects[gobj.ID] = sphere;
                 scene.add( sphere );
             }
@@ -300,8 +277,8 @@ function init() {
     initLight(scene);
 
     //renderer = new THREE.CanvasRenderer();
-    renderer = new THREE.WebGLRenderer();
-    renderer.setClearColor( 0xf0f0f0 );
+    renderer = new THREE.WebGLRenderer({ antialias: true } );
+    renderer.setClearColor( 0x808080 );
     renderer.setSize( window.innerWidth, window.innerHeight );
     container.appendChild( renderer.domElement );
 

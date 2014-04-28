@@ -3,6 +3,9 @@ go4game
 
 ### game server framework using  golang
 
+![web client screenshot](/kasworld/go4game/Screenshot.png?raw=true)
+
+
     GameService : server.go : main service entry
         World : world.go : game world or zone, terrain
             Team : team.go : AI or user controlled object

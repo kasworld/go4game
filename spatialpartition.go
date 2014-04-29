@@ -1,6 +1,7 @@
 package go4game
 
 import (
+	"log"
 	"math"
 )
 
@@ -11,16 +12,19 @@ type SpatialPartition struct {
 }
 
 func (p *SpatialPartition) GetPartPos(pos *Vector3D) [3]int {
+	nompos := pos.Sub(&p.Min)
 	rtn := [3]int{0, 0, 0}
 
-	for i, v := range pos {
+	for i, v := range nompos {
 		l := p.Max[i] - p.Min[i]
-		rtn[i] = int((v - p.Min[i]) / l * float64(p.PartSize))
+		rtn[i] = int(v / l * float64(p.PartSize))
 		if rtn[i] >= p.PartSize {
 			rtn[i] = p.PartSize - 1
+			//log.Printf("invalid pos %v %v", v, rtn[i])
 		}
 		if rtn[i] < 0 {
 			rtn[i] = 0
+			log.Printf("invalid pos %v %v", v, rtn[i])
 		}
 	}
 	return rtn
@@ -38,15 +42,15 @@ func (p *SpatialPartition) GetNear(pos *Vector3D) GameObjectList {
 func (p *SpatialPartition) GetNear2(pos *Vector3D) GameObjectList {
 	ppos := p.GetPartPos(pos)
 	rtngl := make(GameObjectList, 0)
-	for i := ppos[0] - 1; i < ppos[0]+1; i++ {
+	for i := ppos[0] - 1; i <= ppos[0]+1; i++ {
 		if i < 0 || i >= p.PartSize {
 			continue
 		}
-		for j := ppos[0] - 1; j < ppos[0]+1; j++ {
+		for j := ppos[1] - 1; j <= ppos[1]+1; j++ {
 			if j < 0 || j >= p.PartSize {
 				continue
 			}
-			for k := ppos[0] - 1; k < ppos[0]+1; k++ {
+			for k := ppos[2] - 1; k <= ppos[2]+1; k++ {
 				if k < 0 || k >= p.PartSize {
 					continue
 				}
@@ -71,6 +75,7 @@ func (w *World) MakeSpatialPartition() *SpatialPartition {
 	if rtn.PartSize < 2 {
 		rtn.PartSize = 2
 	}
+	//log.Printf("partsize:%v objs:%v", rtn.PartSize, objcount)
 
 	rtn.refs = make([][][]GameObjectList, rtn.PartSize)
 	for i := 0; i < rtn.PartSize; i++ {
@@ -82,7 +87,8 @@ func (w *World) MakeSpatialPartition() *SpatialPartition {
 
 	for _, t := range w.Teams {
 		for _, obj := range t.GameObjs {
-			if obj != nil && obj.enabled {
+			if obj != nil && obj.objType != 0 {
+				//if obj != nil {
 				partPos := rtn.GetPartPos(&obj.posVector)
 				rtn.AddPartPos(partPos, obj)
 			}

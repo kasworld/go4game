@@ -40,7 +40,10 @@ func NewTeamSeialize(t *Team) *TeamSeialize {
 		GOList: make([]GameObjectSeiralize, 0, len(t.GameObjs)),
 	}
 	for _, o := range t.GameObjs {
-		ts.GOList = append(ts.GOList, *NewGameObjectSeiralize(o))
+		if o.enabled {
+			ts.GOList = append(ts.GOList, *NewGameObjectSeiralize(o))
+		}
+
 	}
 	return &ts
 }

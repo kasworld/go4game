@@ -2,30 +2,12 @@ package go4game
 
 import (
 	"fmt"
-	//"math"
+	"math"
 	//"log"
 	//"math/rand"
 	//"reflect"
 	"time"
 )
-
-/*
-order of process
-AI make ai action
-aiaction : change accelvector , fire(==req to make new object) ,
-movefn change movevector ( by type)
-automovebytime change pos (by time.duration)
-checkwall action change pos,move,accel by Min/Max pos
-check collision and disable object (in world action)
-remove object ( in world )
-
-object event
-automovebytime
-wallcollisionaction
-collisionAction
-exfireFn
-
-*/
 
 func (m GameObject) String() string {
 	return fmt.Sprintf("GameObject:%v Type:%v Owner:%v",
@@ -33,7 +15,9 @@ func (m GameObject) String() string {
 }
 
 func (m *GameObject) IsCollision(target *GameObject) bool {
-	return m.posVector.LenTo(&target.posVector) <= m.collisionRadius+target.collisionRadius
+	teamrule := m.PTeam != target.PTeam
+	checklen := m.posVector.LenTo(&target.posVector) <= (m.collisionRadius + target.collisionRadius)
+	return (teamrule) && (checklen)
 }
 
 func (m *GameObject) GetCollisionList(near GameObjectList) GameObjectList {
@@ -83,21 +67,20 @@ type GameObject struct {
 	expireActionFn    GameObjectActFn
 }
 
-func NewGameObject(PTeam *Team, t GameObjectType) *GameObject {
+func NewGameObject(PTeam *Team) *GameObject {
 	Min := PTeam.PWorld.MinPos
 	Max := PTeam.PWorld.MaxPos
 	o := GameObject{
 		ID:        <-IdGenCh,
 		PTeam:     PTeam,
 		enabled:   true,
-		objType:   t,
 		startTime: time.Now(),
 		endTime:   time.Now().Add(time.Second * 60),
 
 		lastMoveTime: time.Now(),
 		MinPos:       Min,
 		MaxPos:       Max,
-		posVector:    RandVector(Min, Max),
+		posVector:    Vector3D{0, 0, 0},
 		moveVector:   RandVector3D(-50., 50.),
 		accelVector:  RandVector3D(-50., 50.),
 
@@ -109,14 +92,33 @@ func NewGameObject(PTeam *Team, t GameObjectType) *GameObject {
 		collisionActionFn: collisionFn_default,
 		expireActionFn:    expireFn_default,
 	}
-	//log.Printf("New %v\n", o)
 	return &o
 }
 
-func (o *GameObject) MakeMainType() {
-	o.moveLimit = 200.0
-	o.collisionRadius = 50
+func (o *GameObject) MakeMainObj() {
+	o.moveLimit = 100.0
+	o.collisionRadius = 20
+	o.posVector = RandVector3D(-500, 500)
+	o.endTime = o.startTime.Add(time.Second * 3600)
 	o.objType = GameObjMain
+}
+func (o *GameObject) MakeShield(mo *GameObject) {
+	o.moveLimit = 200.0
+	o.collisionRadius = 10
+	o.endTime = o.startTime.Add(time.Second * 3600)
+	o.moveByTimeFn = moveByTimeFn_shield
+	o.borderActionFn = borderActionFn_None
+	o.posVector = mo.posVector
+	o.objType = GameObjShield
+}
+func (o *GameObject) MakeBullet(mo *GameObject) {
+	o.moveLimit = 300.0
+	o.collisionRadius = 10
+	o.posVector = mo.posVector
+	o.moveVector = RandVector3D(-300., 300.)
+	o.borderActionFn = borderActionFn_Disable
+	o.accelVector = Vector3D{0, 0, 0}
+	o.objType = GameObjBullet
 }
 
 type ActionFnEnvInfo struct {
@@ -127,6 +129,10 @@ type ActionFnEnvInfo struct {
 }
 
 func (o *GameObject) ActByTime(t time.Time) {
+	o.posVector[1] = 0
+	o.moveVector[1] = 0
+	o.accelVector[1] = 0
+
 	defer func(o *GameObject, t time.Time) {
 		o.lastMoveTime = t
 	}(o, t)
@@ -197,6 +203,17 @@ func moveByTimeFn_default(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 	return true
 }
 
+func moveByTimeFn_shield(m *GameObject, envInfo *ActionFnEnvInfo) bool {
+	mo := m.PTeam.findMainObj()
+	dur := float64(envInfo.frameTime.Sub(m.startTime)) / float64(time.Second)
+	//p := &Vector3D{50, 0, 0}
+	axis := &Vector3D{0, math.Copysign(40, m.moveVector[0]), 0}
+	//axis = axis.Normalized().Imul(50)
+	p := m.accelVector.Normalized().Imul(40)
+	m.posVector = *mo.posVector.Add(p.RotateAround(axis, dur))
+	return true
+}
+
 func borderActionFn_Bounce(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 	for i := range m.posVector {
 		if m.posVector[i] > m.MaxPos[i] {
@@ -225,12 +242,16 @@ func borderActionFn_Wrap(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 	return true
 }
 
-func borderActionFn_None(m *GameObject, envInfo *ActionFnEnvInfo) bool {
+func borderActionFn_Disable(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 	for i := range m.posVector {
 		if (m.posVector[i] > m.MaxPos[i]) || (m.posVector[i] < m.MinPos[i]) {
 			m.enabled = false
 			return false
 		}
 	}
+	return true
+}
+
+func borderActionFn_None(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 	return true
 }

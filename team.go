@@ -49,8 +49,25 @@ func NewTeam(w *World, conn interface{}) *Team {
 	default:
 		log.Printf("unknown type %#v", conn)
 	}
+	t.addNewGameObject(GameObjMain)
+
+	for i := 0; i < 8; i++ {
+		t.addNewGameObject(GameObjShield)
+	}
+	for i := 0; i < 8; i++ {
+		t.addNewGameObject(GameObjBullet)
+	}
 	go t.Loop()
 	return &t
+}
+
+func (t *Team) findMainObj() *GameObject {
+	for _, v := range t.GameObjs {
+		if v.objType == GameObjMain {
+			return v
+		}
+	}
+	return nil
 }
 
 func (t *Team) Loop() {
@@ -112,13 +129,13 @@ loop:
 			if t.spp != nil {
 				for _, v := range t.GameObjs {
 					v.ActByTime(ftime)
-					if v.enabled == false {
-						t.delGameObject(v)
-					}
 				}
 			}
-			if len(t.GameObjs) < 16 {
-				t.addNewGameObject(GameObjMain)
+			for _, v := range t.GameObjs {
+				if v.enabled == false {
+					t.delGameObject(v)
+					t.addNewGameObject(v.objType)
+				}
 			}
 		case <-timer1secCh:
 			//log.Printf("team:%v\n", t.ClientConnInfo.Stat.String())
@@ -132,9 +149,27 @@ loop:
 	//log.Printf("quit %v\n", t)
 }
 
-func (t *Team) addNewGameObject(got GameObjectType) {
-	o := NewGameObject(t, got)
+func (t *Team) addNewGameObject(objType GameObjectType) *GameObject {
+	o := NewGameObject(t)
+	switch objType {
+	case GameObjMain:
+		o.MakeMainObj()
+	case GameObjShield:
+		mo := t.findMainObj()
+		if mo != nil {
+			o.MakeShield(mo)
+		}
+	case GameObjBullet:
+		mo := t.findMainObj()
+		if mo != nil {
+			o.MakeBullet(mo)
+		}
+	default:
+		log.Printf("invalid GameObjectType %v", t)
+		return nil
+	}
 	t.GameObjs[o.ID] = o
+	return o
 }
 
 func (t *Team) delGameObject(o *GameObject) {

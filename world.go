@@ -38,7 +38,7 @@ func NewWorld(g *GameService) *World {
 		SppCh:      make(chan *SpatialPartition),
 	}
 	//log.Printf("New %v", w)
-	for i := 0; i < 16; i++ {
+	for i := 0; i < 8; i++ {
 		w.addNewTeam(&AIConn{})
 	}
 

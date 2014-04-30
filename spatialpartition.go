@@ -34,14 +34,20 @@ func (p *SpatialPartition) AddPartPos(pos [3]int, obj *GameObject) {
 	p.refs[pos[0]][pos[1]][pos[2]] = append(p.refs[pos[0]][pos[1]][pos[2]], obj)
 }
 
-func (p *SpatialPartition) GetNear(pos *Vector3D) GameObjectList {
-	ppos := p.GetPartPos(pos)
-	return p.refs[ppos[0]][ppos[1]][ppos[2]]
+func get3(v int, min int, max int) []int {
+	rtn := make([]int, 0, 3)
+	rtn = append(rtn, v)
+	if v-1 >= min {
+		rtn = append(rtn, v-1)
+	}
+	if v+1 < max {
+		rtn = append(rtn, v+1)
+	}
+	return rtn
 }
 
-func (p *SpatialPartition) GetNear2(pos *Vector3D) GameObjectList {
-	ppos := p.GetPartPos(pos)
-	rtngl := make(GameObjectList, 0)
+func (p *SpatialPartition) IsCollision(m *GameObject) bool {
+	ppos := p.GetPartPos(&m.posVector)
 	for i := ppos[0] - 1; i <= ppos[0]+1; i++ {
 		if i < 0 || i >= p.PartSize {
 			continue
@@ -54,11 +60,15 @@ func (p *SpatialPartition) GetNear2(pos *Vector3D) GameObjectList {
 				if k < 0 || k >= p.PartSize {
 					continue
 				}
-				rtngl = append(rtngl, p.refs[i][j][k]...)
+				for _, v := range p.refs[i][j][k] {
+					if m.IsCollision(v) {
+						return true
+					}
+				}
 			}
 		}
 	}
-	return rtngl
+	return false
 }
 
 func (w *World) MakeSpatialPartition() *SpatialPartition {

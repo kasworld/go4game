@@ -46,6 +46,9 @@ func NewGameService(listenTo string, wsListen string) *GameService {
 	go g.wsServer()
 	log.Printf("New %v", g)
 	go g.Loop()
+
+	// create default world
+	g.addNewWorld()
 	return &g
 }
 
@@ -59,9 +62,9 @@ func (g *GameService) delWorld(w *World) {
 	delete(g.Worlds, w.ID)
 }
 
-func (g *GameService) findFreeWorld(teamCount int) *World {
+func (g *GameService) findFreeWorld(teamCount int, ct ClientType) *World {
 	for _, w := range g.Worlds {
-		if len(w.Teams) < teamCount {
+		if w.teamCount(ct) < teamCount {
 			return w
 		}
 	}
@@ -75,13 +78,13 @@ loop:
 	for {
 		select {
 		case conn := <-g.clientConnectionCh: // new team
-			w := g.findFreeWorld(32)
+			w := g.findFreeWorld(32, TCPClient)
 			w.CmdCh <- Cmd{
 				Cmd:  "newTeam",
 				Args: conn,
 			}
 		case conn := <-g.wsClientConnectionCh: // new team
-			w := g.findFreeWorld(32)
+			w := g.findFreeWorld(32, WebSockClient)
 			w.CmdCh <- Cmd{
 				Cmd:  "newTeam",
 				Args: conn,
@@ -105,12 +108,8 @@ loop:
 		case <-timer60Ch:
 			// do frame action
 		case <-timer1secCh:
-			tsum := 0
-			for _, w := range g.Worlds {
-				tsum += len(w.Teams)
-			}
-			log.Printf("%v teams:%v goroutine:%v\n%v",
-				g, tsum, runtime.NumGoroutine(), g.PacketStat)
+			log.Printf("%v ID:%v goroutine:%v\n%v",
+				g, <-IdGenCh, runtime.NumGoroutine(), g.PacketStat)
 			g.PacketStat.NewLap()
 		}
 	}
@@ -135,29 +134,13 @@ func (g *GameService) listenLoop() {
 
 // web socket server
 func (g *GameService) wsServer() {
-	//http.HandleFunc("/", g.wsServeHome)
 	http.HandleFunc("/ws", g.wsServe)
-	//http.Handle("/www", http.FileServer(http.Dir("./www")))
 	http.Handle("/www/", http.StripPrefix("/www/", http.FileServer(http.Dir("./www"))))
 	err := http.ListenAndServe(g.wsListen, nil)
 	if err != nil {
 		log.Println("ListenAndServe: ", err)
 	}
 }
-
-// func (g *GameService) wsServeHome(w http.ResponseWriter, r *http.Request) {
-// 	var homeTempl = template.Must(template.ParseFiles("home.html"))
-// 	if r.URL.Path != "/" {
-// 		http.Error(w, "Not found", 404)
-// 		return
-// 	}
-// 	if r.Method != "GET" {
-// 		http.Error(w, "Method nod allowed", 405)
-// 		return
-// 	}
-// 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-// 	homeTempl.Execute(w, r.Host)
-// }
 
 func (g *GameService) wsServe(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {

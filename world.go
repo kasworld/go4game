@@ -18,7 +18,6 @@ type World struct {
 	MinPos   Vector3D
 	MaxPos   Vector3D
 	Teams    map[int]*Team
-	SppCh    chan *SpatialPartition
 	spp      *SpatialPartition
 }
 
@@ -35,27 +34,14 @@ func NewWorld(g *GameService) *World {
 		MinPos:     Vector3D{-500, -500, -500},
 		MaxPos:     Vector3D{500, 500, 500},
 		Teams:      make(map[int]*Team),
-		SppCh:      make(chan *SpatialPartition),
 	}
 	//log.Printf("New %v", w)
-	for i := 0; i < 16; i++ {
+	for i := 0; i < 1000; i++ {
 		w.addNewTeam(&AIConn{})
 	}
 
 	go w.Loop()
 	return &w
-}
-
-func (w *World) SppBroadCast(CmdCh chan Cmd) {
-loop:
-	for {
-		select {
-		case <-CmdCh:
-			break loop
-		case w.SppCh <- w.spp:
-			// broadcast
-		}
-	}
 }
 
 func (w *World) teamCount(ct ClientType) int {
@@ -69,10 +55,7 @@ func (w *World) teamCount(ct ClientType) int {
 }
 
 func (w *World) Loop() {
-	SppCmdCh := make(chan Cmd, 1)
-	go w.SppBroadCast(SppCmdCh)
 	defer func() {
-		SppCmdCh <- Cmd{Cmd: "quit"}
 		for _, t := range w.Teams {
 			t.CmdCh <- Cmd{Cmd: "quit"}
 		}
@@ -105,15 +88,17 @@ loop:
 		case <-timer60Ch:
 			w.spp = w.MakeSpatialPartition()
 		case <-timer1secCh:
-			//log.Printf("%v\n%v", w, w.PacketStat)
+			osum := 0
+			for _, t := range w.Teams {
+				osum += len(t.GameObjs)
+			}
+			log.Printf("%v objs:%v spp:%v ", w, osum, w.spp.PartSize)
 			select {
 			case w.PService.CmdCh <- Cmd{Cmd: "statInfo", Args: w.PacketStat}:
 				w.PacketStat.NewLap()
 			}
 		}
 	}
-
-	//log.Printf("quit %v", w)
 }
 
 func (w *World) addNewTeam(conn interface{}) {

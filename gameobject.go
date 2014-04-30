@@ -20,16 +20,6 @@ func (m *GameObject) IsCollision(target *GameObject) bool {
 	return (teamrule) && (checklen)
 }
 
-func (m *GameObject) GetCollisionList(near GameObjectList) GameObjectList {
-	rtn := GameObjectList{}
-	for _, o := range near {
-		if m != o && m.IsCollision(o) {
-			rtn = append(rtn, o)
-		}
-	}
-	return rtn
-}
-
 const (
 	_ = iota
 	GameObjMain
@@ -122,9 +112,6 @@ func (o *GameObject) MakeBullet(mo *GameObject) {
 }
 
 type ActionFnEnvInfo struct {
-	spp       *SpatialPartition
-	near      GameObjectList
-	clist     GameObjectList
 	frameTime time.Time
 }
 
@@ -137,11 +124,9 @@ func (o *GameObject) ActByTime(t time.Time) {
 		o.lastMoveTime = t
 	}(o, t)
 	envInfo := ActionFnEnvInfo{
-		spp:       o.PTeam.spp,
-		near:      o.PTeam.spp.GetNear2(&o.posVector),
+		//spp:       o.PTeam.spp,
 		frameTime: t,
 	}
-	envInfo.clist = o.GetCollisionList(envInfo.near)
 	// check expire
 	if o.endTime.Before(t) {
 		if o.expireActionFn != nil {
@@ -153,7 +138,7 @@ func (o *GameObject) ActByTime(t time.Time) {
 	}
 	// check if collision , disable
 	// modify own status only
-	if len(envInfo.clist) > 0 {
+	if o.PTeam.PWorld.spp != nil && o.PTeam.PWorld.spp.IsCollision(o) {
 		if o.collisionActionFn != nil {
 			ok := o.collisionActionFn(o, &envInfo)
 			if ok != true {

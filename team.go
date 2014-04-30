@@ -23,8 +23,8 @@ type Team struct {
 	PWorld         *World
 	GameObjs       map[int]*GameObject
 	ClientConnInfo ConnInfo
-	spp            *SpatialPartition
-	Color          int
+	//spp            *SpatialPartition
+	Color int
 }
 
 func (m Team) String() string {
@@ -80,6 +80,8 @@ func (t *Team) Loop() {
 			t.ClientConnInfo.WsConn.Close() // stop read loop
 		}
 		t.PWorld.CmdCh <- Cmd{Cmd: "delTeam", Args: t}
+		//log.Printf("team ending:%v\n", t.ClientConnInfo.Stat.String())
+		//log.Printf("quit %v\n", t)
 	}()
 
 	timer60Ch := time.Tick(1000 / 60 * time.Millisecond)
@@ -120,16 +122,8 @@ loop:
 			}
 
 		case ftime := <-timer60Ch:
-			// do automove by time
-			var ok bool
-			t.spp, ok = <-t.PWorld.SppCh
-			if !ok {
-				break loop
-			}
-			if t.spp != nil {
-				for _, v := range t.GameObjs {
-					v.ActByTime(ftime)
-				}
+			for _, v := range t.GameObjs {
+				v.ActByTime(ftime)
 			}
 			for _, v := range t.GameObjs {
 				if v.enabled == false {
@@ -145,8 +139,6 @@ loop:
 			}
 		}
 	}
-	//log.Printf("team ending:%v\n", t.ClientConnInfo.Stat.String())
-	//log.Printf("quit %v\n", t)
 }
 
 func (t *Team) addNewGameObject(objType GameObjectType) *GameObject {

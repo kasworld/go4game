@@ -138,7 +138,7 @@ type AIConn struct {
 	pteam *Team
 }
 
-func (a *AIConn) makeAIAction(spp *SpatialPartition) *GamePacket {
+func (a *AIConn) makeAIAction() *GamePacket {
 	return &GamePacket{
 		Cmd:   ReqAIAct,
 		AiAct: &AiActionPacket{},
@@ -169,7 +169,7 @@ loop:
 		select {
 		case <-timer60Ch:
 			// send ai action
-			sp := c.AiConn.makeAIAction(c.PTeam.spp)
+			sp := c.AiConn.makeAIAction()
 			c.ReadCh <- sp
 			//c.Stat.IncR()
 

@@ -2,7 +2,7 @@ package go4game
 
 import (
 	"fmt"
-	"math"
+	//"math"
 	//"log"
 	//"math/rand"
 	//"reflect"
@@ -97,14 +97,14 @@ func NewGameObject(PTeam *Team) *GameObject {
 
 func (o *GameObject) MakeMainObj() {
 	o.moveLimit = 100.0
-	o.collisionRadius = 20
+	o.collisionRadius = 10
 	o.posVector = RandVector3D(-500, 500)
 	o.endTime = o.startTime.Add(time.Second * 3600)
 	o.objType = GameObjMain
 }
 func (o *GameObject) MakeShield(mo *GameObject) {
 	o.moveLimit = 200.0
-	o.collisionRadius = 10
+	o.collisionRadius = 5
 	o.endTime = o.startTime.Add(time.Second * 3600)
 	o.moveByTimeFn = moveByTimeFn_shield
 	o.borderActionFn = borderActionFn_None
@@ -113,7 +113,7 @@ func (o *GameObject) MakeShield(mo *GameObject) {
 }
 func (o *GameObject) MakeBullet(mo *GameObject) {
 	o.moveLimit = 300.0
-	o.collisionRadius = 10
+	o.collisionRadius = 5
 	o.posVector = mo.posVector
 	o.moveVector = RandVector3D(-300., 300.)
 	o.borderActionFn = borderActionFn_Disable
@@ -129,9 +129,9 @@ type ActionFnEnvInfo struct {
 }
 
 func (o *GameObject) ActByTime(t time.Time) {
-	o.posVector[1] = 0
-	o.moveVector[1] = 0
-	o.accelVector[1] = 0
+	// o.posVector[1] = 0
+	// o.moveVector[1] = 0
+	// o.accelVector[1] = 0
 
 	defer func(o *GameObject, t time.Time) {
 		o.lastMoveTime = t
@@ -206,10 +206,10 @@ func moveByTimeFn_default(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 func moveByTimeFn_shield(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 	mo := m.PTeam.findMainObj()
 	dur := float64(envInfo.frameTime.Sub(m.startTime)) / float64(time.Second)
-	//p := &Vector3D{50, 0, 0}
-	axis := &Vector3D{0, math.Copysign(40, m.moveVector[0]), 0}
-	//axis = axis.Normalized().Imul(50)
-	p := m.accelVector.Normalized().Imul(40)
+	//axis := &Vector3D{0, math.Copysign(20, m.moveVector[0]), 0}
+	axis := mo.moveVector.Normalized().Imul(20)
+	//p := m.accelVector.Normalized().Imul(20)
+	p := mo.moveVector.Cross(&m.moveVector).Normalized().Imul(20)
 	m.posVector = *mo.posVector.Add(p.RotateAround(axis, dur))
 	return true
 }

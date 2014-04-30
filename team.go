@@ -23,8 +23,8 @@ type Team struct {
 	PWorld         *World
 	GameObjs       map[int]*GameObject
 	ClientConnInfo ConnInfo
-	//spp            *SpatialPartition
-	Color int
+	spp            *SpatialPartition
+	Color          int
 }
 
 func (m Team) String() string {
@@ -122,6 +122,7 @@ loop:
 			}
 
 		case ftime := <-timer60Ch:
+			t.spp = t.PWorld.spp
 			for _, v := range t.GameObjs {
 				v.ActByTime(ftime)
 			}

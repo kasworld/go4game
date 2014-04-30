@@ -30,22 +30,6 @@ func (p *SpatialPartition) GetPartPos(pos *Vector3D) [3]int {
 	return rtn
 }
 
-func (p *SpatialPartition) AddPartPos(pos [3]int, obj *GameObject) {
-	p.refs[pos[0]][pos[1]][pos[2]] = append(p.refs[pos[0]][pos[1]][pos[2]], obj)
-}
-
-func get3(v int, min int, max int) []int {
-	rtn := make([]int, 0, 3)
-	rtn = append(rtn, v)
-	if v-1 >= min {
-		rtn = append(rtn, v-1)
-	}
-	if v+1 < max {
-		rtn = append(rtn, v+1)
-	}
-	return rtn
-}
-
 func (p *SpatialPartition) IsCollision(m *GameObject) bool {
 	ppos := p.GetPartPos(&m.posVector)
 	for i := ppos[0] - 1; i <= ppos[0]+1; i++ {
@@ -71,6 +55,10 @@ func (p *SpatialPartition) IsCollision(m *GameObject) bool {
 	return false
 }
 
+func (p *SpatialPartition) AddPartPos(pos [3]int, obj *GameObject) {
+	p.refs[pos[0]][pos[1]][pos[2]] = append(p.refs[pos[0]][pos[1]][pos[2]], obj)
+}
+
 func (w *World) MakeSpatialPartition() *SpatialPartition {
 	rtn := SpatialPartition{
 		Min: w.MinPos,
@@ -85,7 +73,6 @@ func (w *World) MakeSpatialPartition() *SpatialPartition {
 	if rtn.PartSize < 2 {
 		rtn.PartSize = 2
 	}
-	//log.Printf("partsize:%v objs:%v", rtn.PartSize, objcount)
 
 	rtn.refs = make([][][]GameObjectList, rtn.PartSize)
 	for i := 0; i < rtn.PartSize; i++ {
@@ -98,7 +85,6 @@ func (w *World) MakeSpatialPartition() *SpatialPartition {
 	for _, t := range w.Teams {
 		for _, obj := range t.GameObjs {
 			if obj != nil && obj.objType != 0 {
-				//if obj != nil {
 				partPos := rtn.GetPartPos(&obj.posVector)
 				rtn.AddPartPos(partPos, obj)
 			}

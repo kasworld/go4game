@@ -91,6 +91,9 @@ func (o *GameObject) MakeMainObj() {
 	o.posVector = RandVector3D(-500, 500)
 	o.endTime = o.startTime.Add(time.Second * 3600)
 	o.objType = GameObjMain
+	o.posVector[1] = 0
+	o.moveVector[1] = 0
+	o.accelVector[1] = 0
 }
 func (o *GameObject) MakeShield(mo *GameObject) {
 	o.moveLimit = 200.0
@@ -109,6 +112,9 @@ func (o *GameObject) MakeBullet(mo *GameObject) {
 	o.borderActionFn = borderActionFn_Disable
 	o.accelVector = Vector3D{0, 0, 0}
 	o.objType = GameObjBullet
+	o.posVector[1] = 0
+	o.moveVector[1] = 0
+	o.accelVector[1] = 0
 }
 
 type ActionFnEnvInfo struct {
@@ -116,9 +122,9 @@ type ActionFnEnvInfo struct {
 }
 
 func (o *GameObject) ActByTime(t time.Time) {
-	// o.posVector[1] = 0
-	// o.moveVector[1] = 0
-	// o.accelVector[1] = 0
+	o.posVector[1] = 0
+	o.moveVector[1] = 0
+	o.accelVector[1] = 0
 
 	defer func(o *GameObject, t time.Time) {
 		o.lastMoveTime = t
@@ -138,7 +144,7 @@ func (o *GameObject) ActByTime(t time.Time) {
 	}
 	// check if collision , disable
 	// modify own status only
-	if o.PTeam.PWorld.spp != nil && o.PTeam.PWorld.spp.IsCollision(o) {
+	if o.PTeam.spp != nil && o.PTeam.PWorld.spp.IsCollision(o) {
 		if o.collisionActionFn != nil {
 			ok := o.collisionActionFn(o, &envInfo)
 			if ok != true {

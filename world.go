@@ -35,8 +35,7 @@ func NewWorld(g *GameService) *World {
 		MaxPos:     Vector3D{500, 500, 500},
 		Teams:      make(map[int]*Team),
 	}
-	//log.Printf("New %v", w)
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 32; i++ {
 		w.addNewTeam(&AIConn{})
 	}
 

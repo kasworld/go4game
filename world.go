@@ -12,13 +12,14 @@ import (
 
 type World struct {
 	PacketStat
-	ID       int
-	CmdCh    chan Cmd
-	PService *GameService
-	MinPos   Vector3D
-	MaxPos   Vector3D
-	Teams    map[int]*Team
-	spp      *SpatialPartition
+	ID          int
+	CmdCh       chan Cmd
+	PService    *GameService
+	MinPos      Vector3D
+	MaxPos      Vector3D
+	Teams       map[int]*Team
+	spp         *SpatialPartition
+	worldSerial *WorldSerialize
 }
 
 func (m World) String() string {
@@ -35,7 +36,7 @@ func NewWorld(g *GameService) *World {
 		MaxPos:     Vector3D{500, 500, 500},
 		Teams:      make(map[int]*Team),
 	}
-	for i := 0; i < 32; i++ {
+	for i := 0; i < 1000; i++ {
 		w.addNewTeam(&AIConn{})
 	}
 
@@ -53,10 +54,26 @@ func (w *World) teamCount(ct ClientType) int {
 	return n
 }
 
+func (w *World) updateEnv() {
+	chspp := make(chan bool)
+	go func() {
+		w.spp = w.MakeSpatialPartition()
+		chspp <- true
+	}()
+	chwsrl := make(chan bool)
+	go func() {
+		w.worldSerial = NewWorldSerialize(w)
+		chwsrl <- true
+	}()
+	<-chspp
+	<-chwsrl
+}
+
 func (w *World) Loop() {
 	defer func() {
 		for _, t := range w.Teams {
-			t.CmdCh <- Cmd{Cmd: "quit"}
+			t.endTeam()
+			w.delTeam(t)
 		}
 		w.PService.CmdCh <- Cmd{Cmd: "delWorld", Args: w}
 	}()
@@ -72,26 +89,32 @@ loop:
 				break loop
 			case "newTeam":
 				w.addNewTeam(cmd.Args)
-			case "delTeam":
-				w.delTeam(cmd.Args.(*Team))
-				if len(w.Teams) == w.teamCount(AIClient) {
-					break loop
-				}
-			case "statInfo":
-				s := cmd.Args.(PacketStat)
-				w.PacketStat.AddLap(&s)
-				//log.Println("world stat added")
 			default:
 				log.Printf("unknown cmd %v\n", cmd)
 			}
-		case <-timer60Ch:
-			w.spp = w.MakeSpatialPartition()
+		case ftime := <-timer60Ch:
+			w.updateEnv()
+
+			for _, t := range w.Teams {
+				//log.Printf("actbytime %v", t)
+				t.chStep = t.doFrameWork(ftime, w.spp, w.worldSerial)
+			}
+			for _, t := range w.Teams {
+				//log.Printf("actbytime wait %v", t)
+				r := <-t.chStep
+				if !r {
+					t.endTeam()
+					w.delTeam(t)
+				}
+			}
 		case <-timer1secCh:
 			osum := 0
 			for _, t := range w.Teams {
 				osum += len(t.GameObjs)
+				w.PacketStat.AddLap(t.ClientConnInfo.Stat)
+				t.ClientConnInfo.Stat.NewLap()
 			}
-			//log.Printf("%v objs:%v spp:%v ", w, osum, w.spp.PartSize)
+			log.Printf("%v objs:%v spp:%v ", w, osum, w.spp.PartSize)
 			select {
 			case w.PService.CmdCh <- Cmd{Cmd: "statInfo", Args: w.PacketStat}:
 				w.PacketStat.NewLap()

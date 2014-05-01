@@ -6,7 +6,7 @@ import (
 	//"errors"
 	"fmt"
 	"github.com/gorilla/websocket"
-	//"log"
+	"log"
 	"math/rand"
 	"net"
 	"runtime"
@@ -26,6 +26,15 @@ func init() {
 			IdGenCh <- i
 		}
 	}()
+}
+
+func (t *Team) asyncTemplate() <-chan bool {
+	chRtn := make(chan bool)
+	go func() {
+		defer func() { chRtn <- true }()
+
+	}()
+	return chRtn
 }
 
 type CountStat struct {
@@ -61,7 +70,7 @@ type PacketStat struct {
 func (d PacketStat) String() string {
 	lapdur := time.Now().Sub(d.LastLapTime)
 	dur := time.Now().Sub(d.StartTime)
-	return fmt.Sprintf("recv(total:%v lap:%v)\nsend(total:%v lap:%v)",
+	return fmt.Sprintf("recv(total:%v lap:%v) send(total:%v lap:%v)",
 		d.ReadSum.CalcLap(dur),
 		d.ReadCL.CalcLap(lapdur),
 		d.WriteSum.CalcLap(dur),
@@ -134,13 +143,6 @@ type AIConn struct {
 	pteam *Team
 }
 
-func (a *AIConn) makeAIAction(aiact *AiActionPacket) *GamePacket {
-	return &GamePacket{
-		Cmd:   ReqAIAct,
-		AiAct: aiact,
-	}
-}
-
 func NewAIConnInfo(t *Team, aiconn *AIConn) *ConnInfo {
 	c := ConnInfo{
 		Stat:       NewStatInfo(),
@@ -157,30 +159,53 @@ func NewAIConnInfo(t *Team, aiconn *AIConn) *ConnInfo {
 
 func (c *ConnInfo) aiLoop() {
 	defer func() {
+		log.Printf("aiLoop end team:%v", c.PTeam.ID)
 		close(c.ReadCh)
 	}()
-	timer60Ch := time.Tick(1000 / 60 * time.Millisecond)
+	//timer60Ch := time.Tick(1000 / 60 * time.Millisecond)
+	var worldinfo *WorldSerialize
+	c.ReadCh <- &GamePacket{
+		Cmd: ReqWorldInfo,
+	}
 loop:
 	for {
 		select {
-		case <-timer60Ch:
-			// send ai action
-			aiact := &AiActionPacket{
-				Accel:          RandVector3D(-100, 100),
-				NormalBulletMv: RandVector3D(-100, 100),
-			}
-			sp := c.AiConn.makeAIAction(aiact)
-			c.ReadCh <- sp
-			//c.Stat.IncR()
-
 		case packet, ok := <-c.WriteCh: // get rsp from server
 			if !ok {
 				break loop
 			}
-			//c.Stat.IncW()
-			_ = packet
-			// make ai action
+			c.Stat.IncW()
+			switch packet.Cmd {
+			case RspAIAct:
+				worldinfo = nil
+			case RspWorldInfo:
+				worldinfo = packet.WorldInfo
+			default:
+				log.Printf("unknown packet %v", packet.Cmd)
+				break loop
+			}
+
+			//case <-timer60Ch:
+			if worldinfo == nil {
+				c.ReadCh <- &GamePacket{
+					Cmd: ReqWorldInfo,
+				}
+			} else {
+				c.ReadCh <- c.AiConn.makeAIAction(worldinfo)
+			}
+
+			c.Stat.IncR()
 		}
+	}
+}
+
+func (a *AIConn) makeAIAction(worldinfo *WorldSerialize) *GamePacket {
+	return &GamePacket{
+		Cmd: ReqAIAct,
+		AiAct: &AiActionPacket{
+			Accel:          RandVector3D(-100, 100),
+			NormalBulletMv: RandVector3D(-100, 100),
+		},
 	}
 }
 
@@ -202,6 +227,7 @@ func (c *ConnInfo) tcpReadLoop() {
 	defer func() {
 		c.Conn.Close()
 		close(c.ReadCh)
+		log.Printf("tcpReadLoop end team:%v", c.PTeam.ID)
 	}()
 	dec := json.NewDecoder(c.Conn)
 	for {
@@ -218,6 +244,7 @@ func (c *ConnInfo) tcpReadLoop() {
 func (c *ConnInfo) tcpWriteLoop() {
 	defer func() {
 		c.Conn.Close()
+		log.Printf("tcpWriteLoop end team:%v", c.PTeam.ID)
 	}()
 	enc := json.NewEncoder(c.Conn)
 loop:
@@ -254,7 +281,7 @@ func (c *ConnInfo) wsReadLoop() {
 	defer func() {
 		c.WsConn.Close()
 		close(c.ReadCh)
-		//log.Println("quit wsReadLoop")
+		log.Printf("wsReadLoop end team:%v", c.PTeam.ID)
 	}()
 	c.WsConn.SetReadLimit(maxMessageSize)
 	c.WsConn.SetReadDeadline(time.Now().Add(pongWait))
@@ -282,7 +309,7 @@ func (c *ConnInfo) wsWriteLoop() {
 	timerPing := time.Tick(pingPeriod)
 	defer func() {
 		c.WsConn.Close()
-		//log.Println("quit wsWriteLoop")
+		log.Printf("wsWriteLoop end team:%v", c.PTeam.ID)
 	}()
 	for {
 		select {

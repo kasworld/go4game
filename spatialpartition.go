@@ -5,10 +5,38 @@ import (
 	"math"
 )
 
+type SPObj struct {
+	ID              int
+	TeamID          int
+	posVector       Vector3D
+	moveVector      Vector3D
+	collisionRadius float64
+	objType         GameObjectType
+}
+
+func NewSPObj(o *GameObject) *SPObj {
+	return &SPObj{
+		ID:              o.ID,
+		TeamID:          o.PTeam.ID,
+		posVector:       o.posVector,
+		moveVector:      o.moveVector,
+		collisionRadius: o.collisionRadius,
+		objType:         o.objType,
+	}
+}
+
+func (s *SPObj) IsCollision(target *GameObject) bool {
+	teamrule := s.TeamID != target.PTeam.ID
+	checklen := s.posVector.LenTo(&target.posVector) <= (s.collisionRadius + target.collisionRadius)
+	return (teamrule) && (checklen)
+}
+
+type SPObjList []*SPObj
+
 type SpatialPartition struct {
 	Min, Max Vector3D
 	PartSize int
-	refs     [][][]GameObjectList
+	refs     [][][]SPObjList
 }
 
 func (p *SpatialPartition) GetPartPos(pos *Vector3D) [3]int {
@@ -45,7 +73,7 @@ func (p *SpatialPartition) IsCollision(m *GameObject) bool {
 					continue
 				}
 				for _, v := range p.refs[i][j][k] {
-					if m.IsCollision(v) {
+					if v.IsCollision(m) {
 						return true
 					}
 				}
@@ -55,7 +83,7 @@ func (p *SpatialPartition) IsCollision(m *GameObject) bool {
 	return false
 }
 
-func (p *SpatialPartition) AddPartPos(pos [3]int, obj *GameObject) {
+func (p *SpatialPartition) AddPartPos(pos [3]int, obj *SPObj) {
 	p.refs[pos[0]][pos[1]][pos[2]] = append(p.refs[pos[0]][pos[1]][pos[2]], obj)
 }
 
@@ -74,11 +102,11 @@ func (w *World) MakeSpatialPartition() *SpatialPartition {
 		rtn.PartSize = 2
 	}
 
-	rtn.refs = make([][][]GameObjectList, rtn.PartSize)
+	rtn.refs = make([][][]SPObjList, rtn.PartSize)
 	for i := 0; i < rtn.PartSize; i++ {
-		rtn.refs[i] = make([][]GameObjectList, rtn.PartSize)
+		rtn.refs[i] = make([][]SPObjList, rtn.PartSize)
 		for j := 0; j < rtn.PartSize; j++ {
-			rtn.refs[i][j] = make([]GameObjectList, rtn.PartSize)
+			rtn.refs[i][j] = make([]SPObjList, rtn.PartSize)
 		}
 	}
 
@@ -86,7 +114,7 @@ func (w *World) MakeSpatialPartition() *SpatialPartition {
 		for _, obj := range t.GameObjs {
 			if obj != nil && obj.objType != 0 {
 				partPos := rtn.GetPartPos(&obj.posVector)
-				rtn.AddPartPos(partPos, obj)
+				rtn.AddPartPos(partPos, NewSPObj(obj))
 			}
 		}
 	}

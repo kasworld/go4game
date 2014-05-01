@@ -41,12 +41,12 @@ clientloop:
 			// 		Teamcolor: []int{1, 2, 3},
 			// 	},
 			// }
-			sp := GamePacket{
-				Cmd: ReqAIAct,
-			}
 			// sp := GamePacket{
-			// 	Cmd: ReqWorldInfo,
+			// 	Cmd: ReqAIAct,
 			// }
+			sp := GamePacket{
+				Cmd: ReqWorldInfo,
+			}
 			err := enc.Encode(&sp)
 			if err != nil {
 				log.Printf("client %v", err)

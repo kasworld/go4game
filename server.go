@@ -9,7 +9,7 @@ import (
 	//"flag"
 	"github.com/gorilla/websocket"
 	"net/http"
-	//"runtime"
+	"runtime"
 	//"text/template"
 	"time"
 )
@@ -108,8 +108,8 @@ loop:
 		case <-timer60Ch:
 			// do frame action
 		case <-timer1secCh:
-			// log.Printf("%v ID:%v goroutine:%v\n%v",
-			// 	g, <-IdGenCh, runtime.NumGoroutine(), g.PacketStat)
+			log.Printf("%v ID:%v goroutine:%v %v",
+				g, <-IdGenCh, runtime.NumGoroutine(), g.PacketStat)
 			g.PacketStat.NewLap()
 		}
 	}

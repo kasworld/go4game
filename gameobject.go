@@ -14,11 +14,11 @@ func (m GameObject) String() string {
 		m.ID, m.objType, m.PTeam)
 }
 
-func (m *GameObject) IsCollision(target *GameObject) bool {
-	teamrule := m.PTeam != target.PTeam
-	checklen := m.posVector.LenTo(&target.posVector) <= (m.collisionRadius + target.collisionRadius)
-	return (teamrule) && (checklen)
-}
+// func (m *GameObject) IsCollision(target *GameObject) bool {
+// 	teamrule := m.PTeam != target.PTeam
+// 	checklen := m.posVector.LenTo(&target.posVector) <= (m.collisionRadius + target.collisionRadius)
+// 	return (teamrule) && (checklen)
+// }
 
 const (
 	_ = iota
@@ -121,16 +121,15 @@ type ActionFnEnvInfo struct {
 	frameTime time.Time
 }
 
-func (o *GameObject) ActByTime(t time.Time) {
+func (o *GameObject) ActByTime(t time.Time, spp *SpatialPartition) {
 	o.posVector[1] = 0
 	o.moveVector[1] = 0
 	o.accelVector[1] = 0
 
-	defer func(o *GameObject, t time.Time) {
+	defer func() {
 		o.lastMoveTime = t
-	}(o, t)
+	}()
 	envInfo := ActionFnEnvInfo{
-		//spp:       o.PTeam.spp,
 		frameTime: t,
 	}
 	// check expire
@@ -144,7 +143,7 @@ func (o *GameObject) ActByTime(t time.Time) {
 	}
 	// check if collision , disable
 	// modify own status only
-	if o.PTeam.spp != nil && o.PTeam.PWorld.spp.IsCollision(o) {
+	if spp.IsCollision(o) {
 		if o.collisionActionFn != nil {
 			ok := o.collisionActionFn(o, &envInfo)
 			if ok != true {
@@ -168,8 +167,6 @@ func (o *GameObject) ActByTime(t time.Time) {
 		}
 	}
 }
-
-type GameObjectList []*GameObject
 
 type GameObjectActFn func(m *GameObject, envInfo *ActionFnEnvInfo) bool
 

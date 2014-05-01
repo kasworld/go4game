@@ -1,4 +1,4 @@
-go build server/main.go
-./main -rundur 60 -pfilename server.pprof
-go tool pprof main server.pprof
-rm main server.pprof
+go build server.go
+./server -rundur 60 -pfilename server.pprof
+go tool pprof server server.pprof
+rm server server.pprof

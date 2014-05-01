@@ -137,7 +137,7 @@ func (t *Team) endTeam() {
 	if t.ClientConnInfo.WsConn != nil {
 		t.ClientConnInfo.WsConn.Close() // stop read loop
 	}
-	log.Printf("team end %v", t)
+	//log.Printf("team end %v", t)
 }
 
 func (t *Team) applyAiAction(ftime time.Time, act *AiActionPacket) {

@@ -154,8 +154,8 @@ function updateInfo(msg) {
 
 function initDebugContext(container) {
     var debugCanvas = document.createElement( 'canvas' );
-    debugCanvas.width = 512;
-    debugCanvas.height = 512;
+    debugCanvas.width = 256;
+    debugCanvas.height = 256;
     debugCanvas.style.position = 'absolute';
     debugCanvas.style.top = '0px';
     debugCanvas.style.left = '0px';
@@ -163,7 +163,7 @@ function initDebugContext(container) {
     container.appendChild( debugCanvas );
 
     var debugContext = debugCanvas.getContext( '2d' );
-    debugContext.setTransform( 1, 0, 0, 1, 256, 256 );
+    debugContext.setTransform( 1, 0, 0, 1, 128, 128 );
     debugContext.strokeStyle = '#000000';
     return debugContext;
 }
@@ -331,10 +331,10 @@ function renderDebugContext(){
     debugContext.rect( camera.target.x * 0.1 - 5, camera.target.z * 0.1 - 5, 10, 10 );
     debugContext.rect( - 50, - 50, 100, 100 );
 
-    for ( var i in objects) {
-        var object = objects[ i ];
-        debugContext.rect( object.position.x * 0.1 - 5, object.position.z * 0.1 - 5, 10, 10 );
-    }
+    // for ( var i in objects) {
+    //     var object = objects[ i ];
+    //     debugContext.rect( object.position.x * 0.1 - 5, object.position.z * 0.1 - 5, 10, 10 );
+    // }
     debugContext.closePath();
     debugContext.stroke();
 }

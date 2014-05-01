@@ -58,20 +58,25 @@ func (p *SpatialPartition) GetPartPos(pos *Vector3D) [3]int {
 	return rtn
 }
 
+// min <= v < max
+func get3(v int, min int, max int) []int {
+	if v <= min {
+		return []int{min, min + 1}
+	} else if v+1 >= max {
+		return []int{max - 1, max - 2}
+	} else {
+		return []int{v, v - 1, v + 1}
+	}
+}
+
 func (p *SpatialPartition) IsCollision(m *GameObject) bool {
 	ppos := p.GetPartPos(&m.posVector)
-	for i := ppos[0] - 1; i <= ppos[0]+1; i++ {
-		if i < 0 || i >= p.PartSize {
-			continue
-		}
-		for j := ppos[1] - 1; j <= ppos[1]+1; j++ {
-			if j < 0 || j >= p.PartSize {
-				continue
-			}
-			for k := ppos[2] - 1; k <= ppos[2]+1; k++ {
-				if k < 0 || k >= p.PartSize {
-					continue
-				}
+	xr := get3(ppos[0], 0, p.PartSize)
+	yr := get3(ppos[1], 0, p.PartSize)
+	zr := get3(ppos[2], 0, p.PartSize)
+	for _, i := range xr {
+		for _, j := range yr {
+			for _, k := range zr {
 				for _, v := range p.refs[i][j][k] {
 					if v.IsCollision(m) {
 						return true
@@ -82,6 +87,31 @@ func (p *SpatialPartition) IsCollision(m *GameObject) bool {
 	}
 	return false
 }
+
+// func (p *SpatialPartition) IsCollision(m *GameObject) bool {
+// 	ppos := p.GetPartPos(&m.posVector)
+// 	for i := ppos[0] - 1; i <= ppos[0]+1; i++ {
+// 		if i < 0 || i >= p.PartSize {
+// 			continue
+// 		}
+// 		for j := ppos[1] - 1; j <= ppos[1]+1; j++ {
+// 			if j < 0 || j >= p.PartSize {
+// 				continue
+// 			}
+// 			for k := ppos[2] - 1; k <= ppos[2]+1; k++ {
+// 				if k < 0 || k >= p.PartSize {
+// 					continue
+// 				}
+// 				for _, v := range p.refs[i][j][k] {
+// 					if v.IsCollision(m) {
+// 						return true
+// 					}
+// 				}
+// 			}
+// 		}
+// 	}
+// 	return false
+// }
 
 func (p *SpatialPartition) AddPartPos(pos [3]int, obj *SPObj) {
 	p.refs[pos[0]][pos[1]][pos[2]] = append(p.refs[pos[0]][pos[1]][pos[2]], obj)

@@ -36,7 +36,7 @@ func NewWorld(g *GameService) *World {
 		MaxPos:     Vector3D{500, 500, 500},
 		Teams:      make(map[int]*Team),
 	}
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 32; i++ {
 		w.addNewTeam(&AIConn{})
 	}
 
@@ -107,6 +107,9 @@ loop:
 					w.delTeam(t)
 				}
 			}
+			// if w.teamCount(AIClient) == len(w.Teams) {
+			// 	break loop
+			// }
 		case <-timer1secCh:
 			osum := 0
 			for _, t := range w.Teams {

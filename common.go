@@ -159,7 +159,7 @@ func NewAIConnInfo(t *Team, aiconn *AIConn) *ConnInfo {
 
 func (c *ConnInfo) aiLoop() {
 	defer func() {
-		log.Printf("aiLoop end team:%v", c.PTeam.ID)
+		//log.Printf("aiLoop end team:%v", c.PTeam.ID)
 		close(c.ReadCh)
 	}()
 	//timer60Ch := time.Tick(1000 / 60 * time.Millisecond)
@@ -227,7 +227,7 @@ func (c *ConnInfo) tcpReadLoop() {
 	defer func() {
 		c.Conn.Close()
 		close(c.ReadCh)
-		log.Printf("tcpReadLoop end team:%v", c.PTeam.ID)
+		//log.Printf("tcpReadLoop end team:%v", c.PTeam.ID)
 	}()
 	dec := json.NewDecoder(c.Conn)
 	for {
@@ -244,7 +244,7 @@ func (c *ConnInfo) tcpReadLoop() {
 func (c *ConnInfo) tcpWriteLoop() {
 	defer func() {
 		c.Conn.Close()
-		log.Printf("tcpWriteLoop end team:%v", c.PTeam.ID)
+		//log.Printf("tcpWriteLoop end team:%v", c.PTeam.ID)
 	}()
 	enc := json.NewEncoder(c.Conn)
 loop:
@@ -281,7 +281,7 @@ func (c *ConnInfo) wsReadLoop() {
 	defer func() {
 		c.WsConn.Close()
 		close(c.ReadCh)
-		log.Printf("wsReadLoop end team:%v", c.PTeam.ID)
+		//log.Printf("wsReadLoop end team:%v", c.PTeam.ID)
 	}()
 	c.WsConn.SetReadLimit(maxMessageSize)
 	c.WsConn.SetReadDeadline(time.Now().Add(pongWait))
@@ -309,7 +309,7 @@ func (c *ConnInfo) wsWriteLoop() {
 	timerPing := time.Tick(pingPeriod)
 	defer func() {
 		c.WsConn.Close()
-		log.Printf("wsWriteLoop end team:%v", c.PTeam.ID)
+		//log.Printf("wsWriteLoop end team:%v", c.PTeam.ID)
 	}()
 	for {
 		select {

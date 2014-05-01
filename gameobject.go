@@ -104,11 +104,11 @@ func (o *GameObject) MakeShield(mo *GameObject) {
 	o.posVector = mo.posVector
 	o.objType = GameObjShield
 }
-func (o *GameObject) MakeBullet(mo *GameObject) {
+func (o *GameObject) MakeBullet(mo *GameObject, moveVector Vector3D) {
 	o.moveLimit = 300.0
 	o.collisionRadius = 5
 	o.posVector = mo.posVector
-	o.moveVector = RandVector3D(-300., 300.)
+	o.moveVector = moveVector
 	o.borderActionFn = borderActionFn_Disable
 	o.accelVector = Vector3D{0, 0, 0}
 	o.objType = GameObjBullet

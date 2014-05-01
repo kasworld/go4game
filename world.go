@@ -91,7 +91,7 @@ loop:
 			for _, t := range w.Teams {
 				osum += len(t.GameObjs)
 			}
-			log.Printf("%v objs:%v spp:%v ", w, osum, w.spp.PartSize)
+			//log.Printf("%v objs:%v spp:%v ", w, osum, w.spp.PartSize)
 			select {
 			case w.PService.CmdCh <- Cmd{Cmd: "statInfo", Args: w.PacketStat}:
 				w.PacketStat.NewLap()

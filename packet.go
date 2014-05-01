@@ -101,8 +101,8 @@ type TeamInfoPacket struct {
 }
 
 type AiActionPacket struct {
-	Accel         Vector3D
-	Fire1TargetID int
-	Fire2TargetID int
-	Fire3TargetID int
+	Accel           Vector3D
+	NormalBulletMv  Vector3D
+	HommingTargetID int
+	SuperBulletMv   Vector3D
 }

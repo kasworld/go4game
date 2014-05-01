@@ -130,18 +130,14 @@ type ConnInfo struct {
 	AiConn     *AIConn
 }
 
-/*
-req spp
-make aiaction and send
-*/
 type AIConn struct {
 	pteam *Team
 }
 
-func (a *AIConn) makeAIAction() *GamePacket {
+func (a *AIConn) makeAIAction(aiact *AiActionPacket) *GamePacket {
 	return &GamePacket{
 		Cmd:   ReqAIAct,
-		AiAct: &AiActionPacket{},
+		AiAct: aiact,
 	}
 }
 
@@ -169,7 +165,11 @@ loop:
 		select {
 		case <-timer60Ch:
 			// send ai action
-			sp := c.AiConn.makeAIAction()
+			aiact := &AiActionPacket{
+				Accel:          RandVector3D(-100, 100),
+				NormalBulletMv: RandVector3D(-100, 100),
+			}
+			sp := c.AiConn.makeAIAction(aiact)
 			c.ReadCh <- sp
 			//c.Stat.IncR()
 

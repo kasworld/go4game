@@ -49,14 +49,14 @@ func NewTeam(w *World, conn interface{}) *Team {
 	default:
 		log.Printf("unknown type %#v", conn)
 	}
-	t.addNewGameObject(GameObjMain)
+	t.addNewGameObject(GameObjMain, nil)
 
 	for i := 0; i < 8; i++ {
-		t.addNewGameObject(GameObjShield)
+		t.addNewGameObject(GameObjShield, nil)
 	}
-	for i := 0; i < 8; i++ {
-		t.addNewGameObject(GameObjBullet)
-	}
+	// for i := 0; i < 8; i++ {
+	// 	t.addNewGameObject(GameObjBullet)
+	// }
 	go t.Loop()
 	return &t
 }
@@ -72,6 +72,7 @@ func (t *Team) findMainObj() *GameObject {
 
 func (t *Team) Loop() {
 	defer func() {
+		log.Printf("quiting %v\n", t)
 		close(t.ClientConnInfo.WriteCh) // stop writeloop
 		if t.ClientConnInfo.Conn != nil {
 			t.ClientConnInfo.Conn.Close() // stop read loop
@@ -80,8 +81,7 @@ func (t *Team) Loop() {
 			t.ClientConnInfo.WsConn.Close() // stop read loop
 		}
 		t.PWorld.CmdCh <- Cmd{Cmd: "delTeam", Args: t}
-		//log.Printf("team ending:%v\n", t.ClientConnInfo.Stat.String())
-		//log.Printf("quit %v\n", t)
+		log.Printf("quit %v\n", t)
 	}()
 
 	timer60Ch := time.Tick(1000 / 60 * time.Millisecond)
@@ -113,6 +113,7 @@ loop:
 				}
 				t.ClientConnInfo.WriteCh <- &rp
 			case ReqAIAct:
+				t.applyAiAction(p.AiAct)
 				rp := GamePacket{
 					Cmd: RspAIAct,
 				}
@@ -129,20 +130,33 @@ loop:
 			for _, v := range t.GameObjs {
 				if v.enabled == false {
 					t.delGameObject(v)
-					t.addNewGameObject(v.objType)
+					if v.objType == GameObjMain {
+						t.addNewGameObject(v.objType, nil)
+					}
+					if v.objType == GameObjShield {
+						t.addNewGameObject(v.objType, nil)
+					}
+
 				}
 			}
 		case <-timer1secCh:
-			//log.Printf("team:%v\n", t.ClientConnInfo.Stat.String())
-			select {
-			case t.PWorld.CmdCh <- Cmd{Cmd: "statInfo", Args: *t.ClientConnInfo.Stat}:
-				t.ClientConnInfo.Stat.NewLap()
-			}
+			//log.Printf("%v", t)
+			t.PWorld.CmdCh <- Cmd{Cmd: "statInfo", Args: *t.ClientConnInfo.Stat}
+			t.ClientConnInfo.Stat.NewLap()
 		}
 	}
 }
 
-func (t *Team) addNewGameObject(objType GameObjectType) *GameObject {
+func (t *Team) applyAiAction(act *AiActionPacket) {
+	if act == nil {
+		return
+	}
+	mo := t.findMainObj()
+	mo.accelVector.Add(&act.Accel)
+	t.addNewGameObject(GameObjBullet, act.NormalBulletMv)
+}
+
+func (t *Team) addNewGameObject(objType GameObjectType, args interface{}) *GameObject {
 	o := NewGameObject(t)
 	switch objType {
 	case GameObjMain:
@@ -155,7 +169,7 @@ func (t *Team) addNewGameObject(objType GameObjectType) *GameObject {
 	case GameObjBullet:
 		mo := t.findMainObj()
 		if mo != nil {
-			o.MakeBullet(mo)
+			o.MakeBullet(mo, args.(Vector3D))
 		}
 	default:
 		log.Printf("invalid GameObjectType %v", t)
@@ -167,11 +181,4 @@ func (t *Team) addNewGameObject(objType GameObjectType) *GameObject {
 
 func (t *Team) delGameObject(o *GameObject) {
 	delete(t.GameObjs, o.ID)
-}
-
-type AIAction struct {
-}
-
-func (t *Team) ApplyAIAction(aa *AIAction) {
-	// change accel, fire bullet
 }

@@ -74,6 +74,8 @@ const (
 	RspMakeTeam
 	ReqWorldInfo
 	RspWorldInfo
+	ReqSpatialPartition
+	RspSpatialPartition
 	ReqAIAct
 	RspAIAct
 )
@@ -83,6 +85,7 @@ type GamePacket struct {
 	TeamInfo  *TeamInfoPacket
 	WorldInfo *WorldSerialize
 	ClientAct *ClientActionPacket
+	Spp       *SpatialPartition
 }
 
 func (gp GamePacket) String() string {

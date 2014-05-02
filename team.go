@@ -16,10 +16,10 @@ type Team struct {
 	PWorld         *World
 	GameObjs       map[int]*GameObject
 	ClientConnInfo ConnInfo
-	spp            *SpatialPartition
-	chStep         <-chan bool
-	Color          int
-	ActionLimit    ActStat
+	//spp            *SpatialPartition
+	chStep      <-chan bool
+	Color       int
+	ActionLimit ActStat
 }
 
 func (m Team) String() string {
@@ -64,7 +64,7 @@ func (t *Team) findMainObj() *GameObject {
 	return nil
 }
 
-func (t *Team) processClientReq(ftime time.Time, w *WorldSerialize) bool {
+func (t *Team) processClientReq(ftime time.Time, w *WorldSerialize, spp *SpatialPartition) bool {
 	p, ok := <-t.ClientConnInfo.ReadCh
 	if !ok { // read closed
 		//log.Printf("client quit %v", t)
@@ -81,6 +81,11 @@ func (t *Team) processClientReq(ftime time.Time, w *WorldSerialize) bool {
 		rp = GamePacket{
 			Cmd:       RspWorldInfo,
 			WorldInfo: w,
+		}
+	case ReqSpatialPartition:
+		rp = GamePacket{
+			Cmd: RspSpatialPartition,
+			Spp: spp,
 		}
 	case ReqAIAct:
 		t.applyClientAction(ftime, p.ClientAct)
@@ -120,7 +125,7 @@ func (t *Team) actByTime(ftime time.Time, spp *SpatialPartition) bool {
 func (t *Team) doFrameWork(ftime time.Time, spp *SpatialPartition, w *WorldSerialize) <-chan bool {
 	chRtn := make(chan bool)
 	go func() {
-		rtn := t.processClientReq(ftime, w)
+		rtn := t.processClientReq(ftime, w, spp)
 		if !rtn {
 			chRtn <- false
 			return

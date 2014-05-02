@@ -37,7 +37,7 @@ type SpatialPartition struct {
 	MaxObjectRadius float64
 }
 
-func (p *SpatialPartition) GetPartPos(pos *Vector3D) [3]int {
+func (p *SpatialPartition) GetPartPos(pos Vector3D) [3]int {
 	nompos := pos.Sub(&p.Min)
 	rtn := [3]int{0, 0, 0}
 
@@ -73,7 +73,7 @@ func (p *SpatialPartition) makeRange(m *GameObject, ppos [3]int, iaxis int) []in
 }
 
 func (p *SpatialPartition) ApplyCollisionAction3(fn CollisionActionFn, m *GameObject) bool {
-	ppos := p.GetPartPos(&m.PosVector)
+	ppos := p.GetPartPos(m.PosVector)
 
 	xr := p.makeRange(m, ppos, 0)
 	yr := p.makeRange(m, ppos, 1)
@@ -102,7 +102,7 @@ func getCheckRange(v int, min int, max int) []int {
 	}
 }
 func (p *SpatialPartition) ApplyCollisionAction1(fn CollisionActionFn, m *GameObject) bool {
-	ppos := p.GetPartPos(&m.PosVector)
+	ppos := p.GetPartPos(m.PosVector)
 	xr := getCheckRange(ppos[0], 0, p.PartCount)
 	yr := getCheckRange(ppos[1], 0, p.PartCount)
 	zr := getCheckRange(ppos[2], 0, p.PartCount)
@@ -135,7 +135,7 @@ func (p *SpatialPartition) ApplyPartFn(fn CollisionActionFn, m *GameObject, ppos
 }
 
 func (p *SpatialPartition) ApplyCollisionAction2(fn CollisionActionFn, m *GameObject) bool {
-	ppos := p.GetPartPos(&m.PosVector)
+	ppos := p.GetPartPos(m.PosVector)
 	for i := ppos[0] - 1; i <= ppos[0]+1; i++ {
 		if i < 0 || i >= p.PartCount {
 			continue
@@ -190,7 +190,7 @@ func (w *World) MakeSpatialPartition() *SpatialPartition {
 	for _, t := range w.Teams {
 		for _, obj := range t.GameObjs {
 			if obj != nil && obj.ObjType != 0 {
-				partPos := rtn.GetPartPos(&obj.PosVector)
+				partPos := rtn.GetPartPos(obj.PosVector)
 				rtn.AddPartPos(partPos, NewSPObj(obj))
 			}
 		}

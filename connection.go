@@ -37,10 +37,6 @@ type ConnInfo struct {
 	AiConn     *AIConn
 }
 
-type AIConn struct {
-	pteam *Team
-}
-
 func NewAIConnInfo(t *Team, aiconn *AIConn) *ConnInfo {
 	c := ConnInfo{
 		Stat:       NewPacketStatInfo(),
@@ -62,8 +58,9 @@ func (c *ConnInfo) aiLoop() {
 	}()
 	//timer60Ch := time.Tick(1000 / 60 * time.Millisecond)
 	var worldinfo *WorldSerialize
+	var spp *SpatialPartition
 	c.ReadCh <- &GamePacket{
-		Cmd: ReqWorldInfo,
+		Cmd: ReqSpatialPartition,
 	}
 loop:
 	for {
@@ -76,34 +73,28 @@ loop:
 			switch packet.Cmd {
 			case RspAIAct:
 				worldinfo = nil
+				spp = nil
 			case RspWorldInfo:
 				worldinfo = packet.WorldInfo
+				_ = worldinfo
+			case RspSpatialPartition:
+				spp = packet.Spp
 			default:
 				log.Printf("unknown packet %v", packet.Cmd)
 				break loop
 			}
 
 			//case <-timer60Ch:
-			if worldinfo == nil {
+			if spp == nil {
 				c.ReadCh <- &GamePacket{
-					Cmd: ReqWorldInfo,
+					Cmd: ReqSpatialPartition,
 				}
 			} else {
-				c.ReadCh <- c.AiConn.makeAIAction(worldinfo)
+				c.ReadCh <- c.AiConn.makeAIAction(spp)
 			}
 
 			c.Stat.IncR()
 		}
-	}
-}
-
-func (a *AIConn) makeAIAction(worldinfo *WorldSerialize) *GamePacket {
-	return &GamePacket{
-		Cmd: ReqAIAct,
-		ClientAct: &ClientActionPacket{
-			Accel:          RandVector3D(-500, 500),
-			NormalBulletMv: RandVector3D(-500, 500),
-		},
 	}
 }
 

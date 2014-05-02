@@ -77,7 +77,7 @@ func (d PacketStat) String() string {
 		d.WriteCL.CalcLap(lapdur))
 }
 
-func NewStatInfo() *PacketStat {
+func NewPacketStatInfo() *PacketStat {
 	return &PacketStat{
 		StartTime:   time.Now(),
 		LastLapTime: time.Now(),
@@ -145,7 +145,7 @@ type AIConn struct {
 
 func NewAIConnInfo(t *Team, aiconn *AIConn) *ConnInfo {
 	c := ConnInfo{
-		Stat:       NewStatInfo(),
+		Stat:       NewPacketStatInfo(),
 		ReadCh:     make(chan *GamePacket, 1),
 		WriteCh:    make(chan *GamePacket, 1),
 		PTeam:      t,
@@ -202,7 +202,7 @@ loop:
 func (a *AIConn) makeAIAction(worldinfo *WorldSerialize) *GamePacket {
 	return &GamePacket{
 		Cmd: ReqAIAct,
-		AiAct: &AiActionPacket{
+		ClientAct: &ClientActionPacket{
 			Accel:          RandVector3D(-100, 100),
 			NormalBulletMv: RandVector3D(-100, 100),
 		},
@@ -211,7 +211,7 @@ func (a *AIConn) makeAIAction(worldinfo *WorldSerialize) *GamePacket {
 
 func NewTcpConnInfo(t *Team, conn net.Conn) *ConnInfo {
 	c := ConnInfo{
-		Stat:       NewStatInfo(),
+		Stat:       NewPacketStatInfo(),
 		Conn:       conn,
 		ReadCh:     make(chan *GamePacket, 1),
 		WriteCh:    make(chan *GamePacket, 1),
@@ -265,7 +265,7 @@ loop:
 
 func NewWsConnInfo(t *Team, conn *websocket.Conn) *ConnInfo {
 	c := ConnInfo{
-		Stat:       NewStatInfo(),
+		Stat:       NewPacketStatInfo(),
 		WsConn:     conn,
 		ReadCh:     make(chan *GamePacket, 1),
 		WriteCh:    make(chan *GamePacket, 1),

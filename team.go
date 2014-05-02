@@ -22,7 +22,7 @@ type Team struct {
 }
 
 func (m Team) String() string {
-	return fmt.Sprintf("Team:%v Obj:%v", m.ID, len(m.GameObjs))
+	return fmt.Sprintf("Team%v Objs:%v", m.ID, len(m.GameObjs))
 }
 
 func NewTeam(w *World, conn interface{}) *Team {
@@ -81,7 +81,7 @@ func (t *Team) processClientReq(ftime time.Time, w *WorldSerialize) bool {
 			WorldInfo: w,
 		}
 	case ReqAIAct:
-		t.applyAiAction(ftime, p.AiAct)
+		t.applyClientAction(ftime, p.ClientAct)
 		rp = GamePacket{
 			Cmd: RspAIAct,
 		}
@@ -140,15 +140,6 @@ func (t *Team) endTeam() {
 	//log.Printf("team end %v", t)
 }
 
-func (t *Team) applyAiAction(ftime time.Time, act *AiActionPacket) {
-	if act == nil {
-		return
-	}
-	mo := t.findMainObj()
-	mo.accelVector.Add(&act.Accel)
-	t.addNewGameObject(GameObjBullet, act.NormalBulletMv)
-}
-
 func (t *Team) addNewGameObject(objType GameObjectType, args interface{}) *GameObject {
 	o := NewGameObject(t)
 	switch objType {
@@ -162,7 +153,7 @@ func (t *Team) addNewGameObject(objType GameObjectType, args interface{}) *GameO
 	case GameObjBullet:
 		mo := t.findMainObj()
 		if mo != nil {
-			o.MakeBullet(mo, args.(Vector3D))
+			o.MakeBullet(mo, args.(*Vector3D))
 		}
 	default:
 		log.Printf("invalid GameObjectType %v", t)
@@ -176,79 +167,20 @@ func (t *Team) delGameObject(o *GameObject) {
 	delete(t.GameObjs, o.ID)
 }
 
-// func (t *Team) Loop() {
-// 	defer func() {
-// 		log.Printf("quiting %v\n", t)
-// 		close(t.ClientConnInfo.WriteCh) // stop writeloop
-// 		if t.ClientConnInfo.Conn != nil {
-// 			t.ClientConnInfo.Conn.Close() // stop read loop
-// 		}
-// 		if t.ClientConnInfo.WsConn != nil {
-// 			t.ClientConnInfo.WsConn.Close() // stop read loop
-// 		}
-// 		t.PWorld.CmdCh <- Cmd{Cmd: "delTeam", Args: t}
-// 		log.Printf("quit %v\n", t)
-// 	}()
+func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) {
+	if act == nil {
+		return
+	}
+	mo := t.findMainObj()
+	if act.Accel != nil {
+		mo.accelVector.Add(act.Accel)
+	}
+	if act.NormalBulletMv != nil {
+		t.addNewGameObject(GameObjBullet, act.NormalBulletMv)
+	}
+	if act.HommingTargetID != 0 {
+	}
+	if act.SuperBulletMv != nil {
+	}
 
-// 	timer60Ch := time.Tick(1000 / 60 * time.Millisecond)
-// 	timer1secCh := time.Tick(1 * time.Second)
-// loop:
-// 	for {
-// 		select {
-// 		case cmd := <-t.CmdCh:
-// 			switch cmd.Cmd {
-// 			case "quit":
-// 				break loop
-// 			default:
-// 				log.Printf("unknown cmd %v\n", cmd)
-// 			}
-// 		case p, ok := <-t.ClientConnInfo.ReadCh:
-// 			if !ok { // read closed
-// 				break loop
-// 			}
-// 			switch p.Cmd {
-// 			case ReqMakeTeam:
-// 				rp := GamePacket{
-// 					Cmd: RspMakeTeam,
-// 				}
-// 				t.ClientConnInfo.WriteCh <- &rp
-// 			case ReqWorldInfo:
-// 				rp := GamePacket{
-// 					Cmd:       RspWorldInfo,
-// 					WorldInfo: NewWorldSerialize(t.PWorld),
-// 				}
-// 				t.ClientConnInfo.WriteCh <- &rp
-// 			case ReqAIAct:
-// 				t.applyAiAction(p.AiAct)
-// 				rp := GamePacket{
-// 					Cmd: RspAIAct,
-// 				}
-// 				t.ClientConnInfo.WriteCh <- &rp
-// 			default:
-// 				log.Printf("unknown packet %#v", p)
-// 			}
-
-// 		case ftime := <-timer60Ch:
-// 			t.spp = t.PWorld.spp
-// 			for _, v := range t.GameObjs {
-// 				v.ActByTime(ftime)
-// 			}
-// 			for _, v := range t.GameObjs {
-// 				if v.enabled == false {
-// 					t.delGameObject(v)
-// 					if v.objType == GameObjMain {
-// 						t.addNewGameObject(v.objType, nil)
-// 					}
-// 					if v.objType == GameObjShield {
-// 						t.addNewGameObject(v.objType, nil)
-// 					}
-
-// 				}
-// 			}
-// 		case <-timer1secCh:
-// 			//log.Printf("%v", t)
-// 			t.PWorld.CmdCh <- Cmd{Cmd: "statInfo", Args: *t.ClientConnInfo.Stat}
-// 			t.ClientConnInfo.Stat.NewLap()
-// 		}
-// 	}
-// }
+}

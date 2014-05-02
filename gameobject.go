@@ -14,12 +14,6 @@ func (m GameObject) String() string {
 		m.ID, m.objType, m.PTeam)
 }
 
-// func (m *GameObject) IsCollision(target *GameObject) bool {
-// 	teamrule := m.PTeam != target.PTeam
-// 	checklen := m.posVector.LenTo(&target.posVector) <= (m.collisionRadius + target.collisionRadius)
-// 	return (teamrule) && (checklen)
-// }
-
 const (
 	_ = iota
 	GameObjMain
@@ -71,8 +65,8 @@ func NewGameObject(PTeam *Team) *GameObject {
 		MinPos:       Min,
 		MaxPos:       Max,
 		posVector:    Vector3D{0, 0, 0},
-		moveVector:   RandVector3D(-50., 50.),
-		accelVector:  RandVector3D(-50., 50.),
+		moveVector:   *RandVector3D(-50., 50.),
+		accelVector:  *RandVector3D(-50., 50.),
 
 		moveLimit:         100.0,
 		bounceDamping:     1.0,
@@ -88,7 +82,7 @@ func NewGameObject(PTeam *Team) *GameObject {
 func (o *GameObject) MakeMainObj() {
 	o.moveLimit = 100.0
 	o.collisionRadius = 10
-	o.posVector = RandVector3D(-500, 500)
+	o.posVector = *RandVector3D(-500, 500)
 	o.endTime = o.startTime.Add(time.Second * 3600)
 	o.objType = GameObjMain
 	o.posVector[1] = 0
@@ -104,11 +98,11 @@ func (o *GameObject) MakeShield(mo *GameObject) {
 	o.posVector = mo.posVector
 	o.objType = GameObjShield
 }
-func (o *GameObject) MakeBullet(mo *GameObject, moveVector Vector3D) {
+func (o *GameObject) MakeBullet(mo *GameObject, moveVector *Vector3D) {
 	o.moveLimit = 300.0
 	o.collisionRadius = 5
 	o.posVector = mo.posVector
-	o.moveVector = moveVector
+	o.moveVector = *moveVector
 	o.borderActionFn = borderActionFn_Disable
 	o.accelVector = Vector3D{0, 0, 0}
 	o.objType = GameObjBullet
@@ -143,7 +137,7 @@ func (o *GameObject) ActByTime(t time.Time, spp *SpatialPartition) {
 	}
 	// check if collision , disable
 	// modify own status only
-	if spp.IsCollision(o) {
+	if spp.ApplyCollisionAction3(IsCollision, o) {
 		if o.collisionActionFn != nil {
 			ok := o.collisionActionFn(o, &envInfo)
 			if ok != true {

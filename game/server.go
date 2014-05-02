@@ -26,8 +26,16 @@ func main() {
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 	}
-
-	service := *go4game.NewGameService(connectTo, wsCconnectTo)
+	config := go4game.ServiceConfig{
+		TcpListen:            connectTo,
+		WsListen:             wsCconnectTo,
+		NpcCountPerWorld:     32,
+		MaxTcpClientPerWorld: 32,
+		MaxWsClientPerWorld:  32,
+		StartWorldCount:      1,
+	}
+	service := *go4game.NewGameService(&config)
+	go service.Loop()
 	service.CmdCh <- go4game.Cmd{Cmd: "start"}
 	time.Sleep(time.Duration(*rundur) * time.Second)
 	service.CmdCh <- go4game.Cmd{Cmd: "quit"}

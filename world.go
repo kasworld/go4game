@@ -12,35 +12,37 @@ import (
 
 type World struct {
 	PacketStat
-	ID          int
-	CmdCh       chan Cmd
-	PService    *GameService
-	MinPos      Vector3D
-	MaxPos      Vector3D
-	Teams       map[int]*Team
-	spp         *SpatialPartition
-	worldSerial *WorldSerialize
+	ID              int
+	CmdCh           chan Cmd
+	PService        *GameService
+	MinPos          Vector3D
+	MaxPos          Vector3D
+	Teams           map[int]*Team
+	spp             *SpatialPartition
+	worldSerial     *WorldSerialize
+	MaxObjectRadius float64
 }
 
 func (m World) String() string {
-	return fmt.Sprintf("World:%v Team:%v", m.ID, len(m.Teams))
+	return fmt.Sprintf("World%v Teams:%v", m.ID, len(m.Teams))
 }
 
 func NewWorld(g *GameService) *World {
 	w := World{
-		ID:         <-IdGenCh,
-		PacketStat: *NewStatInfo(),
-		CmdCh:      make(chan Cmd, 10),
-		PService:   g,
-		MinPos:     Vector3D{-500, -500, -500},
-		MaxPos:     Vector3D{500, 500, 500},
-		Teams:      make(map[int]*Team),
+		ID:              <-IdGenCh,
+		PacketStat:      *NewPacketStatInfo(),
+		CmdCh:           make(chan Cmd, 10),
+		PService:        g,
+		MinPos:          Vector3D{-500, -500, -500},
+		MaxPos:          Vector3D{500, 500, 500},
+		Teams:           make(map[int]*Team),
+		MaxObjectRadius: 10,
 	}
-	for i := 0; i < 32; i++ {
+	for i := 0; i < w.PService.config.NpcCountPerWorld; i++ {
 		w.addNewTeam(&AIConn{})
 	}
 
-	go w.Loop()
+	//go w.Loop()
 	return &w
 }
 
@@ -69,6 +71,26 @@ func (w *World) updateEnv() {
 	<-chwsrl
 }
 
+func (w *World) Do1Frame(ftime time.Time) {
+	w.updateEnv()
+
+	for _, t := range w.Teams {
+		//log.Printf("actbytime %v", t)
+		t.chStep = t.doFrameWork(ftime, w.spp, w.worldSerial)
+	}
+	for _, t := range w.Teams {
+		//log.Printf("actbytime wait %v", t)
+		r := <-t.chStep
+		if !r {
+			t.endTeam()
+			w.delTeam(t)
+		}
+	}
+	// if w.teamCount(AIClient) == len(w.Teams) {
+	// 	break loop
+	// }
+}
+
 func (w *World) Loop() {
 	defer func() {
 		for _, t := range w.Teams {
@@ -93,23 +115,7 @@ loop:
 				log.Printf("unknown cmd %v\n", cmd)
 			}
 		case ftime := <-timer60Ch:
-			w.updateEnv()
-
-			for _, t := range w.Teams {
-				//log.Printf("actbytime %v", t)
-				t.chStep = t.doFrameWork(ftime, w.spp, w.worldSerial)
-			}
-			for _, t := range w.Teams {
-				//log.Printf("actbytime wait %v", t)
-				r := <-t.chStep
-				if !r {
-					t.endTeam()
-					w.delTeam(t)
-				}
-			}
-			// if w.teamCount(AIClient) == len(w.Teams) {
-			// 	break loop
-			// }
+			w.Do1Frame(ftime)
 		case <-timer1secCh:
 			osum := 0
 			for _, t := range w.Teams {
@@ -117,7 +123,7 @@ loop:
 				w.PacketStat.AddLap(t.ClientConnInfo.Stat)
 				t.ClientConnInfo.Stat.NewLap()
 			}
-			log.Printf("%v objs:%v spp:%v ", w, osum, w.spp.PartSize)
+			log.Printf("%v objs:%v spp:%v ", w, osum, w.spp.PartCount)
 			select {
 			case w.PService.CmdCh <- Cmd{Cmd: "statInfo", Args: w.PacketStat}:
 				w.PacketStat.NewLap()

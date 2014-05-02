@@ -116,16 +116,16 @@ func (p *Vector3D) Project(other *Vector3D) *Vector3D {
 	return n.Imul(p.Dot(n))
 }
 
-func RandVector3D(st, end float64) Vector3D {
-	return Vector3D{
+func RandVector3D(st, end float64) *Vector3D {
+	return &Vector3D{
 		rand.Float64()*(end-st) + st,
 		rand.Float64()*(end-st) + st,
 		rand.Float64()*(end-st) + st,
 	}
 }
 
-func RandVector(st, end Vector3D) Vector3D {
-	return Vector3D{
+func RandVector(st, end Vector3D) *Vector3D {
+	return &Vector3D{
 		rand.Float64()*(end[0]-st[0]) + st[0],
 		rand.Float64()*(end[1]-st[1]) + st[1],
 		rand.Float64()*(end[2]-st[2]) + st[2],

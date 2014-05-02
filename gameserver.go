@@ -14,41 +14,52 @@ import (
 	"time"
 )
 
+type ServiceConfig struct {
+	TcpListen            string
+	WsListen             string
+	NpcCountPerWorld     int
+	MaxTcpClientPerWorld int
+	MaxWsClientPerWorld  int
+	StartWorldCount      int
+}
+
 type GameService struct {
 	PacketStat
 	ID     int
 	CmdCh  chan Cmd
 	Worlds map[int]*World
 
-	ListenTo           string
-	clientConnectionCh chan net.Conn
-
+	clientConnectionCh   chan net.Conn
 	wsClientConnectionCh chan *websocket.Conn
-	wsListen             string
+	config               *ServiceConfig
 }
 
 func (m GameService) String() string {
-	return fmt.Sprintf("GameService:%v Worlds:%v", m.ID, len(m.Worlds))
+	return fmt.Sprintf("GameService%v Worlds:%v", m.ID, len(m.Worlds))
 }
 
-func NewGameService(listenTo string, wsListen string) *GameService {
+func NewGameService(config *ServiceConfig) *GameService {
 	g := GameService{
 		ID:                   <-IdGenCh,
-		PacketStat:           *NewStatInfo(),
+		PacketStat:           *NewPacketStatInfo(),
 		CmdCh:                make(chan Cmd, 10),
 		Worlds:               make(map[int]*World),
-		ListenTo:             listenTo,
 		clientConnectionCh:   make(chan net.Conn),
 		wsClientConnectionCh: make(chan *websocket.Conn),
-		wsListen:             wsListen,
+		config:               config,
 	}
 	go g.listenLoop()
 	go g.wsServer()
-	log.Printf("New %v", g)
-	go g.Loop()
+
+	log.Printf("New %v\n%#v", g, g.config)
+
+	//go g.Loop()
 
 	// create default world
-	g.addNewWorld()
+	for i := 0; i < g.config.StartWorldCount; i++ {
+		g.addNewWorld()
+	}
+
 	return &g
 }
 
@@ -72,19 +83,23 @@ func (g *GameService) findFreeWorld(teamCount int, ct ClientType) *World {
 }
 
 func (g *GameService) Loop() {
+	<-g.CmdCh
+	for _, w := range g.Worlds {
+		go w.Loop()
+	}
 	timer1secCh := time.Tick(1 * time.Second)
 	timer60Ch := time.Tick(1000 / 60 * time.Millisecond)
 loop:
 	for {
 		select {
 		case conn := <-g.clientConnectionCh: // new team
-			w := g.findFreeWorld(32, TCPClient)
+			w := g.findFreeWorld(g.config.MaxTcpClientPerWorld, TCPClient)
 			w.CmdCh <- Cmd{
 				Cmd:  "newTeam",
 				Args: conn,
 			}
 		case conn := <-g.wsClientConnectionCh: // new team
-			w := g.findFreeWorld(32, WebSockClient)
+			w := g.findFreeWorld(g.config.MaxWsClientPerWorld, WebSockClient)
 			w.CmdCh <- Cmd{
 				Cmd:  "newTeam",
 				Args: conn,
@@ -117,7 +132,7 @@ loop:
 }
 
 func (g *GameService) listenLoop() {
-	listener, err := net.Listen("tcp", g.ListenTo)
+	listener, err := net.Listen("tcp", g.config.TcpListen)
 	if err != nil {
 		log.Print(err)
 		return
@@ -136,7 +151,7 @@ func (g *GameService) listenLoop() {
 func (g *GameService) wsServer() {
 	http.HandleFunc("/ws", g.wsServe)
 	http.Handle("/www/", http.StripPrefix("/www/", http.FileServer(http.Dir("./www"))))
-	err := http.ListenAndServe(g.wsListen, nil)
+	err := http.ListenAndServe(g.config.WsListen, nil)
 	if err != nil {
 		log.Println("ListenAndServe: ", err)
 	}

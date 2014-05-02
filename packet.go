@@ -82,15 +82,15 @@ type GamePacket struct {
 	Cmd       int
 	TeamInfo  *TeamInfoPacket
 	WorldInfo *WorldSerialize
-	AiAct     *AiActionPacket
+	ClientAct *ClientActionPacket
 }
 
 func (gp GamePacket) String() string {
-	return fmt.Sprintf("GamePacket Cmd:%v TeamInfo:%v WorldInfo:%v AiAct:%v",
+	return fmt.Sprintf("GamePacket Cmd:%v TeamInfo:%v WorldInfo:%v ClientAct:%v",
 		gp.Cmd,
 		gp.TeamInfo,
 		gp.WorldInfo,
-		gp.AiAct)
+		gp.ClientAct)
 }
 
 type TeamInfoPacket struct {
@@ -100,9 +100,9 @@ type TeamInfoPacket struct {
 	TeamStartTime int
 }
 
-type AiActionPacket struct {
-	Accel           Vector3D
-	NormalBulletMv  Vector3D
+type ClientActionPacket struct {
+	Accel           *Vector3D
+	NormalBulletMv  *Vector3D
 	HommingTargetID int
-	SuperBulletMv   Vector3D
+	SuperBulletMv   *Vector3D
 }

@@ -19,6 +19,7 @@ type Team struct {
 	spp            *SpatialPartition
 	chStep         <-chan bool
 	Color          int
+	ActionLimit    ActStat
 }
 
 func (m Team) String() string {
@@ -27,10 +28,11 @@ func (m Team) String() string {
 
 func NewTeam(w *World, conn interface{}) *Team {
 	t := Team{
-		ID:       <-IdGenCh,
-		PWorld:   w,
-		GameObjs: make(map[int]*GameObject),
-		Color:    rand.Intn(0x1000000),
+		ID:          <-IdGenCh,
+		PWorld:      w,
+		GameObjs:    make(map[int]*GameObject),
+		Color:       rand.Intn(0x1000000),
+		ActionLimit: *NewActStat(),
 	}
 	switch conn.(type) {
 	case net.Conn:
@@ -167,20 +169,29 @@ func (t *Team) delGameObject(o *GameObject) {
 	delete(t.GameObjs, o.ID)
 }
 
-func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) {
+func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) int {
+	rtn := 0
 	if act == nil {
-		return
+		return rtn
 	}
 	mo := t.findMainObj()
 	if act.Accel != nil {
-		mo.accelVector.Add(act.Accel)
+		if t.ActionLimit.Accel.Inc() {
+			mo.accelVector.Add(act.Accel)
+			rtn++
+		}
+
 	}
 	if act.NormalBulletMv != nil {
-		t.addNewGameObject(GameObjBullet, act.NormalBulletMv)
+		if t.ActionLimit.Bullet.Inc() {
+			t.addNewGameObject(GameObjBullet, act.NormalBulletMv)
+			rtn++
+		}
+
 	}
 	if act.HommingTargetID != 0 {
 	}
 	if act.SuperBulletMv != nil {
 	}
-
+	return rtn
 }

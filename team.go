@@ -57,7 +57,7 @@ func NewTeam(w *World, conn interface{}) *Team {
 
 func (t *Team) findMainObj() *GameObject {
 	for _, v := range t.GameObjs {
-		if v.objType == GameObjMain {
+		if v.ObjType == GameObjMain {
 			return v
 		}
 	}
@@ -105,11 +105,11 @@ func (t *Team) actByTime(ftime time.Time, spp *SpatialPartition) bool {
 	for _, v := range t.GameObjs {
 		if v.enabled == false {
 			t.delGameObject(v)
-			if v.objType == GameObjMain {
-				t.addNewGameObject(v.objType, nil)
+			if v.ObjType == GameObjMain {
+				t.addNewGameObject(v.ObjType, nil)
 			}
-			if v.objType == GameObjShield {
-				t.addNewGameObject(v.objType, nil)
+			if v.ObjType == GameObjShield {
+				t.addNewGameObject(v.ObjType, nil)
 			}
 
 		}
@@ -142,9 +142,9 @@ func (t *Team) endTeam() {
 	//log.Printf("team end %v", t)
 }
 
-func (t *Team) addNewGameObject(objType GameObjectType, args interface{}) *GameObject {
+func (t *Team) addNewGameObject(ObjType GameObjectType, args interface{}) *GameObject {
 	o := NewGameObject(t)
-	switch objType {
+	switch ObjType {
 	case GameObjMain:
 		o.MakeMainObj()
 	case GameObjShield:

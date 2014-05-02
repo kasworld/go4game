@@ -18,10 +18,10 @@ type GameObjectSeiralize struct {
 func NewGameObjectSeiralize(o *GameObject) *GameObjectSeiralize {
 	gi := GameObjectSeiralize{
 		ID:              o.ID,
-		ObjType:         o.objType,
-		PosVector:       o.posVector,
-		MoveVector:      o.moveVector,
-		CollisionRadius: o.collisionRadius,
+		ObjType:         o.ObjType,
+		PosVector:       o.PosVector,
+		MoveVector:      o.MoveVector,
+		CollisionRadius: o.CollisionRadius,
 	}
 	//log.Printf("%#v", gi)
 	return &gi

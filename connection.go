@@ -101,8 +101,8 @@ func (a *AIConn) makeAIAction(worldinfo *WorldSerialize) *GamePacket {
 	return &GamePacket{
 		Cmd: ReqAIAct,
 		ClientAct: &ClientActionPacket{
-			Accel:          RandVector3D(-100, 100),
-			NormalBulletMv: RandVector3D(-100, 100),
+			Accel:          RandVector3D(-500, 500),
+			NormalBulletMv: RandVector3D(-500, 500),
 		},
 	}
 }

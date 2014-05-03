@@ -70,12 +70,14 @@ func NewWorldSerialize(w *World) *WorldSerialize {
 
 const (
 	_ = iota
-	ReqMakeTeam
-	RspMakeTeam
+	// ReqMakeTeam
+	// RspMakeTeam
+	ReqFrameInfo
+	RspFrameInfo
 	ReqWorldInfo
 	RspWorldInfo
-	ReqSpatialPartition
-	RspSpatialPartition
+	// ReqSpatialPartition
+	// RspSpatialPartition
 	ReqAIAct
 	RspAIAct
 )
@@ -97,10 +99,7 @@ func (gp GamePacket) String() string {
 }
 
 type TeamInfoPacket struct {
-	Teamname      string
-	Teamcolor     []int
-	Teamid        int
-	TeamStartTime int
+	SPObj
 }
 
 type ClientActionPacket struct {

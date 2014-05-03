@@ -6,32 +6,35 @@ import (
 )
 
 type AIConn struct {
-	pteam          *Team
+	//pteam          *Team
 	ppos           [3]int
 	bulletargetpos *Vector3D
+	me             SPObj
+	spp            *SpatialPartition
 }
 
-func (a *AIConn) SelectTarget(s *SPObj, me *GameObject) bool {
-	teamrule := s.TeamID != me.PTeam.ID
-	if teamrule {
-		a.bulletargetpos = &s.PosVector
-		return true
+func (a *AIConn) SelectTarget(s SPObjList) bool {
+	for _, o := range s {
+		teamrule := o.TeamID != a.me.TeamID
+		if teamrule {
+			a.bulletargetpos = &o.PosVector
+			return true
+		}
 	}
 	return false
 }
 
-func (a *AIConn) makeAIAction(spp *SpatialPartition) *GamePacket {
-	me := a.pteam.findMainObj()
-	if me == nil {
+func (a *AIConn) makeAIAction() *GamePacket {
+	if a.spp == nil {
 		return &GamePacket{Cmd: ReqAIAct}
 	}
-	a.ppos = spp.GetPartPos(me.PosVector)
+	a.ppos = a.spp.Pos2PartPos(a.me.PosVector)
 	a.bulletargetpos = nil
-	spp.ApplyCollisionAction3(a.SelectTarget, me)
+	a.spp.ApplyPartsFn(a.SelectTarget, a.me.PosVector, a.spp.MaxObjectRadius)
 
 	var bulletTargetPos *Vector3D
 	if a.bulletargetpos != nil {
-		bulletTargetPos = a.bulletargetpos.Sub(&me.PosVector).Normalized().Imul(500)
+		bulletTargetPos = a.bulletargetpos.Sub(&a.me.PosVector).Normalized().Imul(500)
 	}
 
 	return &GamePacket{

@@ -29,7 +29,7 @@ func main() {
 	config := go4game.ServiceConfig{
 		TcpListen:            connectTo,
 		WsListen:             wsCconnectTo,
-		NpcCountPerWorld:     4,
+		NpcCountPerWorld:     16,
 		MaxTcpClientPerWorld: 32,
 		MaxWsClientPerWorld:  32,
 		StartWorldCount:      1,

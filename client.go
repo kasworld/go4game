@@ -35,17 +35,10 @@ clientloop:
 		select {
 		case <-timer60Ch:
 			// sp := GamePacket{
-			// 	Cmd: ReqMakeTeam,
-			// 	TeamInfo: &TeamInfoPacket{
-			// 		Teamname:  "aaa",
-			// 		Teamcolor: []int{1, 2, 3},
-			// 	},
-			// }
-			// sp := GamePacket{
 			// 	Cmd: ReqAIAct,
 			// }
 			sp := GamePacket{
-				Cmd: ReqWorldInfo,
+				Cmd: ReqFrameInfo,
 			}
 			err := enc.Encode(&sp)
 			if err != nil {
@@ -60,9 +53,7 @@ clientloop:
 				log.Printf("%v", err)
 			}
 			switch rp.Cmd {
-			case RspMakeTeam:
-				//log.Printf("%v", packet)
-			case RspWorldInfo:
+			case RspFrameInfo:
 				//s, _ := json.MarshalIndent(rp.WorldInfo, "", "  ")
 				//log.Printf("%v", string(s))
 			case RspAIAct:

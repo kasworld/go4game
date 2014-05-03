@@ -73,19 +73,25 @@ func (t *Team) processClientReq(ftime time.Time, w *WorldSerialize, spp *Spatial
 	//log.Printf("client packet %v %v", t, p)
 	var rp GamePacket
 	switch p.Cmd {
-	case ReqMakeTeam:
-		rp = GamePacket{
-			Cmd: RspMakeTeam,
-		}
+	// case ReqMakeTeam:
+	// 	rp = GamePacket{
+	// 		Cmd: RspMakeTeam,
+	// 	}
 	case ReqWorldInfo:
 		rp = GamePacket{
 			Cmd:       RspWorldInfo,
 			WorldInfo: w,
 		}
-	case ReqSpatialPartition:
+	// case ReqSpatialPartition:
+	// 	rp = GamePacket{
+	// 		Cmd: RspSpatialPartition,
+	// 		Spp: spp,
+	// 	}
+	case ReqFrameInfo:
 		rp = GamePacket{
-			Cmd: RspSpatialPartition,
-			Spp: spp,
+			Cmd:      RspFrameInfo,
+			Spp:      spp,
+			TeamInfo: &TeamInfoPacket{SPObj: *NewSPObj(t.findMainObj())},
 		}
 	case ReqAIAct:
 		t.applyClientAction(ftime, p.ClientAct)

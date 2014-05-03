@@ -8,12 +8,9 @@ import (
 
 var colcount = 0
 
-func IsCollision(s *go4game.SPObj, target *go4game.GameObject) bool {
-	r := go4game.IsCollision(s, target)
-	if r {
-		colcount++
-	}
-	return r
+func IsCollision(sl go4game.SPObjList) bool {
+	colcount += len(sl)
+	return false
 }
 
 func main() {
@@ -38,48 +35,20 @@ func main() {
 		}
 		log.Printf("%v, objs:%v, spp:%v, %v", w, osum, spp.PartCount, spp.PartSize)
 
+		colcount = 0
 		ss := go4game.CountStat{}
 		st := time.Now()
 		for i := 0; i < 10; i++ {
 			for _, t := range w.Teams {
 				for _, o := range t.GameObjs {
-					spp.ApplyCollisionAction1(IsCollision, o)
+					spp.ApplyPartsFn(IsCollision, o.PosVector, spp.MaxObjectRadius)
+					//spp.ApplyCollisionAction4(IsCollision, o)
 					ss.Inc()
 				}
 			}
 		}
-		log.Printf("collision1 %v , %v", ss.CalcLap(time.Now().Sub(st)), colcount)
-
-		colcount = 0
-		ss = go4game.CountStat{}
-		st = time.Now()
-		for i := 0; i < 10; i++ {
-			for _, t := range w.Teams {
-				for _, o := range t.GameObjs {
-					spp.ApplyCollisionAction2(IsCollision, o)
-					ss.Inc()
-				}
-			}
-		}
-		log.Printf("collision2 %v , %v", ss.CalcLap(time.Now().Sub(st)), colcount)
-
-		colcount = 0
-		ss = go4game.CountStat{}
-		st = time.Now()
-		for i := 0; i < 10; i++ {
-			for _, t := range w.Teams {
-				for _, o := range t.GameObjs {
-					spp.ApplyCollisionAction3(IsCollision, o)
-					ss.Inc()
-				}
-			}
-		}
-		log.Printf("collision3 %v , %v", ss.CalcLap(time.Now().Sub(st)), colcount)
+		log.Printf("collision4 %v , %v", ss.CalcLap(time.Now().Sub(st)), colcount)
 
 	}
 
-	// service.CmdCh <- go4game.Cmd{Cmd: "start"}
-	// time.Sleep(time.Duration(*rundur) * time.Second)
-	// service.CmdCh <- go4game.Cmd{Cmd: "quit"}
-	// time.Sleep(2 * time.Second)
 }

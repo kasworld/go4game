@@ -33,128 +33,9 @@ type SpatialPartition struct {
 	Size            Vector3D
 	PartCount       int
 	PartSize        Vector3D
+	PartMins        []Vector3D
 	Parts           [][][]SPObjList
 	MaxObjectRadius float64
-}
-
-func (p *SpatialPartition) GetPartPos(pos Vector3D) [3]int {
-	nompos := pos.Sub(&p.Min)
-	rtn := [3]int{0, 0, 0}
-
-	for i, v := range nompos {
-		rtn[i] = int(v / p.PartSize[i])
-		if rtn[i] >= p.PartCount {
-			rtn[i] = p.PartCount - 1
-			//log.Printf("invalid pos %v %v", v, rtn[i])
-		}
-		if rtn[i] < 0 {
-			rtn[i] = 0
-			log.Printf("invalid pos %v %v", v, rtn[i])
-		}
-	}
-	return rtn
-}
-
-func (p *SpatialPartition) touchBottom(iaxis int, pposn int, pos *Vector3D) bool {
-	return pposn-1 >= 0 && p.PartSize[iaxis]*float64(pposn)+p.Min[iaxis]+p.MaxObjectRadius*2 >= pos[iaxis]
-}
-func (p *SpatialPartition) touchTop(iaxis int, pposn int, pos *Vector3D) bool {
-	return pposn+1 < p.PartCount && p.PartSize[iaxis]*float64(pposn+1)+p.Min[iaxis]-p.MaxObjectRadius*2 <= pos[iaxis]
-}
-
-func (p *SpatialPartition) makeRange(m *GameObject, ppos [3]int, iaxis int) []int {
-	if p.touchBottom(iaxis, ppos[iaxis], &m.PosVector) {
-		return []int{ppos[iaxis], ppos[iaxis] - 1}
-	} else if p.touchTop(iaxis, ppos[iaxis], &m.PosVector) {
-		return []int{ppos[iaxis], ppos[iaxis] + 1}
-	} else {
-		return []int{ppos[iaxis]}
-	}
-}
-
-func (p *SpatialPartition) ApplyCollisionAction3(fn CollisionActionFn, m *GameObject) bool {
-	ppos := p.GetPartPos(m.PosVector)
-
-	xr := p.makeRange(m, ppos, 0)
-	yr := p.makeRange(m, ppos, 1)
-	zr := p.makeRange(m, ppos, 2)
-	//log.Printf("%v %v %v ", xr, yr, zr)
-	for _, i := range xr {
-		for _, j := range yr {
-			for _, k := range zr {
-				if p.ApplyPartFn(fn, m, [...]int{i, j, k}) {
-					return true
-				}
-			}
-		}
-	}
-	return false
-}
-
-// min <= v < max
-func getCheckRange(v int, min int, max int) []int {
-	if v <= min {
-		return []int{min, min + 1}
-	} else if v+1 >= max {
-		return []int{max - 1, max - 2}
-	} else {
-		return []int{v, v - 1, v + 1}
-	}
-}
-func (p *SpatialPartition) ApplyCollisionAction1(fn CollisionActionFn, m *GameObject) bool {
-	ppos := p.GetPartPos(m.PosVector)
-	xr := getCheckRange(ppos[0], 0, p.PartCount)
-	yr := getCheckRange(ppos[1], 0, p.PartCount)
-	zr := getCheckRange(ppos[2], 0, p.PartCount)
-	for _, i := range xr {
-		for _, j := range yr {
-			for _, k := range zr {
-				if p.ApplyPartFn(fn, m, [...]int{i, j, k}) {
-					return true
-				}
-			}
-		}
-	}
-	return false
-}
-
-type CollisionActionFn func(s *SPObj, m *GameObject) bool
-
-func IsCollision(s *SPObj, target *GameObject) bool {
-	teamrule := s.TeamID != target.PTeam.ID
-	checklen := s.PosVector.LenTo(&target.PosVector) <= (s.CollisionRadius + target.CollisionRadius)
-	return (teamrule) && (checklen)
-}
-func (p *SpatialPartition) ApplyPartFn(fn CollisionActionFn, m *GameObject, ppos [3]int) bool {
-	for _, v := range p.Parts[ppos[0]][ppos[1]][ppos[2]] {
-		if fn(v, m) {
-			return true
-		}
-	}
-	return false
-}
-
-func (p *SpatialPartition) ApplyCollisionAction2(fn CollisionActionFn, m *GameObject) bool {
-	ppos := p.GetPartPos(m.PosVector)
-	for i := ppos[0] - 1; i <= ppos[0]+1; i++ {
-		if i < 0 || i >= p.PartCount {
-			continue
-		}
-		for j := ppos[1] - 1; j <= ppos[1]+1; j++ {
-			if j < 0 || j >= p.PartCount {
-				continue
-			}
-			for k := ppos[2] - 1; k <= ppos[2]+1; k++ {
-				if k < 0 || k >= p.PartCount {
-					continue
-				}
-				if p.ApplyPartFn(fn, m, [...]int{i, j, k}) {
-					return true
-				}
-			}
-		}
-	}
-	return false
 }
 
 func (p *SpatialPartition) AddPartPos(pos [3]int, obj *SPObj) {
@@ -178,6 +59,14 @@ func (w *World) MakeSpatialPartition() *SpatialPartition {
 		rtn.PartCount = 2
 	}
 	rtn.PartSize = *rtn.Size.Idiv(float64(rtn.PartCount))
+	rtn.PartMins = make([]Vector3D, rtn.PartCount+1)
+	for i := 0; i < rtn.PartCount; i++ {
+		rtn.PartMins[i] = *rtn.Min.Add(&Vector3D{
+			float64(i) * rtn.PartSize[0],
+			float64(i) * rtn.PartSize[1],
+			float64(i) * rtn.PartSize[2]})
+	}
+	rtn.PartMins[rtn.PartCount] = rtn.Max
 
 	rtn.Parts = make([][][]SPObjList, rtn.PartCount)
 	for i := 0; i < rtn.PartCount; i++ {
@@ -190,10 +79,67 @@ func (w *World) MakeSpatialPartition() *SpatialPartition {
 	for _, t := range w.Teams {
 		for _, obj := range t.GameObjs {
 			if obj != nil && obj.ObjType != 0 {
-				partPos := rtn.GetPartPos(obj.PosVector)
+				partPos := rtn.Pos2PartPos(obj.PosVector)
 				rtn.AddPartPos(partPos, NewSPObj(obj))
 			}
 		}
 	}
 	return &rtn
+}
+
+func (p *SpatialPartition) Pos2PartPos(pos Vector3D) [3]int {
+	nompos := pos.Sub(&p.Min)
+	rtn := [3]int{0, 0, 0}
+
+	for i, v := range nompos {
+		rtn[i] = int(v / p.PartSize[i])
+		if rtn[i] >= p.PartCount {
+			rtn[i] = p.PartCount - 1
+			//log.Printf("invalid pos %v %v", v, rtn[i])
+		}
+		if rtn[i] < 0 {
+			rtn[i] = 0
+			log.Printf("invalid pos %v %v", v, rtn[i])
+		}
+	}
+	return rtn
+}
+
+func (p *SpatialPartition) GetPartCube(ppos [3]int) *HyperRect {
+	return &HyperRect{
+		Min: Vector3D{p.PartMins[ppos[0]][0], p.PartMins[ppos[1]][1], p.PartMins[ppos[2]][2]},
+		Max: Vector3D{p.PartMins[ppos[0]+1][0], p.PartMins[ppos[1]+1][1], p.PartMins[ppos[2]+1][2]},
+	}
+}
+
+func (p *SpatialPartition) makeRange2(c float64, r float64, min float64, max float64, n int) []int {
+	if n-1 >= 0 && c-r*2 <= min {
+		return []int{n, n - 1}
+	} else if n+1 < p.PartCount && c+r*2 >= max {
+		return []int{n, n + 1}
+	} else {
+		return []int{n}
+	}
+}
+
+type PartsFn func(s SPObjList) bool
+
+func (p *SpatialPartition) ApplyPartsFn(fn PartsFn, pos Vector3D, r float64) bool {
+	ppos := p.Pos2PartPos(pos)
+	partcube := p.GetPartCube(ppos)
+
+	xr := p.makeRange2(pos[0], r, partcube.Min[0], partcube.Max[0], ppos[0])
+	yr := p.makeRange2(pos[1], r, partcube.Min[1], partcube.Max[1], ppos[1])
+	zr := p.makeRange2(pos[2], r, partcube.Min[2], partcube.Max[2], ppos[2])
+	//log.Printf("%v %v %v ", xr, yr, zr)
+	for _, i := range xr {
+		for _, j := range yr {
+			for _, k := range zr {
+				if fn(p.Parts[i][j][k]) {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }

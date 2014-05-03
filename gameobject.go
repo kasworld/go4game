@@ -80,6 +80,7 @@ func NewGameObject(PTeam *Team) *GameObject {
 }
 
 func (o *GameObject) ClearY() {
+	//return
 	o.PosVector[1] = 0
 	o.MoveVector[1] = 0
 	o.accelVector[1] = 0
@@ -119,6 +120,17 @@ type ActionFnEnvInfo struct {
 	frameTime time.Time
 }
 
+func (o *GameObject) IsCollision(sl SPObjList) bool {
+	for _, s := range sl {
+		teamrule := s.TeamID != o.PTeam.ID
+		checklen := s.PosVector.LenTo(&o.PosVector) <= (s.CollisionRadius + o.CollisionRadius)
+		if (teamrule) && (checklen) {
+			return true
+		}
+	}
+	return false
+}
+
 func (o *GameObject) ActByTime(t time.Time, spp *SpatialPartition) {
 	o.ClearY()
 
@@ -139,7 +151,8 @@ func (o *GameObject) ActByTime(t time.Time, spp *SpatialPartition) {
 	}
 	// check if collision , disable
 	// modify own status only
-	if spp.ApplyCollisionAction3(IsCollision, o) {
+	//if spp.ApplyCollisionAction4(IsCollision, o) {
+	if spp.ApplyPartsFn(o.IsCollision, o.PosVector, spp.MaxObjectRadius) {
 		if o.collisionActionFn != nil {
 			ok := o.collisionActionFn(o, &envInfo)
 			if ok != true {

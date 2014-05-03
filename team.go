@@ -187,9 +187,12 @@ func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) int {
 	}
 	mo := t.findMainObj()
 	if act.Accel != nil {
+		//log.Printf("recv accl %v", act.Accel)
 		if t.ActionLimit.Accel.Inc() {
-			mo.accelVector.Add(act.Accel)
+			mo.accelVector = *act.Accel
 			rtn++
+		} else {
+			log.Printf("over use accel %v", t)
 		}
 
 	}
@@ -197,8 +200,9 @@ func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) int {
 		if t.ActionLimit.Bullet.Inc() {
 			t.addNewGameObject(GameObjBullet, act.NormalBulletMv)
 			rtn++
+		} else {
+			log.Printf("over use bullet %v", t)
 		}
-
 	}
 	if act.HommingTargetID != 0 {
 	}

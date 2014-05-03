@@ -55,8 +55,8 @@ func (w *World) MakeSpatialPartition() *SpatialPartition {
 	}
 
 	rtn.PartCount = int(math.Pow(float64(objcount), 1.0/3.0))
-	if rtn.PartCount < 2 {
-		rtn.PartCount = 2
+	if rtn.PartCount < 3 {
+		rtn.PartCount = 3
 	}
 	rtn.PartSize = *rtn.Size.Idiv(float64(rtn.PartCount))
 	rtn.PartMins = make([]Vector3D, rtn.PartCount+1)
@@ -131,6 +131,33 @@ func (p *SpatialPartition) ApplyPartsFn(fn PartsFn, pos Vector3D, r float64) boo
 	xr := p.makeRange2(pos[0], r, partcube.Min[0], partcube.Max[0], ppos[0])
 	yr := p.makeRange2(pos[1], r, partcube.Min[1], partcube.Max[1], ppos[1])
 	zr := p.makeRange2(pos[2], r, partcube.Min[2], partcube.Max[2], ppos[2])
+	//log.Printf("%v %v %v ", xr, yr, zr)
+	for _, i := range xr {
+		for _, j := range yr {
+			for _, k := range zr {
+				if fn(p.Parts[i][j][k]) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+func (p *SpatialPartition) makeRange3(n int) []int {
+	if n <= 0 {
+		return []int{0, 1}
+	} else if n >= p.PartCount-1 {
+		return []int{p.PartCount - 2, p.PartCount - 1}
+	} else {
+		return []int{n - 1, n, n + 1}
+	}
+}
+func (p *SpatialPartition) ApplyParts27Fn(fn PartsFn, pos Vector3D, r float64) bool {
+	ppos := p.Pos2PartPos(pos)
+	xr := p.makeRange3(ppos[0])
+	yr := p.makeRange3(ppos[1])
+	zr := p.makeRange3(ppos[2])
 	//log.Printf("%v %v %v ", xr, yr, zr)
 	for _, i := range xr {
 		for _, j := range yr {

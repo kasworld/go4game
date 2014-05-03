@@ -46,6 +46,7 @@ func NewAIConnInfo(t *Team, aiconn *AIConn) *ConnInfo {
 		AiConn:     aiconn,
 		clientType: AIClient,
 	}
+	c.AiConn.ActionLimit = *NewActStat()
 	//aiconn.pteam = t
 	go c.aiLoop()
 	return &c
@@ -56,9 +57,6 @@ func (c *ConnInfo) aiLoop() {
 		//log.Printf("aiLoop end team:%v", c.PTeam.ID)
 		close(c.ReadCh)
 	}()
-	//timer60Ch := time.Tick(1000 / 60 * time.Millisecond)
-	// var worldinfo *WorldSerialize
-	// var spp *SpatialPartition
 	c.ReadCh <- &GamePacket{
 		Cmd: ReqFrameInfo,
 	}

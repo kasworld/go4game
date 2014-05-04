@@ -11,91 +11,139 @@ type AIConn struct {
 	me          SPObj
 	spp         *SpatialPartition
 	ActionLimit ActStat
-	targetlist  SPObjList
+	targetlist  AimTargetList
+	worldBound  HyperRect
 }
 
-func (a *AIConn) appendTarget(s SPObjList) bool {
-	for _, o := range s {
-		if a.me.TeamID != o.TeamID {
-			a.targetlist = append(a.targetlist, o)
-		}
-	}
-	return false
+type AimTargetList []*AimTarget
+
+type AimTarget struct {
+	*SPObj
+	AimPos           *Vector3D
+	AimVt            *Vector3D
+	AimAngle         float64
+	LenToContact     float64
+	NextLenToContact float64
 }
 
-// estimate target pos by target speed
-func (me *SPObj) calcAimMvVector(t *SPObj, movelimit float64) *Vector3D {
+func (me *SPObj) calcLens(t *SPObj) (float64, float64) {
+	collen := me.CollisionRadius + t.CollisionRadius
+	curlen := me.PosVector.LenTo(&t.PosVector) - collen
+	nextposme := me.PosVector.Add(me.MoveVector.Idiv(60.0))
+	nextpost := t.PosVector.Add(t.MoveVector.Idiv(60.0))
+	nextlen := nextposme.LenTo(nextpost) - collen
+	return curlen, nextlen
+}
+
+func (me *SPObj) calcAims(t *SPObj, movelimit float64) (*Vector3D, *Vector3D, float64) {
 	dur := me.PosVector.LenTo(&t.PosVector) / movelimit
 	estpos := t.PosVector.Add(t.MoveVector.Imul(dur))
-	return estpos.Sub(&me.PosVector).Normalized().Imul(movelimit)
-}
-
-func (me *SPObj) calcDangerByVt(t *SPObj) float64 {
-	collen := me.CollisionRadius - t.CollisionRadius
-	curlen := me.PosVector.Sub(&t.PosVector).Abs() - collen
-	nextlen := me.PosVector.Add(me.MoveVector.Idiv(60.0)).Sub(
-		t.PosVector.Add(t.MoveVector.Idiv(60.0))).Abs() - collen
-	if nextlen <= 0 || curlen <= 0 {
-		return math.MaxFloat64
-	}
-	return curlen / nextlen
-}
-
-func (me *SPObj) calcDangerByLen(t *SPObj) float64 {
-	return me.PosVector.LenTo(&t.PosVector) / (me.CollisionRadius + t.CollisionRadius)
+	estvt := estpos.Sub(&me.PosVector).Normalized().Imul(movelimit)
+	estangle := t.MoveVector.Angle(estvt)
+	return estpos, estvt, estangle
 }
 
 func (me *SPObj) calcEscapeVector(t *SPObj) *Vector3D {
 	speed := (me.CollisionRadius + t.CollisionRadius) * 60
 	vt := me.PosVector.Sub(&t.PosVector).Normalized().Imul(speed)
-	vt = vt.Sub(me.PosVector.Normalized().Imul(speed / 2))
+	vt = vt.Sub(me.PosVector.Normalized().Imul(speed / 2)) // add to center
 	//vt = vt.Add(RandVector3D(speed/2, speed))
 	return vt
 }
 
-func (a *AIConn) selectDangerTarget() (*SPObj, *SPObj) {
-	var odt *SPObj
-	var odl *SPObj
-	maxdt := 0.0
-	mindl := a.spp.Max.Abs()
-	for _, o := range a.targetlist {
-		if o.ObjType == GameObjMain || o.ObjType == GameObjBullet {
-			dt := a.me.calcDangerByVt(o)
-			if dt > maxdt {
-				maxdt = dt
-				odt = o
+func (a *AIConn) prepareTarget(s SPObjList) bool {
+	for _, t := range s {
+		if a.me.TeamID != t.TeamID {
+			estpos, estvt, estangle := a.me.calcAims(t, 300)
+			curlen, nextlen := a.me.calcLens(t)
+			o := AimTarget{
+				SPObj:            t,
+				AimPos:           estpos,
+				AimVt:            estvt,
+				AimAngle:         estangle,
+				LenToContact:     curlen,
+				NextLenToContact: nextlen,
 			}
-			dl := a.me.calcDangerByLen(o)
-			if dl < mindl {
-				mindl = dl
-				odl = o
-			}
+			a.targetlist = append(a.targetlist, &o)
 		}
 	}
-	return odt, odl
+	return false
 }
 
+func (a AimTargetList) FindMax(fn func(o *AimTarget) float64) (*AimTarget, float64) {
+	iv := 0.0
+	var ro *AimTarget
+	for _, o := range a {
+		tv := fn(o)
+		if tv > iv {
+			iv = tv
+			ro = o
+		}
+	}
+	return ro, iv
+}
+
+func (a *AIConn) fnCalcValueIntercept(o *AimTarget) float64 {
+	if !(o.ObjType == GameObjMain || o.ObjType == GameObjBullet) {
+		return -1.0
+	}
+	if !o.AimPos.IsIn(&a.worldBound) {
+		return -1.0
+	}
+	if o.LenToContact <= 0 || o.NextLenToContact <= 0 {
+		return math.MaxFloat64
+	}
+	anglefactor := o.AimAngle / math.Pi * 2
+	typefactor := 1.0
+	if o.ObjType == GameObjMain {
+		typefactor = 1.2
+	}
+	lenfactor := o.LenToContact / o.NextLenToContact
+	return anglefactor * typefactor * lenfactor
+}
+
+func (a *AIConn) fnCalcValueEscape(o *AimTarget) float64 {
+	if !(o.ObjType == GameObjMain || o.ObjType == GameObjBullet) {
+		return -1.0
+	}
+	if !o.AimPos.IsIn(&a.worldBound) {
+		return -1.0
+	}
+	if o.LenToContact <= 0 || o.NextLenToContact <= 0 {
+		return math.MaxFloat64
+	}
+	anglefactor := o.AimAngle / math.Pi * 2
+	typefactor := 1.0
+	if o.ObjType == GameObjMain {
+		typefactor = 1.1
+	}
+	lenfactor := o.LenToContact / o.NextLenToContact * 2
+	return anglefactor * typefactor * lenfactor
+}
+
+//
 func (a *AIConn) makeAIAction() *GamePacket {
 	if a.spp == nil {
 		return &GamePacket{Cmd: ReqAIAct}
 	}
-	a.targetlist = make(SPObjList, 0)
-	a.spp.ApplyParts27Fn(a.appendTarget, a.me.PosVector, a.spp.MaxObjectRadius)
+	a.worldBound = HyperRect{Min: a.spp.Min, Max: a.spp.Max}
+	a.targetlist = make(AimTargetList, 0)
+	a.spp.ApplyParts27Fn(a.prepareTarget, a.me.PosVector, a.spp.MaxObjectRadius)
 
 	var bulletMoveVector *Vector3D
 	var accvt *Vector3D
-	dtvt, dtl := a.selectDangerTarget()
-	if dtvt != nil {
-		if a.me.calcDangerByVt(dtvt) > 1 && rand.Float64() < 0.5 && a.ActionLimit.Bullet.Inc() {
-			bulletMoveVector = a.me.calcAimMvVector(dtvt, 300)
-		}
-		if a.me.calcDangerByLen(dtl) < 10 && rand.Float64() < 0.5 && a.ActionLimit.Accel.Inc() {
-			accvt = a.me.calcEscapeVector(dtvt)
-		}
 
-		//log.Printf("acc escape %v ", accvt)
+	intertarget, interval := a.targetlist.FindMax(a.fnCalcValueIntercept)
+
+	if intertarget != nil && interval >= 1 && rand.Float64() < 0.5 && a.ActionLimit.Bullet.Inc() {
+		bulletMoveVector = intertarget.AimVt
 	}
 
+	esctarget, escval := a.targetlist.FindMax(a.fnCalcValueEscape)
+	if esctarget != nil && escval >= 1 && rand.Float64() < 0.5 && a.ActionLimit.Accel.Inc() {
+		accvt = a.me.calcEscapeVector(esctarget.SPObj)
+	}
+	//log.Printf("interval %v , escval %v", interval, escval)
 	return &GamePacket{
 		Cmd: ReqAIAct,
 		ClientAct: &ClientActionPacket{

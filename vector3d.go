@@ -135,3 +135,27 @@ func RandVector(st, end Vector3D) *Vector3D {
 type HyperRect struct {
 	Min, Max Vector3D
 }
+
+// make normalized hyperrect , if not need use HyperRect{Min: , Max:}
+func NewHyperRect(v1 *Vector3D, v2 *Vector3D) *HyperRect {
+	rtn := HyperRect{}
+	for i := 0; i < 3; i++ {
+		if v1[i] > v2[i] {
+			rtn.Max[i] = v1[i]
+			rtn.Min[i] = v2[i]
+		} else {
+			rtn.Max[i] = v2[i]
+			rtn.Min[i] = v1[i]
+		}
+	}
+	return &rtn
+}
+
+func (p *Vector3D) IsIn(hr *HyperRect) bool {
+	for i := 0; i < 3; i++ {
+		if hr.Min[i] > p[i] || hr.Max[i] < p[i] {
+			return false
+		}
+	}
+	return true
+}

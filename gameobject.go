@@ -166,7 +166,6 @@ func (o *GameObject) ActByTime(t time.Time, spp *SpatialPartition) {
 		if ok != true {
 			return
 		}
-
 	}
 	if o.borderActionFn != nil {
 		// check wall action ( wrap, bounce )
@@ -190,13 +189,13 @@ func collisionFn_default(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 }
 
 func moveByTimeFn_default(m *GameObject, envInfo *ActionFnEnvInfo) bool {
+	dur := float64(envInfo.frameTime.Sub(m.lastMoveTime)) / float64(time.Second)
+	//log.Printf("frame dur %v %v", m.lastMoveTime, dur)
+	m.MoveVector = *m.MoveVector.Add(m.accelVector.Imul(dur))
 	if m.MoveVector.Abs() > m.moveLimit {
 		m.MoveVector = *m.MoveVector.Normalized().Imul(m.moveLimit)
 	}
-	dur := float64(envInfo.frameTime.Sub(m.lastMoveTime)) / float64(time.Second)
-	//log.Printf("frame dur %v %v", m.lastMoveTime, dur)
 	m.PosVector = *m.PosVector.Add(m.MoveVector.Imul(dur))
-	m.MoveVector = *m.MoveVector.Add(m.accelVector.Imul(dur))
 	return true
 }
 

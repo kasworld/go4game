@@ -145,10 +145,10 @@ func (p *SpatialPartition) ApplyPartsFn(fn PartsFn, pos Vector3D, r float64) boo
 }
 
 func (p *SpatialPartition) makeRange3(n int) []int {
-	if n <= 0 {
-		return []int{0, 1}
-	} else if n >= p.PartCount-1 {
-		return []int{p.PartCount - 2, p.PartCount - 1}
+	if n <= 1 {
+		return []int{0, 1, 2}
+	} else if n >= p.PartCount-2 {
+		return []int{p.PartCount - 1, p.PartCount - 2, p.PartCount - 3}
 	} else {
 		return []int{n - 1, n, n + 1}
 	}

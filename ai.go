@@ -36,11 +36,32 @@ func (me *SPObj) calcLens(t *SPObj) (float64, float64) {
 
 func (me *SPObj) calcAims(t *SPObj, movelimit float64) (*Vector3D, float64) {
 	var estpos *Vector3D
-	dur := me.PosVector.LenTo(&t.PosVector) / movelimit // not exact
+	//durold := me.PosVector.LenTo(&t.PosVector) / movelimit // not exact
+	dur := me.calcEstdur(t, movelimit)
+	if dur < 0 || math.IsNaN(dur) {
+		return nil, 0
+	}
+	//log.Printf("old %v, new %v", durold, dur)
 	estpos = t.PosVector.Add(t.MoveVector.Imul(dur))
 	estvt := estpos.Sub(&me.PosVector).Normalized().Imul(movelimit)
 	estangle := t.MoveVector.Angle(estvt)
 	return estpos, estangle
+}
+
+func (me *SPObj) calcEstdur(t *SPObj, movelimit float64) float64 {
+	totargetvt := t.PosVector.Sub(&me.PosVector)
+	a := t.MoveVector.Dot(&t.MoveVector) - math.Pow(movelimit, 2)
+	b := 2 * t.MoveVector.Dot(totargetvt)
+	c := totargetvt.Dot(totargetvt)
+	p := -b / (2 * a)
+	q := math.Sqrt((b*b)-4*a*c) / (2 * a)
+	t1 := p - q
+	t2 := p + q
+	if t1 > t2 && t2 > 0 {
+		return t2
+	} else {
+		return t1 // can - or Nan
+	}
 }
 
 func (a *AIConn) calcEscapeVector(t *AimTarget) *Vector3D {
@@ -88,7 +109,7 @@ func (a *AIConn) fnCalcAttackFactor(o *AimTarget) float64 {
 	if !(o.ObjType == GameObjMain || o.ObjType == GameObjBullet) {
 		return -1.0
 	}
-	if !o.AimPos.IsIn(&a.worldBound) {
+	if o.AimPos == nil || !o.AimPos.IsIn(&a.worldBound) {
 		return -1.0
 	}
 	if o.LenToContact <= 0 || o.NextLenToContact <= 0 {
@@ -113,7 +134,7 @@ func (a *AIConn) fnCalcDangerFactor(o *AimTarget) float64 {
 	if !(o.ObjType == GameObjMain || o.ObjType == GameObjBullet) {
 		return -1.0
 	}
-	if !o.AimPos.IsIn(&a.worldBound) {
+	if o.AimPos == nil || !o.AimPos.IsIn(&a.worldBound) {
 		return -1.0
 	}
 	if o.LenToContact <= 0 || o.NextLenToContact <= 0 {
@@ -153,8 +174,8 @@ func (a *AIConn) makeAIAction() *GamePacket {
 			aimpos = intertarget.AimPos
 		} else {
 			// add random ness to target pos
-			//aimpos = intertarget.AimPos
-			aimpos = intertarget.AimPos.Add(RandVector3D(0.0, intertarget.CollisionRadius*4))
+			aimpos = intertarget.AimPos
+			//aimpos = intertarget.AimPos.Add(RandVector3D(0.0, intertarget.CollisionRadius*4))
 		}
 
 		bulletMoveVector = aimpos.Sub(&a.me.PosVector).NormalizedTo(300.0)

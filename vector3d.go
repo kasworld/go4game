@@ -73,6 +73,13 @@ func (p *Vector3D) Normalized() *Vector3D {
 	}
 	return p
 }
+func (p *Vector3D) NormalizedTo(l float64) *Vector3D {
+	d := p.Abs() / l
+	if d > 0 {
+		return p.Idiv(d)
+	}
+	return p
+}
 func (p *Vector3D) Dot(other *Vector3D) float64 {
 	return p[0]*other[0] + p[1]*other[1] + p[2]*other[2]
 }

@@ -65,28 +65,28 @@ func (t *Team) findMainObj() *GameObject {
 }
 
 func (t *Team) processClientReq(ftime time.Time, w *WorldSerialize, spp *SpatialPartition) bool {
-	p, ok := <-t.ClientConnInfo.ReadCh
-	if !ok { // read closed
-		//log.Printf("client quit %v", t)
-		return false
+	var p *GamePacket
+	var ok bool
+	select {
+	case p, ok = <-t.ClientConnInfo.ReadCh:
+		if !ok { // read closed
+			//log.Printf("client quit %v", t)
+			return false
+		}
+	case <-time.After(1000 / 60 * time.Millisecond):
+	}
+	if p == nil {
+		return true
 	}
 	//log.Printf("client packet %v %v", t, p)
 	var rp GamePacket
 	switch p.Cmd {
-	// case ReqMakeTeam:
-	// 	rp = GamePacket{
-	// 		Cmd: RspMakeTeam,
-	// 	}
 	case ReqWorldInfo:
 		rp = GamePacket{
 			Cmd:       RspWorldInfo,
 			WorldInfo: w,
+			TeamInfo:  &TeamInfoPacket{SPObj: *NewSPObj(t.findMainObj())},
 		}
-	// case ReqSpatialPartition:
-	// 	rp = GamePacket{
-	// 		Cmd: RspSpatialPartition,
-	// 		Spp: spp,
-	// 	}
 	case ReqFrameInfo:
 		rp = GamePacket{
 			Cmd:      RspFrameInfo,

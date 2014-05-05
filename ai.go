@@ -43,11 +43,16 @@ func (me *SPObj) calcAims(t *SPObj, movelimit float64) (*Vector3D, *Vector3D, fl
 	return estpos, estvt, estangle
 }
 
+func (v *Vector3D) sideWalk(dst *Vector3D) *Vector3D {
+	tovt := dst.Sub(v)
+	return tovt.Cross(dst)
+}
+
 func (me *SPObj) calcEscapeVector(t *SPObj) *Vector3D {
 	speed := (me.CollisionRadius + t.CollisionRadius) * 60
 	vt := me.PosVector.Sub(&t.PosVector).Normalized().Imul(speed)
+	vt = vt.Add(me.PosVector.sideWalk(&t.PosVector).Normalized().Imul(speed / 2))
 	vt = vt.Sub(me.PosVector.Normalized().Imul(speed / 2)) // add to center
-	//vt = vt.Add(RandVector3D(speed/2, speed))
 	return vt
 }
 
@@ -93,13 +98,18 @@ func (a *AIConn) fnCalcValueIntercept(o *AimTarget) float64 {
 	if o.LenToContact <= 0 || o.NextLenToContact <= 0 {
 		return math.MaxFloat64
 	}
-	anglefactor := o.AimAngle / math.Pi * 2
+	anglefactor := math.Pow(o.AimAngle/math.Pi, 2)
 	typefactor := 1.0
 	if o.ObjType == GameObjMain {
-		typefactor = 1.2
+		typefactor = 1.4
 	}
-	lenfactor := o.LenToContact / o.NextLenToContact
-	return anglefactor * typefactor * lenfactor
+	lenfactor := math.Pow(o.LenToContact/o.NextLenToContact, 4)
+
+	factor := anglefactor * typefactor * lenfactor
+	// if factor > 1 {
+	// 	log.Printf("fnCalcValueIntercept %v %v %v %v", anglefactor, typefactor, lenfactor, factor)
+	// }
+	return factor
 }
 
 func (a *AIConn) fnCalcValueEscape(o *AimTarget) float64 {
@@ -112,13 +122,18 @@ func (a *AIConn) fnCalcValueEscape(o *AimTarget) float64 {
 	if o.LenToContact <= 0 || o.NextLenToContact <= 0 {
 		return math.MaxFloat64
 	}
-	anglefactor := o.AimAngle / math.Pi * 2
+	anglefactor := math.Pow(o.AimAngle/math.Pi, 4)
 	typefactor := 1.0
 	if o.ObjType == GameObjMain {
 		typefactor = 1.1
 	}
-	lenfactor := o.LenToContact / o.NextLenToContact * 2
-	return anglefactor * typefactor * lenfactor
+	lenfactor := math.Pow(o.LenToContact/o.NextLenToContact, 8)
+
+	factor := anglefactor * typefactor * lenfactor
+	// if factor > 1 {
+	// 	log.Printf("fnCalcValueEscape %v %v %v %v", anglefactor, typefactor, lenfactor, factor)
+	// }
+	return factor
 }
 
 //
@@ -128,19 +143,18 @@ func (a *AIConn) makeAIAction() *GamePacket {
 	}
 	a.worldBound = HyperRect{Min: a.spp.Min, Max: a.spp.Max}
 	a.targetlist = make(AimTargetList, 0)
-	a.spp.ApplyParts27Fn(a.prepareTarget, a.me.PosVector, a.spp.MaxObjectRadius)
+	a.spp.ApplyParts27Fn(a.prepareTarget, a.me.PosVector)
 
 	var bulletMoveVector *Vector3D
 	var accvt *Vector3D
 
 	intertarget, interval := a.targetlist.FindMax(a.fnCalcValueIntercept)
-
-	if intertarget != nil && interval >= 1 && rand.Float64() < 0.5 && a.ActionLimit.Bullet.Inc() {
+	if intertarget != nil && interval >= rand.Float64()*2 && a.ActionLimit.Bullet.Inc() {
 		bulletMoveVector = intertarget.AimVt
 	}
 
 	esctarget, escval := a.targetlist.FindMax(a.fnCalcValueEscape)
-	if esctarget != nil && escval >= 1 && rand.Float64() < 0.5 && a.ActionLimit.Accel.Inc() {
+	if esctarget != nil && escval >= rand.Float64()*2 && a.ActionLimit.Accel.Inc() {
 		accvt = a.me.calcEscapeVector(esctarget.SPObj)
 	}
 	//log.Printf("interval %v , escval %v", interval, escval)

@@ -16,9 +16,11 @@
 <script src="js/three.min.js"></script>
 <script src="js/stats.min.js"></script>
 <script src="js/memoize.js"></script>
+<script src="js/Detector.js"></script>
 <!-- <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script> -->
 
 <script type="text/javascript">
+if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
 
 var worldinfo;
 var conn;
@@ -101,6 +103,7 @@ function onDocumentKeyUp( event ) {
 
 var container, stats;
 var camera, scene, renderer;
+var cameraCube, sceneCube;
 var objects = {};
 var debugContext;
 var info;
@@ -268,12 +271,46 @@ function moveCamera(camera) {
     // return
 }
 
+function initSkyBox() {
+    cameraCube = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 100000 );
+    sceneCube = new THREE.Scene();
+    var path = "skybox/";
+    var format = '.jpg';
+    var urls = [
+        path + 'px' + format, path + 'nx' + format,
+        path + 'py' + format, path + 'ny' + format,
+        path + 'pz' + format, path + 'nz' + format
+    ];
+
+    var textureCube = THREE.ImageUtils.loadTextureCube( urls, new THREE.CubeRefractionMapping() );
+    var material = new THREE.MeshBasicMaterial( { color: 0xffffff, envMap: textureCube, refractionRatio: 0.95 } );
+
+    // Skybox
+
+    var shader = THREE.ShaderLib[ "cube" ];
+    shader.uniforms[ "tCube" ].value = textureCube;
+
+    var material = new THREE.ShaderMaterial( {
+
+        fragmentShader: shader.fragmentShader,
+        vertexShader: shader.vertexShader,
+        uniforms: shader.uniforms,
+        depthWrite: false,
+        side: THREE.BackSide
+
+    } ),
+
+    mesh = new THREE.Mesh( new THREE.BoxGeometry( 100, 100, 100 ), material );
+    sceneCube.add( mesh );
+}
 
 function init() {
     container = document.createElement( 'div' );
     document.body.appendChild( container );
     camera = initCamera();
     scene = new THREE.Scene();
+
+    initSkyBox();
 
     info = initInfo(container);
     initGrid(scene);
@@ -283,8 +320,9 @@ function init() {
     //renderer = new THREE.CanvasRenderer();
     renderer = new THREE.WebGLRenderer();
     //renderer = new THREE.WebGLRenderer({ antialias: true } );
-    renderer.setClearColor( 0x808080 );
+    //renderer.setClearColor( 0x808080 );
     renderer.setSize( window.innerWidth, window.innerHeight );
+    renderer.autoClear = false;
     container.appendChild( renderer.domElement );
 
     debugContext = initDebugContext(container);
@@ -303,7 +341,12 @@ function init() {
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
+
+    cameraCube.aspect = window.innerWidth / window.innerHeight;
+    cameraCube.updateProjectionMatrix();
+
     renderer.setSize( window.innerWidth, window.innerHeight );
+
 }
 
 function animate() {
@@ -343,6 +386,9 @@ function render() {
     moveCamera(camera);
     worldinfo2objects();
     renderDebugContext();
+
+    cameraCube.rotation.copy( camera.rotation );
+    renderer.render( sceneCube, cameraCube );
     renderer.render( scene, camera );
 }
 

@@ -112,6 +112,8 @@ func (p *SpatialPartition) GetPartCube(ppos [3]int) *HyperRect {
 	}
 }
 
+type PartsFn func(s SPObjList) bool
+
 func (p *SpatialPartition) makeRange2(c float64, r float64, min float64, max float64, n int) []int {
 	if n-1 >= 0 && c-r*2 <= min {
 		return []int{n, n - 1}
@@ -122,8 +124,7 @@ func (p *SpatialPartition) makeRange2(c float64, r float64, min float64, max flo
 	}
 }
 
-type PartsFn func(s SPObjList) bool
-
+// for collision check
 func (p *SpatialPartition) ApplyPartsFn(fn PartsFn, pos Vector3D, r float64) bool {
 	ppos := p.Pos2PartPos(pos)
 	partcube := p.GetPartCube(ppos)
@@ -153,7 +154,9 @@ func (p *SpatialPartition) makeRange3(n int) []int {
 		return []int{n - 1, n, n + 1}
 	}
 }
-func (p *SpatialPartition) ApplyParts27Fn(fn PartsFn, pos Vector3D, r float64) bool {
+
+// for ai action
+func (p *SpatialPartition) ApplyParts27Fn(fn PartsFn, pos Vector3D) bool {
 	ppos := p.Pos2PartPos(pos)
 	xr := p.makeRange3(ppos[0])
 	yr := p.makeRange3(ppos[1])

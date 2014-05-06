@@ -14,15 +14,6 @@ func (m GameObject) String() string {
 		m.ID, m.ObjType, m.PTeam)
 }
 
-const (
-	_ = iota
-	GameObjMain
-	GameObjShield
-	GameObjBullet
-)
-
-type GameObjectType int
-
 type GameObject struct {
 	ID        int
 	PTeam     *Team

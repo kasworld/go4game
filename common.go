@@ -166,7 +166,7 @@ type ActStat struct {
 
 func NewActStat() *ActStat {
 	return &ActStat{
-		Accel:  *NewLapSumLimit(10, 20),
+		Accel:  *NewLapSumLimit(60, 60),
 		Bullet: *NewLapSumLimit(10, 20),
 	}
 }

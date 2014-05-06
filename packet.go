@@ -68,22 +68,8 @@ func NewWorldSerialize(w *World) *WorldSerialize {
 	return &ws
 }
 
-const (
-	_ = iota
-	// ReqMakeTeam
-	// RspMakeTeam
-	ReqFrameInfo
-	RspFrameInfo
-	ReqWorldInfo
-	RspWorldInfo
-	// ReqSpatialPartition
-	// RspSpatialPartition
-	ReqAIAct
-	RspAIAct
-)
-
 type GamePacket struct {
-	Cmd       int
+	Cmd       PacketType
 	TeamInfo  *TeamInfoPacket
 	WorldInfo *WorldSerialize
 	ClientAct *ClientActionPacket

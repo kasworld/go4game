@@ -19,56 +19,42 @@ type AimTargetList []*AimTarget
 
 type AimTarget struct {
 	*SPObj
-	AimPos           *Vector3D
-	AimAngle         float64
-	LenToContact     float64
-	NextLenToContact float64
+	AimPos   *Vector3D
+	AimAngle float64
+	LenRate  float64
 }
 
-func (me *SPObj) calcLens(t *SPObj) (float64, float64) {
+// how fast collision occur
+// < 1 safe , > 1 danger
+func (me *SPObj) calcLenRate(t *SPObj) float64 {
 	collen := me.CollisionRadius + t.CollisionRadius
 	curlen := me.PosVector.LenTo(&t.PosVector) - collen
 	nextposme := me.PosVector.Add(me.MoveVector.Idiv(60.0))
 	nextpost := t.PosVector.Add(t.MoveVector.Idiv(60.0))
 	nextlen := nextposme.LenTo(nextpost) - collen
-	return curlen, nextlen
-}
-
-func (me *SPObj) calcAims(t *SPObj, movelimit float64) (*Vector3D, float64) {
-	var estpos *Vector3D
-	//durold := me.PosVector.LenTo(&t.PosVector) / movelimit // not exact
-	dur := me.calcEstdur(t, movelimit)
-	if dur < 0 || math.IsNaN(dur) {
-		return nil, 0
-	}
-	//log.Printf("old %v, new %v", durold, dur)
-	estpos = t.PosVector.Add(t.MoveVector.Imul(dur))
-	estvt := estpos.Sub(&me.PosVector).Normalized().Imul(movelimit)
-	estangle := t.MoveVector.Angle(estvt)
-	return estpos, estangle
-}
-
-func (me *SPObj) calcEstdur(t *SPObj, movelimit float64) float64 {
-	totargetvt := t.PosVector.Sub(&me.PosVector)
-	a := t.MoveVector.Dot(&t.MoveVector) - math.Pow(movelimit, 2)
-	b := 2 * t.MoveVector.Dot(totargetvt)
-	c := totargetvt.Dot(totargetvt)
-	p := -b / (2 * a)
-	q := math.Sqrt((b*b)-4*a*c) / (2 * a)
-	t1 := p - q
-	t2 := p + q
-	if t1 > t2 && t2 > 0 {
-		return t2
+	if curlen <= 0 || nextlen <= 0 {
+		return math.Inf(1)
 	} else {
-		return t1 // can - or Nan
+		return curlen / nextlen
 	}
+}
+
+//
+func (me *SPObj) calcAims(t *SPObj, movelimit float64) (float64, *Vector3D, float64) {
+	dur := me.PosVector.CalcAimAheadDur(&t.PosVector, &t.MoveVector, movelimit)
+	if math.IsInf(dur, 1) {
+		return math.Inf(1), nil, 0
+	}
+	estpos := t.PosVector.Add(t.MoveVector.Imul(dur))
+	estangle := t.MoveVector.Angle(estpos.Sub(&me.PosVector))
+	return dur, estpos, estangle
 }
 
 func (a *AIConn) calcEscapeVector(t *AimTarget) *Vector3D {
 	speed := (a.me.CollisionRadius + t.SPObj.CollisionRadius) * 60
-	backvt := a.me.PosVector.Sub(&t.SPObj.PosVector).Normalized().Imul(speed) // backward
-	sidevt := t.AimPos.Sub(&a.me.PosVector).Normalized().Imul(speed)
-	tocentervt := a.me.PosVector.Neg().Normalized().Imul(speed)
+	backvt := a.me.PosVector.Sub(&t.SPObj.PosVector).NormalizedTo(speed) // backward
+	sidevt := t.AimPos.Sub(&a.me.PosVector).NormalizedTo(speed)
+	tocentervt := a.me.PosVector.NormalizedTo(speed / 2).Neg()
 
 	return backvt.Add(backvt).Add(sidevt).Add(tocentervt)
 }
@@ -76,14 +62,16 @@ func (a *AIConn) calcEscapeVector(t *AimTarget) *Vector3D {
 func (a *AIConn) prepareTarget(s SPObjList) bool {
 	for _, t := range s {
 		if a.me.TeamID != t.TeamID {
-			estpos, estangle := a.me.calcAims(t, 300)
-			curlen, nextlen := a.me.calcLens(t)
+			estdur, estpos, estangle := a.me.calcAims(t, 300)
+			if math.IsInf(estdur, 1) || !estpos.IsIn(&a.worldBound) {
+				estpos = nil
+			}
+			lenRate := a.me.calcLenRate(t)
 			o := AimTarget{
-				SPObj:            t,
-				AimPos:           estpos,
-				AimAngle:         estangle,
-				LenToContact:     curlen,
-				NextLenToContact: nextlen,
+				SPObj:    t,
+				AimPos:   estpos,
+				AimAngle: estangle,
+				LenRate:  lenRate,
 			}
 			a.targetlist = append(a.targetlist, &o)
 		}
@@ -109,23 +97,17 @@ func (a *AIConn) fnCalcAttackFactor(o *AimTarget) float64 {
 	if !(o.ObjType == GameObjMain || o.ObjType == GameObjBullet) {
 		return -1.0
 	}
-	if o.AimPos == nil || !o.AimPos.IsIn(&a.worldBound) {
+	if o.AimPos == nil {
 		return -1.0
-	}
-	if o.LenToContact <= 0 || o.NextLenToContact <= 0 {
-		return math.MaxFloat64
 	}
 	anglefactor := math.Pow(o.AimAngle/math.Pi, 2)
 	typefactor := 1.0
 	if o.ObjType == GameObjMain {
-		typefactor = 2
+		typefactor = 3
 	}
-	lenfactor := math.Pow(o.LenToContact/o.NextLenToContact, 8)
+	lenfactor := math.Pow(o.LenRate, 8)
 
 	factor := anglefactor * typefactor * lenfactor
-	// if factor > 1 {
-	// 	log.Printf("fnCalcAttackFactor %v %v %v %v", anglefactor, typefactor, lenfactor, factor)
-	// }
 	return factor
 }
 
@@ -134,24 +116,17 @@ func (a *AIConn) fnCalcDangerFactor(o *AimTarget) float64 {
 	if !(o.ObjType == GameObjMain || o.ObjType == GameObjBullet) {
 		return -1.0
 	}
-	if o.AimPos == nil || !o.AimPos.IsIn(&a.worldBound) {
+	if o.AimPos == nil {
 		return -1.0
 	}
-	if o.LenToContact <= 0 || o.NextLenToContact <= 0 {
-		return math.MaxFloat64
-	}
-	anglefactor := math.Pow(o.AimAngle/math.Pi, 2) // o.AimAngle/math.Pi : 0 ~ 2
+	anglefactor := math.Pow(o.AimAngle/math.Pi, 2)
 	typefactor := 1.0
 	if o.ObjType == GameObjMain {
-		typefactor = 2
+		typefactor = 1.5
 	}
-	// o.LenToContact/o.NextLenToContact : 0 ~ inf
-	lenfactor := math.Pow(o.LenToContact/o.NextLenToContact, 8)
+	lenfactor := math.Pow(o.LenRate, 8)
 
 	factor := anglefactor * typefactor * lenfactor
-	// if factor > 1 {
-	// 	log.Printf("fnCalcDangerFactor %v %v %v %v", anglefactor, typefactor, lenfactor, factor)
-	// }
 	return factor
 }
 
@@ -168,7 +143,8 @@ func (a *AIConn) makeAIAction() *GamePacket {
 	var accvt *Vector3D
 
 	intertarget, interval := a.targetlist.FindMax(a.fnCalcAttackFactor)
-	if intertarget != nil && interval >= rand.Float64()*2 && a.ActionLimit.Bullet.Inc() {
+	if intertarget != nil && interval >= (rand.Float64()+1) && a.ActionLimit.Bullet.Inc() {
+		//log.Printf("attack %v", interval)
 		var aimpos *Vector3D
 		if intertarget.ObjType != GameObjMain {
 			aimpos = intertarget.AimPos
@@ -182,10 +158,11 @@ func (a *AIConn) makeAIAction() *GamePacket {
 	}
 
 	esctarget, escval := a.targetlist.FindMax(a.fnCalcDangerFactor)
-	if esctarget != nil && escval >= rand.Float64()*2 && a.ActionLimit.Accel.Inc() {
+	if esctarget != nil && escval >= (rand.Float64()+1) && a.ActionLimit.Accel.Inc() {
+		//log.Printf("escval %v", escval)
 		accvt = a.calcEscapeVector(esctarget)
 	}
-	//log.Printf("interval %v , escval %v", interval, escval)
+
 	return &GamePacket{
 		Cmd: ReqAIAct,
 		ClientAct: &ClientActionPacket{

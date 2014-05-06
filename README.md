@@ -42,6 +42,10 @@ exec web client
 
     http://localhost:8080/www/client3d.html
 
+see server info
+
+    http://localhost:8080/stat
+
 ### korean discription
 
 http://kasw.blogspot.kr/2014/04/go4game.html

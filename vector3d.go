@@ -123,6 +123,30 @@ func (p *Vector3D) Project(other *Vector3D) *Vector3D {
 	return n.Imul(p.Dot(n))
 }
 
+// for aim ahead target with projectile
+// return time dur
+func (srcpos *Vector3D) CalcAimAheadDur(dstpos *Vector3D, dstmv *Vector3D, bulletspeed float64) float64 {
+	totargetvt := dstpos.Sub(srcpos)
+	a := dstmv.Dot(dstmv) - bulletspeed*bulletspeed
+	b := 2 * dstmv.Dot(totargetvt)
+	c := totargetvt.Dot(totargetvt)
+	p := -b / (2 * a)
+	q := math.Sqrt((b*b)-4*a*c) / (2 * a)
+	t1 := p - q
+	t2 := p + q
+
+	var rtn float64
+	if t1 > t2 && t2 > 0 {
+		rtn = t2
+	} else {
+		rtn = t1
+	}
+	if rtn < 0 || math.IsNaN(rtn) {
+		return math.Inf(1)
+	}
+	return rtn
+}
+
 func RandVector3D(st, end float64) *Vector3D {
 	return &Vector3D{
 		rand.Float64()*(end-st) + st,

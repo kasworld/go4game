@@ -8,9 +8,9 @@ import (
 	//"encoding/json"
 	//"flag"
 	"github.com/gorilla/websocket"
+	"html/template"
 	"net/http"
 	"runtime"
-	//"text/template"
 	"time"
 )
 
@@ -35,7 +35,8 @@ type GameService struct {
 }
 
 func (m GameService) String() string {
-	return fmt.Sprintf("GameService%v Worlds:%v", m.ID, len(m.Worlds))
+	return fmt.Sprintf("GameService%v Worlds:%v goroutine:%v",
+		m.ID, len(m.Worlds), runtime.NumGoroutine())
 }
 
 func NewGameService(config *ServiceConfig) *GameService {
@@ -123,8 +124,7 @@ loop:
 		case <-timer60Ch:
 			// do frame action
 		case <-timer1secCh:
-			log.Printf("%v ID:%v goroutine:%v %v",
-				g, <-IdGenCh, runtime.NumGoroutine(), g.PacketStat)
+			//log.Printf("%v ID:%v goroutine:%v %v", g, <-IdGenCh, runtime.NumGoroutine(), g.PacketStat)
 			g.PacketStat.NewLap()
 		}
 	}
@@ -150,11 +150,40 @@ func (g *GameService) listenLoop() {
 // web socket server
 func (g *GameService) wsServer() {
 	http.HandleFunc("/ws", g.wsServe)
+	http.HandleFunc("/stat", g.Stat)
 	http.Handle("/www/", http.StripPrefix("/www/", http.FileServer(http.Dir("./www"))))
 	err := http.ListenAndServe(g.config.WsListen, nil)
 	if err != nil {
 		log.Println("ListenAndServe: ", err)
 	}
+}
+
+const templatestr = `
+<html>
+<head>
+<title>go4game stat</title>
+</head>
+<body>
+{{.}}
+</br>
+{{range .Worlds}}
+{{.}}
+</br>
+{{.PacketStat}}
+</br>
+{{range .Teams}}
+{{.}}
+</br>
+{{end}}
+</br>
+{{end}}
+</body>
+</html>
+`
+
+func (g *GameService) Stat(w http.ResponseWriter, r *http.Request) {
+	t := template.Must(template.New("webinfo").Parse(templatestr))
+	t.Execute(w, g)
 }
 
 func (g *GameService) wsServe(w http.ResponseWriter, r *http.Request) {

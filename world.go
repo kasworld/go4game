@@ -33,10 +33,10 @@ func NewWorld(g *GameService) *World {
 		PacketStat:      *NewPacketStatInfo(),
 		CmdCh:           make(chan Cmd, 10),
 		PService:        g,
-		MinPos:          Vector3D{-500, -500, -500},
-		MaxPos:          Vector3D{500, 500, 500},
+		MinPos:          GameConst.WorldMin,
+		MaxPos:          GameConst.WorldMax,
 		Teams:           make(map[int]*Team),
-		MaxObjectRadius: 10,
+		MaxObjectRadius: GameConst.MaxObjectRadius,
 	}
 	for i := 0; i < w.PService.config.NpcCountPerWorld; i++ {
 		w.addNewTeam(&AIConn{})
@@ -123,7 +123,7 @@ loop:
 				w.PacketStat.AddLap(t.ClientConnInfo.Stat)
 				t.ClientConnInfo.Stat.NewLap()
 			}
-			log.Printf("%v objs:%v spp:%v ", w, osum, w.spp.PartCount)
+			//log.Printf("%v objs:%v spp:%v ", w, osum, w.spp.PartCount)
 			select {
 			case w.PService.CmdCh <- Cmd{Cmd: "statInfo", Args: w.PacketStat}:
 				w.PacketStat.NewLap()

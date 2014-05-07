@@ -11,7 +11,6 @@ import (
 )
 
 type ConnInfo struct {
-	Stat       *PacketStat
 	PTeam      *Team
 	ReadCh     chan *GamePacket
 	WriteCh    chan *GamePacket
@@ -23,14 +22,12 @@ type ConnInfo struct {
 
 func NewAIConnInfo(t *Team, aiconn *AIConn) *ConnInfo {
 	c := ConnInfo{
-		Stat:       NewPacketStatInfo(),
 		ReadCh:     make(chan *GamePacket, 1),
 		WriteCh:    make(chan *GamePacket, 1),
 		PTeam:      t,
 		AiConn:     aiconn,
 		clientType: AIClient,
 	}
-	c.AiConn.ActionLimit = *NewActStat()
 	//aiconn.pteam = t
 	go c.aiLoop()
 	return &c
@@ -51,18 +48,17 @@ loop:
 			if !ok {
 				break loop
 			}
-			c.Stat.IncW()
 			switch packet.Cmd {
 			case RspAIAct:
 				c.ReadCh <- &GamePacket{
 					Cmd: ReqFrameInfo,
 				}
-				c.Stat.IncR()
 			case RspFrameInfo:
 				c.AiConn.spp = packet.Spp
 				c.AiConn.me = packet.TeamInfo.SPObj
+				c.AiConn.ActionPoint = packet.TeamInfo.ActionPoint
+				c.AiConn.Score = packet.TeamInfo.Score
 				c.ReadCh <- c.AiConn.makeAIAction()
-				c.Stat.IncR()
 			default:
 				log.Printf("unknown packet %v", packet.Cmd)
 				break loop
@@ -73,7 +69,6 @@ loop:
 
 func NewTcpConnInfo(t *Team, conn net.Conn) *ConnInfo {
 	c := ConnInfo{
-		Stat:       NewPacketStatInfo(),
 		Conn:       conn,
 		ReadCh:     make(chan *GamePacket, 1),
 		WriteCh:    make(chan *GamePacket, 1),
@@ -99,7 +94,6 @@ func (c *ConnInfo) tcpReadLoop() {
 			break
 		}
 		c.ReadCh <- &v
-		c.Stat.IncR()
 	}
 }
 
@@ -120,14 +114,12 @@ loop:
 			if err != nil {
 				break loop
 			}
-			c.Stat.IncW()
 		}
 	}
 }
 
 func NewWsConnInfo(t *Team, conn *websocket.Conn) *ConnInfo {
 	c := ConnInfo{
-		Stat:       NewPacketStatInfo(),
 		WsConn:     conn,
 		ReadCh:     make(chan *GamePacket, 1),
 		WriteCh:    make(chan *GamePacket, 1),
@@ -158,7 +150,6 @@ func (c *ConnInfo) wsReadLoop() {
 			break
 		}
 		c.ReadCh <- &v
-		c.Stat.IncR()
 	}
 }
 
@@ -187,7 +178,6 @@ func (c *ConnInfo) wsWriteLoop() {
 			if err := c.write(websocket.TextMessage, message); err != nil {
 				return
 			}
-			c.Stat.IncW()
 		case <-timerPing:
 			if err := c.write(websocket.PingMessage, []byte{}); err != nil {
 				return

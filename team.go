@@ -16,23 +16,25 @@ type Team struct {
 	PWorld         *World
 	GameObjs       map[int]*GameObject
 	ClientConnInfo ConnInfo
-	//spp            *SpatialPartition
-	chStep      <-chan bool
-	Color       int
-	ActionLimit ActStat
+	chStep         <-chan bool
+	Color          int
+	PacketStat     ActionStat
+	ActionPoint    int
+	Score          int
 }
 
 func (m Team) String() string {
-	return fmt.Sprintf("Team%v Objs:%v", m.ID, len(m.GameObjs))
+	return fmt.Sprintf("Team%v Objs:%v Score:%v AP:%v, PacketStat:%v",
+		m.ID, len(m.GameObjs), m.Score, m.ActionPoint, m.PacketStat)
 }
 
 func NewTeam(w *World, conn interface{}) *Team {
 	t := Team{
-		ID:          <-IdGenCh,
-		PWorld:      w,
-		GameObjs:    make(map[int]*GameObject),
-		Color:       rand.Intn(0x1000000),
-		ActionLimit: *NewActStat(),
+		ID:         <-IdGenCh,
+		PWorld:     w,
+		GameObjs:   make(map[int]*GameObject),
+		Color:      rand.Intn(0x1000000),
+		PacketStat: *NewActionStat(),
 	}
 	switch conn.(type) {
 	case net.Conn:
@@ -78,6 +80,7 @@ func (t *Team) processClientReq(ftime time.Time, w *WorldSerialize, spp *Spatial
 	if p == nil {
 		return true
 	}
+	t.PacketStat.Inc()
 	//log.Printf("client packet %v %v", t, p)
 	var rp GamePacket
 	switch p.Cmd {
@@ -89,9 +92,13 @@ func (t *Team) processClientReq(ftime time.Time, w *WorldSerialize, spp *Spatial
 		}
 	case ReqFrameInfo:
 		rp = GamePacket{
-			Cmd:      RspFrameInfo,
-			Spp:      spp,
-			TeamInfo: &TeamInfoPacket{SPObj: *NewSPObj(t.findMainObj())},
+			Cmd: RspFrameInfo,
+			Spp: spp,
+			TeamInfo: &TeamInfoPacket{
+				SPObj:       *NewSPObj(t.findMainObj()),
+				ActionPoint: t.ActionPoint,
+				Score:       t.Score,
+			},
 		}
 	case ReqAIAct:
 		t.applyClientAction(ftime, p.ClientAct)
@@ -108,7 +115,6 @@ func (t *Team) processClientReq(ftime time.Time, w *WorldSerialize, spp *Spatial
 	return true
 }
 
-// work fn
 func (t *Team) actByTime(ftime time.Time, spp *SpatialPartition) bool {
 	for _, v := range t.GameObjs {
 		v.ActByTime(ftime, spp)
@@ -118,6 +124,7 @@ func (t *Team) actByTime(ftime time.Time, spp *SpatialPartition) bool {
 			t.delGameObject(v)
 			if v.ObjType == GameObjMain {
 				t.addNewGameObject(v.ObjType, nil)
+				t.Score -= GameConst.KillScore
 			}
 			if v.ObjType == GameObjShield {
 				t.addNewGameObject(v.ObjType, nil)
@@ -128,7 +135,21 @@ func (t *Team) actByTime(ftime time.Time, spp *SpatialPartition) bool {
 	return true
 }
 
+// 0(outer max) ~ GameConst.APIncFrame( 0,0,0)
+func (t *Team) CalcAP(spp *SpatialPartition) int {
+	o := t.findMainObj()
+	l := o.PosVector.Abs()
+	lm := spp.Size.Abs() / 2
+	rtn := int((lm - l) / lm * float64(GameConst.APIncFrame))
+	//log.Printf("ap:%v", rtn)
+	return rtn
+}
+
 func (t *Team) doFrameWork(ftime time.Time, spp *SpatialPartition, w *WorldSerialize) <-chan bool {
+	ap := t.CalcAP(spp)
+	t.ActionPoint += ap
+	t.Score += ap
+
 	chRtn := make(chan bool)
 	go func() {
 		rtn := t.processClientReq(ftime, w, spp)
@@ -188,8 +209,9 @@ func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) int {
 	mo := t.findMainObj()
 	if act.Accel != nil {
 		//log.Printf("recv accl %v", act.Accel)
-		if t.ActionLimit.Accel.Inc() {
+		if t.ActionPoint >= GameConst.APAccel {
 			mo.accelVector = *act.Accel
+			t.ActionPoint -= GameConst.APAccel
 			rtn++
 		} else {
 			log.Printf("over use accel %v", t)
@@ -197,11 +219,24 @@ func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) int {
 
 	}
 	if act.NormalBulletMv != nil {
-		if t.ActionLimit.Bullet.Inc() {
+		if t.ActionPoint >= GameConst.APBullet {
 			t.addNewGameObject(GameObjBullet, act.NormalBulletMv)
+			t.ActionPoint -= GameConst.APBullet
 			rtn++
 		} else {
 			log.Printf("over use bullet %v", t)
+		}
+	}
+	if act.BurstShot > 0 {
+		if t.ActionPoint >= act.BurstShot*GameConst.APBurstShot {
+			for i := 0; i < act.BurstShot; i++ {
+				t.addNewGameObject(GameObjBullet, RandVector3D(-300, 300))
+			}
+
+			t.ActionPoint -= GameConst.APBurstShot * act.BurstShot
+			rtn++
+		} else {
+			log.Printf("over use burstbullet %v", t)
 		}
 	}
 	if act.HommingTargetID != 0 {

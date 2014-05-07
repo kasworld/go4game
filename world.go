@@ -11,7 +11,6 @@ import (
 )
 
 type World struct {
-	PacketStat
 	ID              int
 	CmdCh           chan Cmd
 	PService        *GameService
@@ -24,13 +23,13 @@ type World struct {
 }
 
 func (m World) String() string {
-	return fmt.Sprintf("World%v Teams:%v", m.ID, len(m.Teams))
+	return fmt.Sprintf("World%v Teams:%v",
+		m.ID, len(m.Teams))
 }
 
 func NewWorld(g *GameService) *World {
 	w := World{
 		ID:              <-IdGenCh,
-		PacketStat:      *NewPacketStatInfo(),
 		CmdCh:           make(chan Cmd, 10),
 		PService:        g,
 		MinPos:          GameConst.WorldMin,
@@ -117,17 +116,6 @@ loop:
 		case ftime := <-timer60Ch:
 			w.Do1Frame(ftime)
 		case <-timer1secCh:
-			osum := 0
-			for _, t := range w.Teams {
-				osum += len(t.GameObjs)
-				w.PacketStat.AddLap(t.ClientConnInfo.Stat)
-				t.ClientConnInfo.Stat.NewLap()
-			}
-			//log.Printf("%v objs:%v spp:%v ", w, osum, w.spp.PartCount)
-			select {
-			case w.PService.CmdCh <- Cmd{Cmd: "statInfo", Args: w.PacketStat}:
-				w.PacketStat.NewLap()
-			}
 		}
 	}
 }

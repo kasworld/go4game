@@ -24,7 +24,6 @@ type ServiceConfig struct {
 }
 
 type GameService struct {
-	PacketStat
 	ID     int
 	CmdCh  chan Cmd
 	Worlds map[int]*World
@@ -42,7 +41,6 @@ func (m GameService) String() string {
 func NewGameService(config *ServiceConfig) *GameService {
 	g := GameService{
 		ID:                   <-IdGenCh,
-		PacketStat:           *NewPacketStatInfo(),
 		CmdCh:                make(chan Cmd, 10),
 		Worlds:               make(map[int]*World),
 		clientConnectionCh:   make(chan net.Conn),
@@ -113,9 +111,6 @@ loop:
 					v.CmdCh <- Cmd{Cmd: "quit"}
 				}
 				break loop
-			case "statInfo":
-				s := cmd.Args.(PacketStat)
-				g.PacketStat.AddLap(&s)
 			case "delWorld":
 				g.delWorld(cmd.Args.(*World))
 			default:
@@ -124,8 +119,6 @@ loop:
 		case <-timer60Ch:
 			// do frame action
 		case <-timer1secCh:
-			//log.Printf("%v ID:%v goroutine:%v %v", g, <-IdGenCh, runtime.NumGoroutine(), g.PacketStat)
-			g.PacketStat.NewLap()
 		}
 	}
 	log.Printf("quit %v", g)
@@ -162,6 +155,7 @@ const templatestr = `
 <html>
 <head>
 <title>go4game stat</title>
+<meta http-equiv="refresh" content="1">
 </head>
 <body>
 {{.}}
@@ -169,10 +163,10 @@ const templatestr = `
 {{range .Worlds}}
 {{.}}
 </br>
-{{.PacketStat}}
-</br>
 {{range .Teams}}
+<font color="#{{.Color | printf "%x"}}">
 {{.}}
+</font>
 </br>
 {{end}}
 </br>

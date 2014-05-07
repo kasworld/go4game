@@ -10,9 +10,10 @@ import (
 type AIConn struct {
 	me          SPObj
 	spp         *SpatialPartition
-	ActionLimit ActStat
 	targetlist  AimTargetList
 	worldBound  HyperRect
+	ActionPoint int
+	Score       int
 }
 
 type AimTargetList []*AimTarget
@@ -141,9 +142,10 @@ func (a *AIConn) makeAIAction() *GamePacket {
 
 	var bulletMoveVector *Vector3D
 	var accvt *Vector3D
+	var burstCount int
 
 	intertarget, interval := a.targetlist.FindMax(a.fnCalcAttackFactor)
-	if intertarget != nil && interval >= (rand.Float64()+1) && a.ActionLimit.Bullet.Inc() {
+	if intertarget != nil && interval >= (rand.Float64()+1) && a.ActionPoint >= GameConst.APAccel {
 		//log.Printf("attack %v", interval)
 		var aimpos *Vector3D
 		if intertarget.ObjType != GameObjMain {
@@ -155,12 +157,19 @@ func (a *AIConn) makeAIAction() *GamePacket {
 		}
 
 		bulletMoveVector = aimpos.Sub(&a.me.PosVector).NormalizedTo(300.0)
+		a.ActionPoint -= GameConst.APAccel
 	}
 
 	esctarget, escval := a.targetlist.FindMax(a.fnCalcDangerFactor)
-	if esctarget != nil && escval >= (rand.Float64()+1) && a.ActionLimit.Accel.Inc() {
+	if esctarget != nil && escval >= (rand.Float64()+1) && a.ActionPoint >= GameConst.APBullet {
 		//log.Printf("escval %v", escval)
 		accvt = a.calcEscapeVector(esctarget)
+		a.ActionPoint -= GameConst.APBullet
+	}
+
+	if a.ActionPoint >= GameConst.APBurstShot*36 {
+		burstCount = a.ActionPoint/GameConst.APBurstShot - 4
+		a.ActionPoint -= GameConst.APBurstShot * burstCount
 	}
 
 	return &GamePacket{
@@ -168,6 +177,7 @@ func (a *AIConn) makeAIAction() *GamePacket {
 		ClientAct: &ClientActionPacket{
 			Accel:          accvt,
 			NormalBulletMv: bulletMoveVector,
+			BurstShot:      burstCount,
 		},
 	}
 }

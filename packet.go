@@ -86,6 +86,8 @@ func (gp GamePacket) String() string {
 
 type TeamInfoPacket struct {
 	SPObj
+	ActionPoint int
+	Score       int
 }
 
 type ClientActionPacket struct {
@@ -93,4 +95,5 @@ type ClientActionPacket struct {
 	NormalBulletMv  *Vector3D
 	HommingTargetID int
 	SuperBulletMv   *Vector3D
+	BurstShot       int
 }

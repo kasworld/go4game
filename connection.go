@@ -49,10 +49,6 @@ loop:
 				break loop
 			}
 			switch packet.Cmd {
-			case RspAIAct:
-				c.ReadCh <- &GamePacket{
-					Cmd: ReqFrameInfo,
-				}
 			case RspFrameInfo:
 				c.AiConn.spp = packet.Spp
 				c.AiConn.me = packet.TeamInfo.SPObj

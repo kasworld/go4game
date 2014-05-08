@@ -21,19 +21,6 @@ const (
 	AIClient
 )
 
-// packet type
-type PacketType int
-
-const (
-	_ PacketType = iota
-	ReqFrameInfo
-	RspFrameInfo
-	ReqWorldInfo
-	RspWorldInfo
-	ReqAIAct
-	RspAIAct
-)
-
 type GameObjectType int
 
 const (
@@ -64,13 +51,13 @@ func init() {
 		WorldMax:        Vector3D{500, 500, 500},
 		MaxObjectRadius: 10,
 
-		APAccel:         10,
+		APAccel:         5,
 		APBullet:        20,
-		APBurstShot:     20,
+		APBurstShot:     10,
 		APHommingBullet: 40,
 		APSuperBullet:   40,
 
 		APIncFrame: 10,
-		KillScore:  1000,
+		KillScore:  100,
 	}
 }

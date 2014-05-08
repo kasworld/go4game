@@ -56,7 +56,6 @@ clientloop:
 			case RspFrameInfo:
 				//s, _ := json.MarshalIndent(rp.WorldInfo, "", "  ")
 				//log.Printf("%v", string(s))
-			case RspAIAct:
 			default:
 				log.Printf("unknown packet %v", rp)
 			}

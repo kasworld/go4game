@@ -78,6 +78,7 @@ func (t *Team) processClientReq(ftime time.Time, w *WorldSerialize, spp *Spatial
 	case <-time.After(1000 / 60 * time.Millisecond):
 	}
 	if p == nil {
+		log.Printf("timeout team%v", t.ID)
 		return true
 	}
 	t.PacketStat.Inc()
@@ -91,6 +92,7 @@ func (t *Team) processClientReq(ftime time.Time, w *WorldSerialize, spp *Spatial
 			TeamInfo:  &TeamInfoPacket{SPObj: *NewSPObj(t.findMainObj())},
 		}
 	case ReqFrameInfo:
+		t.applyClientAction(ftime, p.ClientAct)
 		rp = GamePacket{
 			Cmd: RspFrameInfo,
 			Spp: spp,
@@ -99,11 +101,6 @@ func (t *Team) processClientReq(ftime time.Time, w *WorldSerialize, spp *Spatial
 				ActionPoint: t.ActionPoint,
 				Score:       t.Score,
 			},
-		}
-	case ReqAIAct:
-		t.applyClientAction(ftime, p.ClientAct)
-		rp = GamePacket{
-			Cmd: RspAIAct,
 		}
 	default:
 		log.Printf("unknown packet %#v", p)
@@ -147,8 +144,11 @@ func (t *Team) CalcAP(spp *SpatialPartition) int {
 
 func (t *Team) doFrameWork(ftime time.Time, spp *SpatialPartition, w *WorldSerialize) <-chan bool {
 	ap := t.CalcAP(spp)
+	if ap < 0 {
+		log.Printf("invalid ap team%v %v", t.ID, ap)
+	}
 	t.ActionPoint += ap
-	t.Score += ap
+	t.Score += 1
 
 	chRtn := make(chan bool)
 	go func() {
@@ -207,14 +207,17 @@ func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) int {
 		return rtn
 	}
 	mo := t.findMainObj()
+	if mo == nil {
+		return rtn
+	}
 	if act.Accel != nil {
-		//log.Printf("recv accl %v", act.Accel)
 		if t.ActionPoint >= GameConst.APAccel {
 			mo.accelVector = *act.Accel
 			t.ActionPoint -= GameConst.APAccel
 			rtn++
 		} else {
-			log.Printf("over use accel %v", t)
+			log.Printf("Team%v ap:%v over use accel %v",
+				t.ID, t.ActionPoint, act.Accel)
 		}
 
 	}
@@ -224,7 +227,8 @@ func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) int {
 			t.ActionPoint -= GameConst.APBullet
 			rtn++
 		} else {
-			log.Printf("over use bullet %v", t)
+			log.Printf("Team%v ap:%v over use bullet %v",
+				t.ID, t.ActionPoint, act.NormalBulletMv)
 		}
 	}
 	if act.BurstShot > 0 {
@@ -232,16 +236,30 @@ func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) int {
 			for i := 0; i < act.BurstShot; i++ {
 				t.addNewGameObject(GameObjBullet, RandVector3D(-300, 300))
 			}
-
 			t.ActionPoint -= GameConst.APBurstShot * act.BurstShot
 			rtn++
 		} else {
-			log.Printf("over use burstbullet %v", t)
+			log.Printf("Team%v ap:%v over use burstbullet %v",
+				t.ID, t.ActionPoint, act.BurstShot)
 		}
 	}
 	if act.HommingTargetID != 0 {
+		if t.ActionPoint >= GameConst.APHommingBullet {
+			t.ActionPoint -= GameConst.APHommingBullet
+			rtn++
+		} else {
+			log.Printf("Team%v ap:%v over use hommingbullet %v",
+				t.ID, t.ActionPoint, act.HommingTargetID)
+		}
 	}
 	if act.SuperBulletMv != nil {
+		if t.ActionPoint >= GameConst.APSuperBullet {
+			t.ActionPoint -= GameConst.APSuperBullet
+			rtn++
+		} else {
+			log.Printf("Team%v ap:%v over use superbullet %v",
+				t.ID, t.ActionPoint, act.SuperBulletMv)
+		}
 	}
 	return rtn
 }

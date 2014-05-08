@@ -5,6 +5,7 @@ import (
 	//"time"
 	"math"
 	"math/rand"
+	"sort"
 )
 
 type AIConn struct {
@@ -20,9 +21,11 @@ type AimTargetList []*AimTarget
 
 type AimTarget struct {
 	*SPObj
-	AimPos   *Vector3D
-	AimAngle float64
-	LenRate  float64
+	AimPos       *Vector3D
+	AimAngle     float64
+	LenRate      float64
+	AttackFactor float64
+	EscapeFactor float64
 }
 
 // how fast collision occur
@@ -60,41 +63,8 @@ func (a *AIConn) calcEscapeVector(t *AimTarget) *Vector3D {
 	return backvt.Add(backvt).Add(sidevt).Add(tocentervt)
 }
 
-func (a *AIConn) prepareTarget(s SPObjList) bool {
-	for _, t := range s {
-		if a.me.TeamID != t.TeamID {
-			estdur, estpos, estangle := a.me.calcAims(t, 300)
-			if math.IsInf(estdur, 1) || !estpos.IsIn(&a.worldBound) {
-				estpos = nil
-			}
-			lenRate := a.me.calcLenRate(t)
-			o := AimTarget{
-				SPObj:    t,
-				AimPos:   estpos,
-				AimAngle: estangle,
-				LenRate:  lenRate,
-			}
-			a.targetlist = append(a.targetlist, &o)
-		}
-	}
-	return false
-}
-
-func (a AimTargetList) FindMax(fn func(o *AimTarget) float64) (*AimTarget, float64) {
-	iv := 0.0
-	var ro *AimTarget
-	for _, o := range a {
-		tv := fn(o)
-		if tv > iv {
-			iv = tv
-			ro = o
-		}
-	}
-	return ro, iv
-}
-
 // attack
-func (a *AIConn) fnCalcAttackFactor(o *AimTarget) float64 {
+func (a *AIConn) CalcAttackFactor(o *AimTarget) float64 {
 	if !(o.ObjType == GameObjMain || o.ObjType == GameObjBullet) {
 		return -1.0
 	}
@@ -113,7 +83,7 @@ func (a *AIConn) fnCalcAttackFactor(o *AimTarget) float64 {
 }
 
 // escape
-func (a *AIConn) fnCalcDangerFactor(o *AimTarget) float64 {
+func (a *AIConn) CalcEscapeFactor(o *AimTarget) float64 {
 	if !(o.ObjType == GameObjMain || o.ObjType == GameObjBullet) {
 		return -1.0
 	}
@@ -131,53 +101,121 @@ func (a *AIConn) fnCalcDangerFactor(o *AimTarget) float64 {
 	return factor
 }
 
-//
+func (a *AIConn) prepareTarget(s SPObjList) bool {
+	for _, t := range s {
+		if a.me.TeamID != t.TeamID {
+			estdur, estpos, estangle := a.me.calcAims(t, 300)
+			if math.IsInf(estdur, 1) || !estpos.IsIn(&a.worldBound) {
+				estpos = nil
+			}
+			lenRate := a.me.calcLenRate(t)
+			o := AimTarget{
+				SPObj:    t,
+				AimPos:   estpos,
+				AimAngle: estangle,
+				LenRate:  lenRate,
+			}
+			o.AttackFactor = a.CalcAttackFactor(&o)
+			o.EscapeFactor = a.CalcEscapeFactor(&o)
+			a.targetlist = append(a.targetlist, &o)
+		}
+	}
+	return false
+}
+
+// By is the type of a "less" function that defines the ordering of its AimTarget arguments.
+type By func(p1, p2 *AimTarget) bool
+
+// Sort is a method on the function type, By, that sorts the argument slice according to the function.
+func (by By) Sort(aimtargets AimTargetList) {
+	ps := &aimtargetSorter{
+		aimtargets: aimtargets,
+		by:         by, // The Sort method's receiver is the function (closure) that defines the sort order.
+	}
+	sort.Sort(ps)
+}
+
+// aimtargetSorter joins a By function and a slice of AimTargets to be sorted.
+type aimtargetSorter struct {
+	aimtargets AimTargetList
+	by         func(p1, p2 *AimTarget) bool // Closure used in the Less method.
+}
+
+// Len is part of sort.Interface.
+func (s *aimtargetSorter) Len() int {
+	return len(s.aimtargets)
+}
+
+// Swap is part of sort.Interface.
+func (s *aimtargetSorter) Swap(i, j int) {
+	s.aimtargets[i], s.aimtargets[j] = s.aimtargets[j], s.aimtargets[i]
+}
+
+// Less is part of sort.Interface. It is implemented by calling the "by" closure in the sorter.
+func (s *aimtargetSorter) Less(i, j int) bool {
+	return s.by(s.aimtargets[i], s.aimtargets[j])
+}
+
 func (a *AIConn) makeAIAction() *GamePacket {
 	if a.spp == nil {
-		return &GamePacket{Cmd: ReqAIAct}
+		return &GamePacket{Cmd: ReqFrameInfo}
 	}
 	a.worldBound = HyperRect{Min: a.spp.Min, Max: a.spp.Max}
 	a.targetlist = make(AimTargetList, 0)
 	a.spp.ApplyParts27Fn(a.prepareTarget, a.me.PosVector)
 
-	var bulletMoveVector *Vector3D
-	var accvt *Vector3D
-	var burstCount int
+	if len(a.targetlist) == 0 {
+		return &GamePacket{Cmd: ReqFrameInfo}
+	}
 
-	intertarget, interval := a.targetlist.FindMax(a.fnCalcAttackFactor)
-	if intertarget != nil && interval >= (rand.Float64()+1) && a.ActionPoint >= GameConst.APAccel {
-		//log.Printf("attack %v", interval)
-		var aimpos *Vector3D
-		if intertarget.ObjType != GameObjMain {
-			aimpos = intertarget.AimPos
-		} else {
-			// add random ness to target pos
-			aimpos = intertarget.AimPos
-			//aimpos = intertarget.AimPos.Add(RandVector3D(0.0, intertarget.CollisionRadius*4))
+	var bulletMoveVector *Vector3D = nil
+	var accvt *Vector3D = nil
+	var burstCount int = 0
+	var hommingTargetID int = 0
+	var superBulletMv *Vector3D = nil
+
+	attackFn := func(p1, p2 *AimTarget) bool {
+		return p1.AttackFactor > p2.AttackFactor
+	}
+	escapeFn := func(p1, p2 *AimTarget) bool {
+		return p1.EscapeFactor > p2.EscapeFactor
+	}
+
+	By(attackFn).Sort(a.targetlist)
+	if a.ActionPoint >= GameConst.APBullet {
+		for _, o := range a.targetlist {
+			if o.AttackFactor > 1 && rand.Float64() < 0.5 {
+				bulletMoveVector = o.AimPos.Sub(&a.me.PosVector).NormalizedTo(300.0)
+				a.ActionPoint -= GameConst.APBullet
+				break
+			}
 		}
-
-		bulletMoveVector = aimpos.Sub(&a.me.PosVector).NormalizedTo(300.0)
-		a.ActionPoint -= GameConst.APAccel
 	}
 
-	esctarget, escval := a.targetlist.FindMax(a.fnCalcDangerFactor)
-	if esctarget != nil && escval >= (rand.Float64()+1) && a.ActionPoint >= GameConst.APBullet {
-		//log.Printf("escval %v", escval)
-		accvt = a.calcEscapeVector(esctarget)
-		a.ActionPoint -= GameConst.APBullet
+	By(escapeFn).Sort(a.targetlist)
+	if a.ActionPoint >= GameConst.APAccel {
+		for _, o := range a.targetlist {
+			if o.EscapeFactor > 1 && rand.Float64() < 0.9 {
+				accvt = a.calcEscapeVector(o)
+				a.ActionPoint -= GameConst.APAccel
+				break
+			}
+		}
 	}
 
-	if a.ActionPoint >= GameConst.APBurstShot*36 {
+	if a.ActionPoint >= GameConst.APBurstShot*40 {
 		burstCount = a.ActionPoint/GameConst.APBurstShot - 4
 		a.ActionPoint -= GameConst.APBurstShot * burstCount
 	}
 
 	return &GamePacket{
-		Cmd: ReqAIAct,
+		Cmd: ReqFrameInfo,
 		ClientAct: &ClientActionPacket{
-			Accel:          accvt,
-			NormalBulletMv: bulletMoveVector,
-			BurstShot:      burstCount,
+			Accel:           accvt,
+			NormalBulletMv:  bulletMoveVector,
+			BurstShot:       burstCount,
+			HommingTargetID: hommingTargetID,
+			SuperBulletMv:   superBulletMv,
 		},
 	}
 }

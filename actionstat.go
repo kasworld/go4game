@@ -5,23 +5,10 @@ import (
 	"time"
 )
 
-// type ActionType int
-
-// const (
-// 	_ ActionType = iota
-// 	PacketAction
-// 	GOAccel
-// 	GOBullet
-// )
-
 type ActionStatElement struct {
 	Count int64
 	Time  time.Time
 }
-
-// func (a ActionStatElement) Sub(b ActionStatElement) (int64, time.Duration) {
-// 	return a.Count - b.Count, a.Time.Sub(b.Time)
-// }
 
 type ActionStat struct {
 	Total ActionStatElement

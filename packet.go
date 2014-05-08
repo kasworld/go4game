@@ -68,6 +68,19 @@ func NewWorldSerialize(w *World) *WorldSerialize {
 	return &ws
 }
 
+// packet type
+type PacketType int
+
+const (
+	_ PacketType = iota
+	ReqFrameInfo
+	RspFrameInfo
+	ReqWorldInfo
+	RspWorldInfo
+	// ReqAIAct
+	// RspAIAct
+)
+
 type GamePacket struct {
 	Cmd       PacketType
 	TeamInfo  *TeamInfoPacket
@@ -93,7 +106,7 @@ type TeamInfoPacket struct {
 type ClientActionPacket struct {
 	Accel           *Vector3D
 	NormalBulletMv  *Vector3D
+	BurstShot       int
 	HommingTargetID int
 	SuperBulletMv   *Vector3D
-	BurstShot       int
 }

@@ -23,8 +23,8 @@ type World struct {
 }
 
 func (m World) String() string {
-	return fmt.Sprintf("World%v Teams:%v",
-		m.ID, len(m.Teams))
+	return fmt.Sprintf("World%v Teams:%v spp:%v",
+		m.ID, len(m.Teams), m.spp.PartCount)
 }
 
 func NewWorld(g *GameService) *World {

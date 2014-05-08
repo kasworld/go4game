@@ -79,10 +79,14 @@ func (w *World) Do1Frame(ftime time.Time) {
 	}
 	for _, t := range w.Teams {
 		//log.Printf("actbytime wait %v", t)
-		r := <-t.chStep
-		if !r {
+		r, ok := <-t.chStep
+		if !ok {
 			t.endTeam()
 			w.delTeam(t)
+		} else {
+			for _, tid := range r {
+				w.Teams[tid].Score += GameConst.KillScore
+			}
 		}
 	}
 	// if w.teamCount(AIClient) == len(w.Teams) {

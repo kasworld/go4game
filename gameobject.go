@@ -50,7 +50,6 @@ func NewGameObject(PTeam *Team) *GameObject {
 		PTeam:     PTeam,
 		enabled:   true,
 		startTime: time.Now(),
-		endTime:   time.Now().Add(time.Second * 60),
 
 		lastMoveTime: time.Now(),
 		MinPos:       Min,
@@ -81,7 +80,6 @@ func (o *GameObject) MakeMainObj() {
 	o.moveLimit = 100.0
 	o.CollisionRadius = 10
 	o.PosVector = *RandVector3D(-500, 500)
-	o.endTime = o.startTime.Add(time.Second * 3600)
 	o.ObjType = GameObjMain
 
 	o.ClearY()
@@ -89,7 +87,7 @@ func (o *GameObject) MakeMainObj() {
 func (o *GameObject) MakeShield(mo *GameObject) {
 	o.moveLimit = 200.0
 	o.CollisionRadius = 5
-	o.endTime = o.startTime.Add(time.Second * 3600)
+	o.endTime = o.startTime.Add(time.Second * 60)
 	o.moveByTimeFn = moveByTimeFn_shield
 	o.borderActionFn = borderActionFn_None
 	o.PosVector = mo.PosVector
@@ -98,6 +96,7 @@ func (o *GameObject) MakeShield(mo *GameObject) {
 func (o *GameObject) MakeBullet(mo *GameObject, MoveVector *Vector3D) {
 	o.moveLimit = 300.0
 	o.CollisionRadius = 5
+	o.endTime = o.startTime.Add(time.Second * 60)
 	o.PosVector = mo.PosVector
 	o.MoveVector = *MoveVector
 	o.borderActionFn = borderActionFn_Disable
@@ -111,19 +110,20 @@ type ActionFnEnvInfo struct {
 	frameTime time.Time
 }
 
-func (o *GameObject) IsCollision(sl SPObjList) bool {
-	for _, s := range sl {
-		teamrule := s.TeamID != o.PTeam.ID
-		checklen := s.PosVector.LenTo(&o.PosVector) <= (s.CollisionRadius + o.CollisionRadius)
-		if (teamrule) && (checklen) {
+func (o *GameObject) IsCollision(s *SPObj) bool {
+	teamrule := s.TeamID != o.PTeam.ID
+	checklen := s.PosVector.LenTo(&o.PosVector) <= (s.CollisionRadius + o.CollisionRadius)
+	if (teamrule) && (checklen) {
+		if InteractionMap[o.ObjType][s.ObjType] {
 			return true
 		}
 	}
 	return false
 }
 
-func (o *GameObject) ActByTime(t time.Time, spp *SpatialPartition) {
+func (o *GameObject) ActByTime(t time.Time, spp *SpatialPartition) []int {
 	o.ClearY()
+	var clist []int
 
 	defer func() {
 		o.lastMoveTime = t
@@ -132,22 +132,30 @@ func (o *GameObject) ActByTime(t time.Time, spp *SpatialPartition) {
 		frameTime: t,
 	}
 	// check expire
-	if o.endTime.Before(t) {
+	if !o.endTime.IsZero() && o.endTime.Before(t) {
 		if o.expireActionFn != nil {
 			ok := o.expireActionFn(o, &envInfo)
 			if ok != true {
-				return
+				return clist
 			}
 		}
 	}
 	// check if collision , disable
 	// modify own status only
-	//if spp.ApplyCollisionAction4(IsCollision, o) {
-	if spp.ApplyPartsFn(o.IsCollision, o.PosVector, spp.MaxObjectRadius) {
+	var isCollsion bool
+	if o.ObjType == GameObjMain {
+		clist = spp.GetCollisionList(o.IsCollision, o.PosVector, spp.MaxObjectRadius)
+		if len(clist) > 0 {
+			isCollsion = true
+		}
+	} else {
+		isCollsion = spp.IsCollision(o.IsCollision, o.PosVector, spp.MaxObjectRadius)
+	}
+	if isCollsion {
 		if o.collisionActionFn != nil {
 			ok := o.collisionActionFn(o, &envInfo)
 			if ok != true {
-				return
+				return clist
 			}
 		}
 	}
@@ -155,16 +163,17 @@ func (o *GameObject) ActByTime(t time.Time, spp *SpatialPartition) {
 		// change PosVector by movevector
 		ok := o.moveByTimeFn(o, &envInfo)
 		if ok != true {
-			return
+			return clist
 		}
 	}
 	if o.borderActionFn != nil {
 		// check wall action ( wrap, bounce )
 		ok := o.borderActionFn(o, &envInfo)
 		if ok != true {
-			return
+			return clist
 		}
 	}
+	return clist
 }
 
 type GameObjectActFn func(m *GameObject, envInfo *ActionFnEnvInfo) bool

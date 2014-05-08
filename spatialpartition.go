@@ -112,8 +112,6 @@ func (p *SpatialPartition) GetPartCube(ppos [3]int) *HyperRect {
 	}
 }
 
-type PartsFn func(s SPObjList) bool
-
 func (p *SpatialPartition) makeRange2(c float64, r float64, min float64, max float64, n int) []int {
 	if n-1 >= 0 && c-r*2 <= min {
 		return []int{n, n - 1}
@@ -125,7 +123,7 @@ func (p *SpatialPartition) makeRange2(c float64, r float64, min float64, max flo
 }
 
 // for collision check
-func (p *SpatialPartition) ApplyPartsFn(fn PartsFn, pos Vector3D, r float64) bool {
+func (p *SpatialPartition) IsCollision(fn func(*SPObj) bool, pos Vector3D, r float64) bool {
 	ppos := p.Pos2PartPos(pos)
 	partcube := p.GetPartCube(ppos)
 
@@ -136,13 +134,39 @@ func (p *SpatialPartition) ApplyPartsFn(fn PartsFn, pos Vector3D, r float64) boo
 	for _, i := range xr {
 		for _, j := range yr {
 			for _, k := range zr {
-				if fn(p.Parts[i][j][k]) {
-					return true
+				for _, s := range p.Parts[i][j][k] {
+					if fn(s) {
+						return true
+					}
 				}
 			}
 		}
 	}
 	return false
+}
+
+// for find who kill gameobjmain
+func (p *SpatialPartition) GetCollisionList(fn func(*SPObj) bool, pos Vector3D, r float64) []int {
+	ppos := p.Pos2PartPos(pos)
+	partcube := p.GetPartCube(ppos)
+	rtn := make([]int, 0)
+
+	xr := p.makeRange2(pos[0], r, partcube.Min[0], partcube.Max[0], ppos[0])
+	yr := p.makeRange2(pos[1], r, partcube.Min[1], partcube.Max[1], ppos[1])
+	zr := p.makeRange2(pos[2], r, partcube.Min[2], partcube.Max[2], ppos[2])
+	//log.Printf("%v %v %v ", xr, yr, zr)
+	for _, i := range xr {
+		for _, j := range yr {
+			for _, k := range zr {
+				for _, s := range p.Parts[i][j][k] {
+					if fn(s) {
+						rtn = append(rtn, s.TeamID)
+					}
+				}
+			}
+		}
+	}
+	return rtn
 }
 
 func (p *SpatialPartition) makeRange3(n int) []int {
@@ -156,7 +180,7 @@ func (p *SpatialPartition) makeRange3(n int) []int {
 }
 
 // for ai action
-func (p *SpatialPartition) ApplyParts27Fn(fn PartsFn, pos Vector3D) bool {
+func (p *SpatialPartition) ApplyParts27Fn(fn func(SPObjList) bool, pos Vector3D) bool {
 	ppos := p.Pos2PartPos(pos)
 	xr := p.makeRange3(ppos[0])
 	yr := p.makeRange3(ppos[1])

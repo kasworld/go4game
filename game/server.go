@@ -12,7 +12,7 @@ import (
 func main() {
 	connectTo := "0.0.0.0:6666"
 	wsCconnectTo := "0.0.0.0:8080"
-	var rundur = flag.Int("rundur", 3600, "run time sec")
+	var rundur = flag.Int("rundur", 60*60*24*365, "run time sec")
 	var profilefilename = flag.String("pfilename", "", "profile filename")
 	flag.Parse()
 	log.Printf("Listen:%v wsListen:%v rundur:%vs profile:%v",

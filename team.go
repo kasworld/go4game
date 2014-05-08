@@ -16,7 +16,7 @@ type Team struct {
 	PWorld         *World
 	GameObjs       map[int]*GameObject
 	ClientConnInfo ConnInfo
-	chStep         <-chan bool
+	chStep         <-chan []int
 	Color          int
 	PacketStat     ActionStat
 	ActionPoint    int
@@ -112,16 +112,16 @@ func (t *Team) processClientReq(ftime time.Time, w *WorldSerialize, spp *Spatial
 	return true
 }
 
-func (t *Team) actByTime(ftime time.Time, spp *SpatialPartition) bool {
+func (t *Team) actByTime(ftime time.Time, spp *SpatialPartition) []int {
+	clist := make([]int, 0)
 	for _, v := range t.GameObjs {
-		v.ActByTime(ftime, spp)
+		clist = append(clist, v.ActByTime(ftime, spp)...)
 	}
 	for _, v := range t.GameObjs {
 		if v.enabled == false {
 			t.delGameObject(v)
 			if v.ObjType == GameObjMain {
 				t.addNewGameObject(v.ObjType, nil)
-				t.Score -= GameConst.KillScore
 			}
 			if v.ObjType == GameObjShield {
 				t.addNewGameObject(v.ObjType, nil)
@@ -129,7 +129,7 @@ func (t *Team) actByTime(ftime time.Time, spp *SpatialPartition) bool {
 
 		}
 	}
-	return true
+	return clist
 }
 
 // 0(outer max) ~ GameConst.APIncFrame( 0,0,0)
@@ -142,23 +142,22 @@ func (t *Team) CalcAP(spp *SpatialPartition) int {
 	return rtn
 }
 
-func (t *Team) doFrameWork(ftime time.Time, spp *SpatialPartition, w *WorldSerialize) <-chan bool {
+func (t *Team) doFrameWork(ftime time.Time, spp *SpatialPartition, w *WorldSerialize) <-chan []int {
 	ap := t.CalcAP(spp)
 	if ap < 0 {
 		log.Printf("invalid ap team%v %v", t.ID, ap)
 	}
 	t.ActionPoint += ap
-	t.Score += 1
 
-	chRtn := make(chan bool)
+	chRtn := make(chan []int)
 	go func() {
 		rtn := t.processClientReq(ftime, w, spp)
 		if !rtn {
-			chRtn <- false
+			//chRtn <- false
+			close(chRtn)
 			return
 		}
-		t.actByTime(ftime, spp)
-		chRtn <- true
+		chRtn <- t.actByTime(ftime, spp)
 	}()
 	return chRtn
 }

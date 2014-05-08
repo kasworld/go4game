@@ -41,7 +41,7 @@ func main() {
 		for i := 0; i < 10; i++ {
 			for _, t := range w.Teams {
 				for _, o := range t.GameObjs {
-					spp.ApplyPartsFn(IsCollision, o.PosVector, spp.MaxObjectRadius)
+					spp.GetCollisionList(IsCollision, o.PosVector, spp.MaxObjectRadius)
 					//spp.ApplyCollisionAction4(IsCollision, o)
 					ss.Inc()
 				}

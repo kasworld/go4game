@@ -46,8 +46,8 @@ func NewTeam(w *World, conn interface{}) *Team {
 	default:
 		log.Printf("unknown type %#v", conn)
 	}
-	t.addNewGameObject(GameObjMain, nil)
 
+	t.addNewGameObject(GameObjMain, nil)
 	for i := 0; i < GameConst.ShieldCount; i++ {
 		t.addNewGameObject(GameObjShield, nil)
 	}

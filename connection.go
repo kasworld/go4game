@@ -50,11 +50,7 @@ loop:
 			}
 			switch packet.Cmd {
 			case RspFrameInfo:
-				c.AiConn.spp = packet.Spp
-				c.AiConn.me = packet.TeamInfo.SPObj
-				c.AiConn.ActionPoint = packet.TeamInfo.ActionPoint
-				c.AiConn.Score = packet.TeamInfo.Score
-				c.ReadCh <- c.AiConn.makeAIAction()
+				c.ReadCh <- c.AiConn.makeAction(packet)
 			default:
 				log.Printf("unknown packet %v", packet.Cmd)
 				break loop

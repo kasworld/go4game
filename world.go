@@ -23,8 +23,13 @@ type World struct {
 }
 
 func (m World) String() string {
-	return fmt.Sprintf("World%v Teams:%v spp:%v",
-		m.ID, len(m.Teams), m.spp.PartCount)
+	if m.spp != nil {
+		return fmt.Sprintf("World%v Teams:%v spp:%v",
+			m.ID, len(m.Teams), m.spp.PartCount)
+	} else {
+		return fmt.Sprintf("World%v Teams:%v spp:%v",
+			m.ID, len(m.Teams), nil)
+	}
 }
 
 func NewWorld(g *GameService) *World {
@@ -41,7 +46,6 @@ func NewWorld(g *GameService) *World {
 		w.addNewTeam(&AIConn{})
 	}
 
-	//go w.Loop()
 	return &w
 }
 
@@ -70,7 +74,7 @@ func (w *World) updateEnv() {
 	<-chwsrl
 }
 
-func (w *World) Do1Frame(ftime time.Time) {
+func (w *World) Do1Frame(ftime time.Time) bool {
 	w.updateEnv()
 
 	for _, t := range w.Teams {
@@ -78,20 +82,20 @@ func (w *World) Do1Frame(ftime time.Time) {
 		t.chStep = t.doFrameWork(ftime, w.spp, w.worldSerial)
 	}
 	for _, t := range w.Teams {
-		//log.Printf("actbytime wait %v", t)
 		r, ok := <-t.chStep
 		if !ok {
 			t.endTeam()
 			w.delTeam(t)
+			if GameConst.RemoveEmptyWorld && w.teamCount(AIClient) == len(w.Teams) {
+				return false
+			}
 		} else {
 			for _, tid := range r {
 				w.Teams[tid].Score += GameConst.KillScore
 			}
 		}
 	}
-	// if w.teamCount(AIClient) == len(w.Teams) {
-	// 	break loop
-	// }
+	return true
 }
 
 func (w *World) Loop() {
@@ -118,7 +122,10 @@ loop:
 				log.Printf("unknown cmd %v\n", cmd)
 			}
 		case ftime := <-timer60Ch:
-			w.Do1Frame(ftime)
+			ok := w.Do1Frame(ftime)
+			if !ok {
+				break loop
+			}
 		case <-timer1secCh:
 		}
 	}

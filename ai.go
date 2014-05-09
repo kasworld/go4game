@@ -156,7 +156,12 @@ func (s *aimtargetSorter) Less(i, j int) bool {
 	return s.by(s.aimtargets[i], s.aimtargets[j])
 }
 
-func (a *AIConn) makeAIAction() *GamePacket {
+func (a *AIConn) makeAction(packet *GamePacket) *GamePacket {
+	a.spp = packet.Spp
+	a.me = packet.TeamInfo.SPObj
+	a.ActionPoint = packet.TeamInfo.ActionPoint
+	a.Score = packet.TeamInfo.Score
+
 	if a.spp == nil {
 		return &GamePacket{Cmd: ReqFrameInfo}
 	}
@@ -168,21 +173,18 @@ func (a *AIConn) makeAIAction() *GamePacket {
 		return &GamePacket{Cmd: ReqFrameInfo}
 	}
 
+	// for return packet
 	var bulletMoveVector *Vector3D = nil
 	var accvt *Vector3D = nil
 	var burstCount int = 0
 	var hommingTargetID int = 0
 	var superBulletMv *Vector3D = nil
 
-	attackFn := func(p1, p2 *AimTarget) bool {
-		return p1.AttackFactor > p2.AttackFactor
-	}
-	escapeFn := func(p1, p2 *AimTarget) bool {
-		return p1.EscapeFactor > p2.EscapeFactor
-	}
-
-	By(attackFn).Sort(a.targetlist)
 	if a.ActionPoint >= GameConst.APBullet {
+		attackFn := func(p1, p2 *AimTarget) bool {
+			return p1.AttackFactor > p2.AttackFactor
+		}
+		By(attackFn).Sort(a.targetlist)
 		for _, o := range a.targetlist {
 			if o.AttackFactor > 1 && rand.Float64() < 0.5 {
 				bulletMoveVector = o.AimPos.Sub(&a.me.PosVector).NormalizedTo(300.0)
@@ -192,8 +194,11 @@ func (a *AIConn) makeAIAction() *GamePacket {
 		}
 	}
 
-	By(escapeFn).Sort(a.targetlist)
 	if a.ActionPoint >= GameConst.APAccel {
+		escapeFn := func(p1, p2 *AimTarget) bool {
+			return p1.EscapeFactor > p2.EscapeFactor
+		}
+		By(escapeFn).Sort(a.targetlist)
 		for _, o := range a.targetlist {
 			if o.EscapeFactor > 1 && rand.Float64() < 0.9 {
 				accvt = a.calcEscapeVector(o)

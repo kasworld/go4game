@@ -41,8 +41,6 @@ func NewGameService() *GameService {
 
 	log.Printf("New %v\n%#v", g, GameConst)
 
-	//go g.Loop()
-
 	// create default world
 	for i := 0; i < GameConst.StartWorldCount; i++ {
 		g.addNewWorld()
@@ -54,6 +52,7 @@ func NewGameService() *GameService {
 func (g *GameService) addNewWorld() *World {
 	w := NewWorld(g)
 	g.Worlds[w.ID] = w
+	go w.Loop()
 	return w
 }
 

@@ -48,11 +48,8 @@ func NewTeam(w *World, conn interface{}) *Team {
 	}
 	t.addNewGameObject(GameObjMain, nil)
 
-	for i := 0; i < 8; i++ {
+	for i := 0; i < GameConst.ShieldCount; i++ {
 		t.addNewGameObject(GameObjShield, nil)
-	}
-	for i := 0; i < 0; i++ {
-		t.addNewGameObject(GameObjBullet, nil)
 	}
 	return &t
 }
@@ -75,7 +72,7 @@ func (t *Team) processClientReq(ftime time.Time, w *WorldSerialize, spp *Spatial
 			//log.Printf("client quit %v", t)
 			return false
 		}
-	case <-time.After(1000 / 60 * time.Millisecond):
+	case <-time.After(GameConst.FrameRate):
 	}
 	if p == nil {
 		log.Printf("timeout team%v", t.ID)

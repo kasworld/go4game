@@ -14,15 +14,6 @@ import (
 	"time"
 )
 
-type ServiceConfig struct {
-	TcpListen            string
-	WsListen             string
-	NpcCountPerWorld     int
-	MaxTcpClientPerWorld int
-	MaxWsClientPerWorld  int
-	StartWorldCount      int
-}
-
 type GameService struct {
 	ID     int
 	CmdCh  chan Cmd
@@ -30,7 +21,6 @@ type GameService struct {
 
 	clientConnectionCh   chan net.Conn
 	wsClientConnectionCh chan *websocket.Conn
-	config               *ServiceConfig
 }
 
 func (m GameService) String() string {
@@ -38,24 +28,23 @@ func (m GameService) String() string {
 		m.ID, len(m.Worlds), runtime.NumGoroutine())
 }
 
-func NewGameService(config *ServiceConfig) *GameService {
+func NewGameService() *GameService {
 	g := GameService{
 		ID:                   <-IdGenCh,
 		CmdCh:                make(chan Cmd, 10),
 		Worlds:               make(map[int]*World),
 		clientConnectionCh:   make(chan net.Conn),
 		wsClientConnectionCh: make(chan *websocket.Conn),
-		config:               config,
 	}
 	go g.listenLoop()
 	go g.wsServer()
 
-	log.Printf("New %v\n%#v", g, g.config)
+	log.Printf("New %v\n%#v", g, GameConst)
 
 	//go g.Loop()
 
 	// create default world
-	for i := 0; i < g.config.StartWorldCount; i++ {
+	for i := 0; i < GameConst.StartWorldCount; i++ {
 		g.addNewWorld()
 	}
 
@@ -87,18 +76,18 @@ func (g *GameService) Loop() {
 		go w.Loop()
 	}
 	timer1secCh := time.Tick(1 * time.Second)
-	timer60Ch := time.Tick(1000 / 60 * time.Millisecond)
+	timer60Ch := time.Tick(GameConst.FrameRate)
 loop:
 	for {
 		select {
 		case conn := <-g.clientConnectionCh: // new team
-			w := g.findFreeWorld(g.config.MaxTcpClientPerWorld, TCPClient)
+			w := g.findFreeWorld(GameConst.MaxTcpClientPerWorld, TCPClient)
 			w.CmdCh <- Cmd{
 				Cmd:  "newTeam",
 				Args: conn,
 			}
 		case conn := <-g.wsClientConnectionCh: // new team
-			w := g.findFreeWorld(g.config.MaxWsClientPerWorld, WebSockClient)
+			w := g.findFreeWorld(GameConst.MaxWsClientPerWorld, WebSockClient)
 			w.CmdCh <- Cmd{
 				Cmd:  "newTeam",
 				Args: conn,
@@ -125,7 +114,7 @@ loop:
 }
 
 func (g *GameService) listenLoop() {
-	listener, err := net.Listen("tcp", g.config.TcpListen)
+	listener, err := net.Listen("tcp", GameConst.TcpListen)
 	if err != nil {
 		log.Print(err)
 		return
@@ -143,9 +132,9 @@ func (g *GameService) listenLoop() {
 // web socket server
 func (g *GameService) wsServer() {
 	http.HandleFunc("/ws", g.wsServe)
-	http.HandleFunc("/stat", g.Stat)
+	http.HandleFunc("/", g.Stat)
 	http.Handle("/www/", http.StripPrefix("/www/", http.FileServer(http.Dir("./www"))))
-	err := http.ListenAndServe(g.config.WsListen, nil)
+	err := http.ListenAndServe(GameConst.WsListen, nil)
 	if err != nil {
 		log.Println("ListenAndServe: ", err)
 	}
@@ -158,6 +147,8 @@ const templatestr = `
 <meta http-equiv="refresh" content="1">
 </head>
 <body>
+<a href='www/client3d.html' target="_blank">Open 3d client</a>
+</br>
 {{.}}
 </br>
 {{range .Worlds}}

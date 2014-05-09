@@ -10,13 +10,10 @@ import (
 )
 
 func main() {
-	connectTo := "0.0.0.0:6666"
-	wsCconnectTo := "0.0.0.0:8080"
 	var rundur = flag.Int("rundur", 60*60*24*365, "run time sec")
 	var profilefilename = flag.String("pfilename", "", "profile filename")
 	flag.Parse()
-	log.Printf("Listen:%v wsListen:%v rundur:%vs profile:%v",
-		connectTo, wsCconnectTo, *rundur, *profilefilename)
+	log.Printf("rundur:%vs profile:%v", *rundur, *profilefilename)
 
 	if *profilefilename != "" {
 		f, err := os.Create(*profilefilename)
@@ -26,15 +23,7 @@ func main() {
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 	}
-	config := go4game.ServiceConfig{
-		TcpListen:            connectTo,
-		WsListen:             wsCconnectTo,
-		NpcCountPerWorld:     8,
-		MaxTcpClientPerWorld: 32,
-		MaxWsClientPerWorld:  32,
-		StartWorldCount:      1,
-	}
-	service := *go4game.NewGameService(&config)
+	service := *go4game.NewGameService()
 	go service.Loop()
 	service.CmdCh <- go4game.Cmd{Cmd: "start"}
 	time.Sleep(time.Duration(*rundur) * time.Second)

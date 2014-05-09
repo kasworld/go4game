@@ -37,7 +37,7 @@ func NewWorld(g *GameService) *World {
 		Teams:           make(map[int]*Team),
 		MaxObjectRadius: GameConst.MaxObjectRadius,
 	}
-	for i := 0; i < w.PService.config.NpcCountPerWorld; i++ {
+	for i := 0; i < GameConst.NpcCountPerWorld; i++ {
 		w.addNewTeam(&AIConn{})
 	}
 
@@ -103,7 +103,7 @@ func (w *World) Loop() {
 		w.PService.CmdCh <- Cmd{Cmd: "delWorld", Args: w}
 	}()
 
-	timer60Ch := time.Tick(1000 / 60 * time.Millisecond)
+	timer60Ch := time.Tick(GameConst.FrameRate)
 	timer1secCh := time.Tick(1 * time.Second)
 loop:
 	for {

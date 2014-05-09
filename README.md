@@ -38,13 +38,15 @@ execute client
 
     go run client/main.go -client 1000 -rundur 60 -connectTo localhost:6666
 
-exec web client
+see server info and index page
+
+    http://localhost:8080/
+
+
+exec web client or click from index page
 
     http://localhost:8080/www/client3d.html
 
-see server info
-
-    http://localhost:8080/stat
 
 ### korean discription
 

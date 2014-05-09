@@ -46,21 +46,14 @@ func NewGameObject(PTeam *Team) *GameObject {
 	Min := PTeam.PWorld.MinPos
 	Max := PTeam.PWorld.MaxPos
 	o := GameObject{
-		ID:        <-IdGenCh,
-		PTeam:     PTeam,
-		enabled:   true,
-		startTime: time.Now(),
-
-		lastMoveTime: time.Now(),
-		MinPos:       Min,
-		MaxPos:       Max,
-		PosVector:    Vector3D{0, 0, 0},
-		MoveVector:   *RandVector3D(-500., 500.),
-		accelVector:  *RandVector3D(-500., 500.),
-
-		moveLimit:         100.0,
+		ID:                <-IdGenCh,
+		PTeam:             PTeam,
+		enabled:           true,
+		startTime:         time.Now(),
+		lastMoveTime:      time.Now(),
+		MinPos:            Min,
+		MaxPos:            Max,
 		bounceDamping:     1.0,
-		CollisionRadius:   10.,
 		moveByTimeFn:      moveByTimeFn_default,
 		borderActionFn:    borderActionFn_Bounce,
 		collisionActionFn: collisionFn_default,
@@ -70,38 +63,47 @@ func NewGameObject(PTeam *Team) *GameObject {
 }
 
 func (o *GameObject) ClearY() {
-	//return
+	if !GameConst.ClearY {
+		return
+	}
 	o.PosVector[1] = 0
 	o.MoveVector[1] = 0
 	o.accelVector[1] = 0
 }
 
 func (o *GameObject) MakeMainObj() {
-	o.moveLimit = 100.0
-	o.CollisionRadius = 10
-	o.PosVector = *RandVector3D(-500, 500)
+	o.PosVector = *RandVector(o.MinPos, o.MaxPos)
+	o.MoveVector = *RandVector(o.MinPos, o.MaxPos)
+	o.accelVector = *RandVector(o.MinPos, o.MaxPos)
+
 	o.ObjType = GameObjMain
+	o.moveLimit = ObjDefault.MoveLimit[o.ObjType]
+	o.CollisionRadius = ObjDefault.Radius[o.ObjType]
 
 	o.ClearY()
 }
 func (o *GameObject) MakeShield(mo *GameObject) {
-	o.moveLimit = 200.0
-	o.CollisionRadius = 5
+	o.MoveVector = *RandVector(o.MinPos, o.MaxPos)
+	o.accelVector = *RandVector(o.MinPos, o.MaxPos)
 	o.endTime = o.startTime.Add(time.Second * 60)
 	o.moveByTimeFn = moveByTimeFn_shield
 	o.borderActionFn = borderActionFn_None
 	o.PosVector = mo.PosVector
+
 	o.ObjType = GameObjShield
+	o.moveLimit = ObjDefault.MoveLimit[o.ObjType]
+	o.CollisionRadius = ObjDefault.Radius[o.ObjType]
 }
 func (o *GameObject) MakeBullet(mo *GameObject, MoveVector *Vector3D) {
-	o.moveLimit = 300.0
-	o.CollisionRadius = 5
 	o.endTime = o.startTime.Add(time.Second * 60)
 	o.PosVector = mo.PosVector
 	o.MoveVector = *MoveVector
 	o.borderActionFn = borderActionFn_Disable
 	o.accelVector = Vector3D{0, 0, 0}
+
 	o.ObjType = GameObjBullet
+	o.moveLimit = ObjDefault.MoveLimit[o.ObjType]
+	o.CollisionRadius = ObjDefault.Radius[o.ObjType]
 
 	o.ClearY()
 }

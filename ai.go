@@ -65,8 +65,9 @@ func (a *AIConn) calcEscapeVector(t *AimTarget) *Vector3D {
 }
 
 // attack
-func (a *AIConn) CalcAttackFactor(o *AimTarget) float64 {
-	if !(o.ObjType == GameObjMain || o.ObjType == GameObjBullet) {
+func (a *AIConn) CalcBulletAttackFactor(o *AimTarget) float64 {
+	// is obj attacked by bullet?
+	if !InteractionMap[o.ObjType][GameObjBullet] {
 		return -1.0
 	}
 	if o.AimPos == nil {
@@ -85,7 +86,8 @@ func (a *AIConn) CalcAttackFactor(o *AimTarget) float64 {
 
 // escape
 func (a *AIConn) CalcEscapeFactor(o *AimTarget) float64 {
-	if !(o.ObjType == GameObjMain || o.ObjType == GameObjBullet) {
+	// can obj attact me?
+	if !InteractionMap[GameObjMain][o.ObjType] {
 		return -1.0
 	}
 	if o.AimPos == nil {
@@ -105,7 +107,7 @@ func (a *AIConn) CalcEscapeFactor(o *AimTarget) float64 {
 func (a *AIConn) prepareTarget(s SPObjList) bool {
 	for _, t := range s {
 		if a.me.TeamID != t.TeamID {
-			estdur, estpos, estangle := a.me.calcAims(t, 300)
+			estdur, estpos, estangle := a.me.calcAims(t, ObjDefault.MoveLimit[t.ObjType])
 			if math.IsInf(estdur, 1) || !estpos.IsIn(&a.worldBound) {
 				estpos = nil
 			}
@@ -116,7 +118,7 @@ func (a *AIConn) prepareTarget(s SPObjList) bool {
 				AimAngle: estangle,
 				LenRate:  lenRate,
 			}
-			o.AttackFactor = a.CalcAttackFactor(&o)
+			o.AttackFactor = a.CalcBulletAttackFactor(&o)
 			o.EscapeFactor = a.CalcEscapeFactor(&o)
 			a.targetlist = append(a.targetlist, &o)
 

@@ -38,11 +38,12 @@ var ObjDefault = struct {
 	Radius    map[GameObjectType]float64
 }{
 	MoveLimit: map[GameObjectType]float64{
-		GameObjMain: 100, GameObjShield: 200, GameObjBullet: 300, GameObjHommingBullet: 100, GameObjSuperBullet: 600},
+		GameObjMain: 100, GameObjShield: 200, GameObjBullet: 300, GameObjHommingBullet: 200, GameObjSuperBullet: 600},
 	Radius: map[GameObjectType]float64{
 		GameObjMain: 10, GameObjShield: 5, GameObjBullet: 5, GameObjHommingBullet: 10, GameObjSuperBullet: 20},
 }
 
+// harmed obj : can harm obj
 var InteractionMap = map[GameObjectType]map[GameObjectType]bool{
 	GameObjMain: map[GameObjectType]bool{
 		GameObjMain: true, GameObjShield: true, GameObjBullet: true, GameObjHommingBullet: true, GameObjSuperBullet: true},
@@ -101,5 +102,13 @@ var GameConst = struct {
 
 	KillScore:       1,
 	ShieldCount:     8,
-	MaxObjectRadius: 10,
+	MaxObjectRadius: 20, // changed by init
+}
+
+func init() {
+	for _, o := range ObjDefault.Radius {
+		if o > GameConst.MaxObjectRadius {
+			GameConst.MaxObjectRadius = o
+		}
+	}
 }

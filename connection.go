@@ -10,6 +10,10 @@ import (
 	"time"
 )
 
+type AIActor interface {
+	MakeAction(*GamePacket) *GamePacket
+}
+
 type ConnInfo struct {
 	PTeam      *Team
 	ReadCh     chan *GamePacket
@@ -17,10 +21,10 @@ type ConnInfo struct {
 	clientType ClientType
 	Conn       net.Conn
 	WsConn     *websocket.Conn
-	AiConn     *AIConn
+	AiConn     AIActor
 }
 
-func NewAIConnInfo(t *Team, aiconn *AIConn) *ConnInfo {
+func NewAIConnInfo(t *Team, aiconn AIActor) *ConnInfo {
 	c := ConnInfo{
 		ReadCh:     make(chan *GamePacket, 1),
 		WriteCh:    make(chan *GamePacket, 1),
@@ -50,7 +54,7 @@ loop:
 			}
 			switch packet.Cmd {
 			case RspFrameInfo:
-				c.ReadCh <- c.AiConn.makeAction(packet)
+				c.ReadCh <- c.AiConn.MakeAction(packet)
 			default:
 				log.Printf("unknown packet %v", packet.Cmd)
 				break loop

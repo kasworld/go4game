@@ -42,8 +42,8 @@ func NewTeam(w *World, conn interface{}) *Team {
 		t.makeMainObj()
 	case *websocket.Conn:
 		t.ClientConnInfo = *NewWsConnInfo(&t, conn.(*websocket.Conn))
-	case *AIConn:
-		t.ClientConnInfo = *NewAIConnInfo(&t, conn.(*AIConn))
+	case AIActor:
+		t.ClientConnInfo = *NewAIConnInfo(&t, conn.(AIActor))
 		t.makeMainObj()
 	default:
 		log.Printf("unknown type %#v", conn)

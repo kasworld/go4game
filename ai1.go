@@ -8,7 +8,7 @@ import (
 	"sort"
 )
 
-type AIConn struct {
+type AI1 struct {
 	me          *SPObj
 	spp         *SpatialPartition
 	targetlist  AimTargetList
@@ -55,7 +55,7 @@ func (me *SPObj) calcAims(t *SPObj, movelimit float64) (float64, *Vector3D, floa
 	return dur, estpos, estangle
 }
 
-func (a *AIConn) calcEscapeVector(t *AimTarget) *Vector3D {
+func (a *AI1) calcEscapeVector(t *AimTarget) *Vector3D {
 	speed := (a.me.CollisionRadius + t.SPObj.CollisionRadius) * 60
 	backvt := a.me.PosVector.Sub(&t.SPObj.PosVector).NormalizedTo(speed) // backward
 	sidevt := t.AimPos.Sub(&a.me.PosVector).NormalizedTo(speed)
@@ -65,7 +65,7 @@ func (a *AIConn) calcEscapeVector(t *AimTarget) *Vector3D {
 }
 
 // attack
-func (a *AIConn) CalcBulletAttackFactor(o *AimTarget) float64 {
+func (a *AI1) CalcBulletAttackFactor(o *AimTarget) float64 {
 	// is obj attacked by bullet?
 	if !InteractionMap[o.ObjType][GameObjBullet] {
 		return -1.0
@@ -85,7 +85,7 @@ func (a *AIConn) CalcBulletAttackFactor(o *AimTarget) float64 {
 }
 
 // escape
-func (a *AIConn) CalcEscapeFactor(o *AimTarget) float64 {
+func (a *AI1) CalcEscapeFactor(o *AimTarget) float64 {
 	// can obj attact me?
 	if !InteractionMap[GameObjMain][o.ObjType] {
 		return -1.0
@@ -104,7 +104,7 @@ func (a *AIConn) CalcEscapeFactor(o *AimTarget) float64 {
 	return factor
 }
 
-func (a *AIConn) prepareTarget(s SPObjList) bool {
+func (a *AI1) prepareTarget(s SPObjList) bool {
 	for _, t := range s {
 		if a.me.TeamID != t.TeamID {
 			estdur, estpos, estangle := a.me.calcAims(t, ObjDefault.MoveLimit[t.ObjType])
@@ -163,7 +163,7 @@ func (s *aimtargetSorter) Less(i, j int) bool {
 	return s.by(s.aimtargets[i], s.aimtargets[j])
 }
 
-func (a *AIConn) makeAction(packet *GamePacket) *GamePacket {
+func (a *AI1) MakeAction(packet *GamePacket) *GamePacket {
 	a.spp = packet.Spp
 	a.me = packet.TeamInfo.SPObj
 	a.ActionPoint = packet.TeamInfo.ActionPoint

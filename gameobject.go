@@ -22,19 +22,19 @@ type GameObject struct {
 	startTime time.Time
 	endTime   time.Time
 
-	MinPos             Vector3D
-	MaxPos             Vector3D
-	PosVector          Vector3D
-	MoveVector         Vector3D
-	moveLimit          float64
-	accelVector        Vector3D
-	diffToTargetVector Vector3D
-	targetObjID        int
-	rotateAxis         Vector3D
-	rotateSpeed        float64
-	bounceDamping      float64
-	lastMoveTime       time.Time
-	CollisionRadius    float64
+	MinPos          Vector3D
+	MaxPos          Vector3D
+	PosVector       Vector3D
+	MoveVector      Vector3D
+	moveLimit       float64
+	accelVector     Vector3D
+	targetObjID     int
+	targetTeamID    int
+	rotateAxis      Vector3D
+	rotateSpeed     float64
+	bounceDamping   float64
+	lastMoveTime    time.Time
+	CollisionRadius float64
 
 	moveByTimeFn      GameObjectActFn
 	borderActionFn    GameObjectActFn
@@ -102,6 +102,36 @@ func (o *GameObject) MakeBullet(mo *GameObject, MoveVector *Vector3D) {
 	o.accelVector = Vector3D{0, 0, 0}
 
 	o.ObjType = GameObjBullet
+	o.moveLimit = ObjDefault.MoveLimit[o.ObjType]
+	o.CollisionRadius = ObjDefault.Radius[o.ObjType]
+
+	o.ClearY()
+}
+func (o *GameObject) MakeSuperBullet(mo *GameObject, MoveVector *Vector3D) {
+	o.endTime = o.startTime.Add(time.Second * 60)
+	o.PosVector = mo.PosVector
+	o.MoveVector = *MoveVector
+	o.borderActionFn = borderActionFn_Disable
+	o.accelVector = Vector3D{0, 0, 0}
+
+	o.ObjType = GameObjSuperBullet
+	o.moveLimit = ObjDefault.MoveLimit[o.ObjType]
+	o.CollisionRadius = ObjDefault.Radius[o.ObjType]
+
+	o.ClearY()
+}
+func (o *GameObject) MakeHommingBullet(mo *GameObject, targetteamid int, targetid int) {
+	o.endTime = o.startTime.Add(time.Second * 60)
+	o.PosVector = mo.PosVector
+	o.borderActionFn = borderActionFn_None
+	o.accelVector = Vector3D{0, 0, 0}
+
+	//o.MoveVector = *MoveVector
+	o.targetObjID = targetid
+	o.targetTeamID = targetteamid
+	o.moveByTimeFn = moveByTimeFn_homming
+
+	o.ObjType = GameObjHommingBullet
 	o.moveLimit = ObjDefault.MoveLimit[o.ObjType]
 	o.CollisionRadius = ObjDefault.Radius[o.ObjType]
 
@@ -208,8 +238,18 @@ func moveByTimeFn_shield(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 	axis := mo.MoveVector.Normalized().Imul(20)
 	//p := m.accelVector.Normalized().Imul(20)
 	p := mo.MoveVector.Cross(&m.MoveVector).Normalized().Imul(20)
-	m.PosVector = *mo.PosVector.Add(p.RotateAround(axis, dur))
+	m.PosVector = *mo.PosVector.Add(p.RotateAround(axis, dur+m.accelVector.Abs()))
 	return true
+}
+
+func moveByTimeFn_homming(m *GameObject, envInfo *ActionFnEnvInfo) bool {
+	targetobj := m.PTeam.PWorld.Teams[m.targetTeamID].GameObjs[m.targetObjID]
+	if targetobj == nil {
+		m.enabled = false
+		return false
+	}
+	m.accelVector = *targetobj.PosVector.Sub(&m.PosVector).NormalizedTo(m.moveLimit)
+	return moveByTimeFn_default(m, envInfo)
 }
 
 func borderActionFn_Bounce(m *GameObject, envInfo *ActionFnEnvInfo) bool {

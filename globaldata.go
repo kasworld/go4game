@@ -29,20 +29,31 @@ const (
 	GameObjMain
 	GameObjShield
 	GameObjBullet
+	GameObjHommingBullet
+	GameObjSuperBullet
 )
 
 var ObjDefault = struct {
 	MoveLimit map[GameObjectType]float64
 	Radius    map[GameObjectType]float64
 }{
-	MoveLimit: map[GameObjectType]float64{GameObjMain: 100, GameObjShield: 200, GameObjBullet: 300},
-	Radius:    map[GameObjectType]float64{GameObjMain: 10, GameObjShield: 5, GameObjBullet: 5},
+	MoveLimit: map[GameObjectType]float64{
+		GameObjMain: 100, GameObjShield: 200, GameObjBullet: 300, GameObjHommingBullet: 100, GameObjSuperBullet: 600},
+	Radius: map[GameObjectType]float64{
+		GameObjMain: 10, GameObjShield: 5, GameObjBullet: 5, GameObjHommingBullet: 10, GameObjSuperBullet: 20},
 }
 
 var InteractionMap = map[GameObjectType]map[GameObjectType]bool{
-	GameObjMain:   map[GameObjectType]bool{GameObjMain: true, GameObjShield: true, GameObjBullet: true},
-	GameObjShield: map[GameObjectType]bool{GameObjMain: true, GameObjShield: true, GameObjBullet: true},
-	GameObjBullet: map[GameObjectType]bool{GameObjMain: true, GameObjShield: true, GameObjBullet: true},
+	GameObjMain: map[GameObjectType]bool{
+		GameObjMain: true, GameObjShield: true, GameObjBullet: true, GameObjHommingBullet: true, GameObjSuperBullet: true},
+	GameObjShield: map[GameObjectType]bool{
+		GameObjMain: true, GameObjShield: true, GameObjBullet: true, GameObjHommingBullet: true, GameObjSuperBullet: true},
+	GameObjBullet: map[GameObjectType]bool{
+		GameObjMain: true, GameObjShield: true, GameObjBullet: true, GameObjHommingBullet: true, GameObjSuperBullet: true},
+	GameObjHommingBullet: map[GameObjectType]bool{
+		GameObjMain: true, GameObjShield: true, GameObjBullet: false, GameObjHommingBullet: true, GameObjSuperBullet: true},
+	GameObjSuperBullet: map[GameObjectType]bool{
+		GameObjMain: true, GameObjShield: true, GameObjBullet: false, GameObjHommingBullet: true, GameObjSuperBullet: true},
 }
 
 var GameConst = struct {
@@ -84,8 +95,8 @@ var GameConst = struct {
 	APAccel:         5,
 	APBullet:        20,
 	APBurstShot:     10,
-	APHommingBullet: 40,
-	APSuperBullet:   40,
+	APHommingBullet: 50,
+	APSuperBullet:   100,
 	APIncFrame:      10,
 
 	KillScore:       1,

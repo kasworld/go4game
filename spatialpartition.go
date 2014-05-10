@@ -15,6 +15,9 @@ type SPObj struct {
 }
 
 func NewSPObj(o *GameObject) *SPObj {
+	if o == nil {
+		return nil
+	}
 	return &SPObj{
 		ID:              o.ID,
 		TeamID:          o.PTeam.ID,

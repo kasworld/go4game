@@ -39,18 +39,16 @@ func NewTeam(w *World, conn interface{}) *Team {
 	switch conn.(type) {
 	case net.Conn:
 		t.ClientConnInfo = *NewTcpConnInfo(&t, conn.(net.Conn))
+		t.makeMainObj()
 	case *websocket.Conn:
 		t.ClientConnInfo = *NewWsConnInfo(&t, conn.(*websocket.Conn))
 	case *AIConn:
 		t.ClientConnInfo = *NewAIConnInfo(&t, conn.(*AIConn))
+		t.makeMainObj()
 	default:
 		log.Printf("unknown type %#v", conn)
 	}
 
-	t.addNewGameObject(GameObjMain, nil)
-	for i := 0; i < GameConst.ShieldCount; i++ {
-		t.addNewGameObject(GameObjShield, nil)
-	}
 	return &t
 }
 
@@ -61,6 +59,16 @@ func (t *Team) findMainObj() *GameObject {
 		}
 	}
 	return nil
+}
+
+func (t *Team) countObjByType(got GameObjectType) int {
+	rtn := 0
+	for _, v := range t.GameObjs {
+		if v.ObjType == got {
+			rtn++
+		}
+	}
+	return rtn
 }
 
 func (t *Team) processClientReq(ftime time.Time, w *WorldSerialize, spp *SpatialPartition) bool {
@@ -86,7 +94,7 @@ func (t *Team) processClientReq(ftime time.Time, w *WorldSerialize, spp *Spatial
 		rp = GamePacket{
 			Cmd:       RspWorldInfo,
 			WorldInfo: w,
-			TeamInfo:  &TeamInfoPacket{SPObj: *NewSPObj(t.findMainObj())},
+			TeamInfo:  &TeamInfoPacket{SPObj: NewSPObj(t.findMainObj())},
 		}
 	case ReqFrameInfo:
 		t.applyClientAction(ftime, p.ClientAct)
@@ -94,7 +102,7 @@ func (t *Team) processClientReq(ftime time.Time, w *WorldSerialize, spp *Spatial
 			Cmd: RspFrameInfo,
 			Spp: spp,
 			TeamInfo: &TeamInfoPacket{
-				SPObj:       *NewSPObj(t.findMainObj()),
+				SPObj:       NewSPObj(t.findMainObj()),
 				ActionPoint: t.ActionPoint,
 				Score:       t.Score,
 			},
@@ -118,12 +126,9 @@ func (t *Team) actByTime(ftime time.Time, spp *SpatialPartition) []int {
 		if v.enabled == false {
 			t.delGameObject(v)
 			if v.ObjType == GameObjMain {
-				t.addNewGameObject(v.ObjType, nil)
+				t.makeMainObj()
+				//t.addNewGameObject(v.ObjType, nil)
 			}
-			if v.ObjType == GameObjShield {
-				t.addNewGameObject(v.ObjType, nil)
-			}
-
 		}
 	}
 	return clist
@@ -132,6 +137,9 @@ func (t *Team) actByTime(ftime time.Time, spp *SpatialPartition) []int {
 // 0(outer max) ~ GameConst.APIncFrame( 0,0,0)
 func (t *Team) CalcAP(spp *SpatialPartition) int {
 	o := t.findMainObj()
+	if o == nil {
+		return 0
+	}
 	l := o.PosVector.Abs()
 	lm := spp.Size.Abs() / 2
 	rtn := int((lm - l) / lm * float64(GameConst.APIncFrame))
@@ -170,6 +178,18 @@ func (t *Team) endTeam() {
 	//log.Printf("team end %v", t)
 }
 
+func (t *Team) makeMainObj() {
+	if t.findMainObj() != nil {
+		log.Printf("main obj exist %v", t)
+		return
+	}
+	t.addNewGameObject(GameObjMain, nil)
+	shieldcount := t.countObjByType(GameObjShield)
+	for i := shieldcount; i < GameConst.ShieldCount; i++ {
+		t.addNewGameObject(GameObjShield, nil)
+	}
+}
+
 func (t *Team) addNewGameObject(ObjType GameObjectType, args interface{}) *GameObject {
 	o := NewGameObject(t)
 	switch ObjType {
@@ -184,6 +204,18 @@ func (t *Team) addNewGameObject(ObjType GameObjectType, args interface{}) *GameO
 		mo := t.findMainObj()
 		if mo != nil {
 			o.MakeBullet(mo, args.(*Vector3D))
+		}
+	case GameObjSuperBullet:
+		mo := t.findMainObj()
+		if mo != nil {
+			o.MakeSuperBullet(mo, args.(*Vector3D))
+		}
+	case GameObjHommingBullet:
+		mo := t.findMainObj()
+		if mo != nil {
+			targetid := args.([]int)[0]
+			targetteamid := args.([]int)[1]
+			o.MakeHommingBullet(mo, targetteamid, targetid)
 		}
 	default:
 		log.Printf("invalid GameObjectType %v", t)
@@ -239,8 +271,9 @@ func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) int {
 				t.ID, t.ActionPoint, act.BurstShot)
 		}
 	}
-	if act.HommingTargetID != 0 {
+	if act.HommingTargetID != nil {
 		if t.ActionPoint >= GameConst.APHommingBullet {
+			t.addNewGameObject(GameObjHommingBullet, act.HommingTargetID)
 			t.ActionPoint -= GameConst.APHommingBullet
 			rtn++
 		} else {
@@ -250,6 +283,7 @@ func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) int {
 	}
 	if act.SuperBulletMv != nil {
 		if t.ActionPoint >= GameConst.APSuperBullet {
+			t.addNewGameObject(GameObjSuperBullet, act.SuperBulletMv)
 			t.ActionPoint -= GameConst.APSuperBullet
 			rtn++
 		} else {

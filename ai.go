@@ -9,9 +9,10 @@ import (
 )
 
 type AIConn struct {
-	me          SPObj
+	me          *SPObj
 	spp         *SpatialPartition
 	targetlist  AimTargetList
+	mainobjlist AimTargetList
 	worldBound  HyperRect
 	ActionPoint int
 	Score       int
@@ -118,6 +119,10 @@ func (a *AIConn) prepareTarget(s SPObjList) bool {
 			o.AttackFactor = a.CalcAttackFactor(&o)
 			o.EscapeFactor = a.CalcEscapeFactor(&o)
 			a.targetlist = append(a.targetlist, &o)
+
+			if t.ObjType == GameObjMain {
+				a.mainobjlist = append(a.mainobjlist, &o)
+			}
 		}
 	}
 	return false
@@ -167,6 +172,7 @@ func (a *AIConn) makeAction(packet *GamePacket) *GamePacket {
 	}
 	a.worldBound = HyperRect{Min: a.spp.Min, Max: a.spp.Max}
 	a.targetlist = make(AimTargetList, 0)
+	a.mainobjlist = make(AimTargetList, 0)
 	a.spp.ApplyParts27Fn(a.prepareTarget, a.me.PosVector)
 
 	if len(a.targetlist) == 0 {
@@ -177,22 +183,8 @@ func (a *AIConn) makeAction(packet *GamePacket) *GamePacket {
 	var bulletMoveVector *Vector3D = nil
 	var accvt *Vector3D = nil
 	var burstCount int = 0
-	var hommingTargetID int = 0
+	var hommingTargetID []int // objid, teamid
 	var superBulletMv *Vector3D = nil
-
-	if a.ActionPoint >= GameConst.APBullet {
-		attackFn := func(p1, p2 *AimTarget) bool {
-			return p1.AttackFactor > p2.AttackFactor
-		}
-		By(attackFn).Sort(a.targetlist)
-		for _, o := range a.targetlist {
-			if o.AttackFactor > 1 && rand.Float64() < 0.5 {
-				bulletMoveVector = o.AimPos.Sub(&a.me.PosVector).NormalizedTo(300.0)
-				a.ActionPoint -= GameConst.APBullet
-				break
-			}
-		}
-	}
 
 	if a.ActionPoint >= GameConst.APAccel {
 		escapeFn := func(p1, p2 *AimTarget) bool {
@@ -203,6 +195,47 @@ func (a *AIConn) makeAction(packet *GamePacket) *GamePacket {
 			if o.EscapeFactor > 1 && rand.Float64() < 0.9 {
 				accvt = a.calcEscapeVector(o)
 				a.ActionPoint -= GameConst.APAccel
+				break
+			}
+		}
+	}
+
+	if a.ActionPoint >= GameConst.APBullet {
+		attackFn := func(p1, p2 *AimTarget) bool {
+			return p1.AttackFactor > p2.AttackFactor
+		}
+		By(attackFn).Sort(a.targetlist)
+		for _, o := range a.targetlist {
+			if o.AttackFactor > 1 && rand.Float64() < 0.5 {
+				bulletMoveVector = o.AimPos.Sub(&a.me.PosVector).NormalizedTo(ObjDefault.MoveLimit[GameObjBullet])
+				a.ActionPoint -= GameConst.APBullet
+				break
+			}
+		}
+	}
+
+	if a.ActionPoint >= GameConst.APSuperBullet {
+		attackFn := func(p1, p2 *AimTarget) bool {
+			return p1.AttackFactor > p2.AttackFactor
+		}
+		By(attackFn).Sort(a.mainobjlist)
+		for _, o := range a.mainobjlist {
+			if o.AttackFactor > 1 && rand.Float64() < 0.5 {
+				superBulletMv = o.AimPos.Sub(&a.me.PosVector).NormalizedTo(ObjDefault.MoveLimit[GameObjSuperBullet])
+				a.ActionPoint -= GameConst.APSuperBullet
+				break
+			}
+		}
+	}
+	if a.ActionPoint >= GameConst.APHommingBullet {
+		attackFn := func(p1, p2 *AimTarget) bool {
+			return p1.AttackFactor > p2.AttackFactor
+		}
+		By(attackFn).Sort(a.mainobjlist)
+		for _, o := range a.mainobjlist {
+			if o.AttackFactor > 1 && rand.Float64() < 0.5 {
+				hommingTargetID = []int{o.ID, o.TeamID}
+				a.ActionPoint -= GameConst.APHommingBullet
 				break
 			}
 		}

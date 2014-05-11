@@ -152,6 +152,7 @@ func (t *Team) actByTime(ftime time.Time, spp *SpatialPartition) []int {
 			t.delGameObject(v)
 			if v.ObjType == GameObjMain {
 				t.makeMainObj()
+				t.Score -= GameConst.KillScore
 				//t.addNewGameObject(v.ObjType, nil)
 			}
 		}

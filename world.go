@@ -7,6 +7,8 @@ import (
 	//"math/rand"
 	//"net"
 	//"reflect"
+	//"html/template"
+	"sort"
 	"time"
 )
 
@@ -32,6 +34,23 @@ func (m World) String() string {
 	}
 }
 
+type WorldInfo struct {
+	Disp  string
+	Teams []TeamInfo
+}
+
+func (m *World) makeWorldInfo() *WorldInfo {
+	rtn := &WorldInfo{
+		Disp:  m.String(),
+		Teams: make([]TeamInfo, 0, len(m.Teams)),
+	}
+	for _, t := range m.Teams {
+		rtn.Teams = append(rtn.Teams, *t.NewTeamInfo())
+	}
+	sort.Sort(ByScore(rtn.Teams))
+	return rtn
+}
+
 func NewWorld(g *GameService) *World {
 	w := World{
 		ID:              <-IdGenCh,
@@ -42,8 +61,11 @@ func NewWorld(g *GameService) *World {
 		Teams:           make(map[int]*Team),
 		MaxObjectRadius: GameConst.MaxObjectRadius,
 	}
-	for i := 0; i < GameConst.NpcCountPerWorld; i++ {
-		w.addNewTeam(&AI1{})
+	for i := 0; i < GameConst.NpcCountPerWorld/4; i++ {
+		w.addNewTeam(&AINothing{})
+		w.addNewTeam(&AIRandom{})
+		w.addNewTeam(&AI2{})
+		w.addNewTeam(&AI3{})
 	}
 
 	return &w

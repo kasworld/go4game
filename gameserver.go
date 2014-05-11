@@ -139,35 +139,49 @@ func (g *GameService) wsServer() {
 	}
 }
 
-const templatestr = `
-<html>
-<head>
-<title>go4game stat</title>
-<meta http-equiv="refresh" content="1">
-</head>
-<body>
-<a href='www/client3d.html' target="_blank">Open 3d client</a>
-</br>
-{{.}}
-</br>
-{{range .Worlds}}
-{{.}}
-</br>
-{{range .Teams}}
-<font color="#{{.Color | printf "%x"}}">
-{{.}}
-</font>
-</br>
-{{end}}
-</br>
-{{end}}
-</body>
-</html>
-`
+var TopTemplate *template.Template
+
+func init() {
+	const t = `
+		<html>
+		<head>
+		<title>go4game stat</title>
+		<meta http-equiv="refresh" content="1">
+		</head>
+		<body>
+		<a href='www/client3d.html' target="_blank">Open 3d client</a>
+		</br>
+		{{.Disp}}
+		</br>
+		{{range .Worlds}}
+		{{.Disp}}
+		</br>
+		{{range .Teams}}
+		<font color="#{{.Color | printf "%x"}}">
+		{{.Disp}}
+		</font>
+		</br>
+		{{end}}
+		</br>
+		{{end}}
+		</body>
+		</html>
+		`
+	TopTemplate = template.Must(template.New("indexpage").Parse(t))
+}
 
 func (g *GameService) Stat(w http.ResponseWriter, r *http.Request) {
-	t := template.Must(template.New("webinfo").Parse(templatestr))
-	t.Execute(w, g)
+	ws := make([]WorldInfo, 0, len(g.Worlds))
+	for _, w := range g.Worlds {
+		ws = append(ws, *w.makeWorldInfo())
+	}
+	TopTemplate.Execute(w, struct {
+		Disp   string
+		Worlds []WorldInfo
+	}{
+		Disp:   g.String(),
+		Worlds: ws,
+	})
 }
 
 func (g *GameService) wsServe(w http.ResponseWriter, r *http.Request) {

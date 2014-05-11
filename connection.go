@@ -4,9 +4,11 @@ import (
 	//"encoding/binary"
 	"encoding/json"
 	//"errors"
+	"fmt"
 	"github.com/gorilla/websocket"
 	"log"
 	"net"
+	"reflect"
 	"time"
 )
 
@@ -22,6 +24,14 @@ type ConnInfo struct {
 	Conn       net.Conn
 	WsConn     *websocket.Conn
 	AiConn     AIActor
+}
+
+func (c ConnInfo) String() string {
+	if c.AiConn == nil {
+		return fmt.Sprintf("Client%v", c.clientType)
+	} else {
+		return fmt.Sprintf("AI%v", reflect.TypeOf(c.AiConn))
+	}
 }
 
 func NewAIConnInfo(t *Team, aiconn AIActor) *ConnInfo {

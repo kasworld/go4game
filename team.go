@@ -3,11 +3,10 @@ package go4game
 import (
 	//"errors"
 	"fmt"
+	"github.com/gorilla/websocket"
 	"log"
 	"math/rand"
 	"net"
-	//"reflect"
-	"github.com/gorilla/websocket"
 	"time"
 )
 
@@ -24,8 +23,34 @@ type Team struct {
 }
 
 func (m Team) String() string {
-	return fmt.Sprintf("Team%v Objs:%v Score:%v AP:%v, PacketStat:%v",
-		m.ID, len(m.GameObjs), m.Score, m.ActionPoint, m.PacketStat)
+	return fmt.Sprintf("Team%v %v Objs:%v Score:%v AP:%v, PacketStat:%v",
+		m.ID, m.ClientConnInfo, len(m.GameObjs), m.Score, m.ActionPoint, m.PacketStat)
+}
+
+type TeamInfo struct {
+	Disp  string
+	Color int
+	Score int
+}
+
+type ByScore []TeamInfo
+
+func (s ByScore) Len() int {
+	return len(s)
+}
+func (s ByScore) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+func (s ByScore) Less(i, j int) bool {
+	return s[i].Score > s[j].Score
+}
+
+func (t *Team) NewTeamInfo() *TeamInfo {
+	return &TeamInfo{
+		Disp:  t.String(),
+		Color: t.Color,
+		Score: t.Score,
+	}
 }
 
 func NewTeam(w *World, conn interface{}) *Team {

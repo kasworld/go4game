@@ -89,7 +89,7 @@ var GameConst = struct {
 	MaxTcpClientPerWorld: 32,
 	MaxWsClientPerWorld:  32,
 	StartWorldCount:      1,
-	RemoveEmptyWorld:     true,
+	RemoveEmptyWorld:     false,
 	WorldMin:             Vector3D{-500, -500, -500},
 	WorldMax:             Vector3D{500, 500, 500},
 

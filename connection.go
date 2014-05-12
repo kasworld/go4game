@@ -16,6 +16,16 @@ type AIActor interface {
 	MakeAction(*GamePacket) *GamePacket
 }
 
+// client conn type
+type ClientType int
+
+const (
+	_ ClientType = iota
+	TCPClient
+	WebSockClient
+	AIClient
+)
+
 type ConnInfo struct {
 	PTeam      *Team
 	ReadCh     chan *GamePacket
@@ -42,7 +52,6 @@ func NewAIConnInfo(t *Team, aiconn AIActor) *ConnInfo {
 		AiConn:     aiconn,
 		clientType: AIClient,
 	}
-	//aiconn.pteam = t
 	go c.aiLoop()
 	return &c
 }
@@ -123,6 +132,13 @@ loop:
 		}
 	}
 }
+
+const (
+	writeWait      = 10 * time.Second    // Time allowed to write a message to the peer.
+	pongWait       = 60 * time.Second    // Time allowed to read the next pong message from the peer.
+	pingPeriod     = (pongWait * 9) / 10 // Send pings to peer with this period. Must be less than pongWait.
+	maxMessageSize = 0xffff              // Maximum message size allowed from peer.
+)
 
 func NewWsConnInfo(t *Team, conn *websocket.Conn) *ConnInfo {
 	c := ConnInfo{

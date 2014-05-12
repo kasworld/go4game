@@ -233,6 +233,9 @@ func moveByTimeFn_default(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 
 func moveByTimeFn_shield(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 	mo := m.PTeam.findMainObj()
+	if mo == nil {
+		return false
+	}
 	dur := float64(envInfo.frameTime.Sub(m.startTime)) / float64(time.Second)
 	//axis := &Vector3D{0, math.Copysign(20, m.MoveVector[0]), 0}
 	axis := mo.MoveVector.Normalized().Imul(20)

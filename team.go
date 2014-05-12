@@ -89,7 +89,7 @@ func (t *Team) findMainObj() *GameObject {
 func (t *Team) countObjByType(got GameObjectType) int {
 	rtn := 0
 	for _, v := range t.GameObjs {
-		if v.ObjType == got {
+		if v != nil && v.ObjType == got {
 			rtn++
 		}
 	}
@@ -112,7 +112,7 @@ func (t *Team) processClientReq(ftime time.Time, w *WorldSerialize, spp *Spatial
 		return true
 	}
 	t.PacketStat.Inc()
-	//log.Printf("client packet %v %v", t, p)
+	// log.Printf("processClientReq client packet %v %v", t, p)
 	var rp GamePacket
 	switch p.Cmd {
 	case ReqWorldInfo:
@@ -142,14 +142,40 @@ func (t *Team) processClientReq(ftime time.Time, w *WorldSerialize, spp *Spatial
 	return true
 }
 
+func (t *Team) doFrameWork(ftime time.Time, spp *SpatialPartition, w *WorldSerialize) <-chan []int {
+	ap := t.CalcAP(spp)
+	if ap < 0 {
+		log.Printf("invalid ap team%v %v", t.ID, ap)
+	}
+	t.ActionPoint += ap
+
+	chRtn := make(chan []int)
+	// log.Printf("doFrameWork %v", t)
+	go func() {
+		// log.Printf("in team.doFrameWork %v", t)
+		rtn := t.processClientReq(ftime, w, spp)
+		if !rtn {
+			//log.Printf("err close chRtn")
+			close(chRtn)
+			return
+		}
+		// log.Printf("mid team.doFrameWork %v", t)
+		chRtn <- t.actByTime(ftime, spp)
+		// log.Printf("out team.doFrameWork %v", t)
+	}()
+	return chRtn
+}
+
 func (t *Team) actByTime(ftime time.Time, spp *SpatialPartition) []int {
+	// log.Printf("in team.actbytime  %v", t)
 	clist := make([]int, 0)
 	for _, v := range t.GameObjs {
 		clist = append(clist, v.ActByTime(ftime, spp)...)
 	}
-	for _, v := range t.GameObjs {
+	for id, v := range t.GameObjs {
 		if v.enabled == false {
-			t.delGameObject(v)
+			//t.delGameObject(v)
+			delete(t.GameObjs, id)
 			if v.ObjType == GameObjMain {
 				t.makeMainObj()
 				t.Score -= GameConst.KillScore
@@ -157,6 +183,7 @@ func (t *Team) actByTime(ftime time.Time, spp *SpatialPartition) []int {
 			}
 		}
 	}
+	// log.Printf("out team.actbytime  %v", t)
 	return clist
 }
 
@@ -171,26 +198,6 @@ func (t *Team) CalcAP(spp *SpatialPartition) int {
 	rtn := int((lm - l) / lm * float64(GameConst.APIncFrame))
 	//log.Printf("ap:%v", rtn)
 	return rtn
-}
-
-func (t *Team) doFrameWork(ftime time.Time, spp *SpatialPartition, w *WorldSerialize) <-chan []int {
-	ap := t.CalcAP(spp)
-	if ap < 0 {
-		log.Printf("invalid ap team%v %v", t.ID, ap)
-	}
-	t.ActionPoint += ap
-
-	chRtn := make(chan []int)
-	go func() {
-		rtn := t.processClientReq(ftime, w, spp)
-		if !rtn {
-			//chRtn <- false
-			close(chRtn)
-			return
-		}
-		chRtn <- t.actByTime(ftime, spp)
-	}()
-	return chRtn
 }
 
 func (t *Team) endTeam() {
@@ -251,9 +258,9 @@ func (t *Team) addNewGameObject(ObjType GameObjectType, args interface{}) *GameO
 	return o
 }
 
-func (t *Team) delGameObject(o *GameObject) {
-	delete(t.GameObjs, o.ID)
-}
+// func (t *Team) delGameObject(o *GameObject) {
+// 	delete(t.GameObjs, o.ID)
+// }
 
 func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) int {
 	rtn := 0

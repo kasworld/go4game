@@ -5,23 +5,6 @@ import (
 	"time"
 )
 
-const (
-	writeWait      = 10 * time.Second    // Time allowed to write a message to the peer.
-	pongWait       = 60 * time.Second    // Time allowed to read the next pong message from the peer.
-	pingPeriod     = (pongWait * 9) / 10 // Send pings to peer with this period. Must be less than pongWait.
-	maxMessageSize = 0xffff              // Maximum message size allowed from peer.
-)
-
-// client conn type
-type ClientType int
-
-const (
-	_ ClientType = iota
-	TCPClient
-	WebSockClient
-	AIClient
-)
-
 type GameObjectType int
 
 const (
@@ -85,7 +68,7 @@ var GameConst = struct {
 	WsListen:             "0.0.0.0:8080",
 	ClearY:               true,
 	FrameRate:            1000 / 60 * time.Millisecond,
-	NpcCountPerWorld:     8,
+	NpcCountPerWorld:     32,
 	MaxTcpClientPerWorld: 32,
 	MaxWsClientPerWorld:  32,
 	StartWorldCount:      1,

@@ -134,7 +134,7 @@ func (a *AI2) MakeAction(packet *GamePacket) *GamePacket {
 	a.ActionPoint = packet.TeamInfo.ActionPoint
 	a.Score = packet.TeamInfo.Score
 
-	if a.spp == nil {
+	if a.spp == nil || a.me == nil {
 		return &GamePacket{Cmd: ReqFrameInfo}
 	}
 	a.worldBound = HyperRect{Min: a.spp.Min, Max: a.spp.Max}

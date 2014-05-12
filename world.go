@@ -62,52 +62,43 @@ func NewWorld(g *GameService) *World {
 		MaxObjectRadius: GameConst.MaxObjectRadius,
 	}
 	for i := 0; i < GameConst.NpcCountPerWorld/4; i++ {
-		// w.addNewTeam(&AINothing{})
-		// w.addNewTeam(&AIRandom{})
+		w.addNewTeam(&AINothing{})
+		w.addNewTeam(&AIRandom{})
 		w.addNewTeam(&AI2{})
 		w.addNewTeam(&AI3{})
 	}
 
 	return &w
 }
-
-func (w *World) teamCount(ct ClientType) int {
-	n := 0
-	for _, t := range w.Teams {
-		if t.ClientConnInfo.clientType == ct {
-			n++
-		}
-	}
-	return n
+func (w *World) addNewTeam(conn interface{}) {
+	t := NewTeam(w, conn)
+	w.Teams[t.ID] = t
 }
 
 func (w *World) updateEnv() {
-	chspp := make(chan bool)
+	chspp := make(chan *SpatialPartition)
 	go func() {
-		w.spp = w.MakeSpatialPartition()
-		chspp <- true
+		chspp <- w.MakeSpatialPartition()
 	}()
-	chwsrl := make(chan bool)
+	chwsrl := make(chan *WorldSerialize)
 	go func() {
-		w.worldSerial = NewWorldSerialize(w)
-		chwsrl <- true
+		chwsrl <- NewWorldSerialize(w)
 	}()
-	<-chspp
-	<-chwsrl
+	w.spp = <-chspp
+	w.worldSerial = <-chwsrl
 }
 
 func (w *World) Do1Frame(ftime time.Time) bool {
 	w.updateEnv()
 
 	for _, t := range w.Teams {
-		//log.Printf("actbytime %v", t)
 		t.chStep = t.doFrameWork(ftime, w.spp, w.worldSerial)
 	}
-	for _, t := range w.Teams {
+	for id, t := range w.Teams {
 		r, ok := <-t.chStep
 		if !ok {
 			t.endTeam()
-			w.delTeam(t)
+			delete(w.Teams, id)
 			if GameConst.RemoveEmptyWorld && w.teamCount(AIClient) == len(w.Teams) {
 				return false
 			}
@@ -122,9 +113,9 @@ func (w *World) Do1Frame(ftime time.Time) bool {
 
 func (w *World) Loop() {
 	defer func() {
-		for _, t := range w.Teams {
+		for id, t := range w.Teams {
 			t.endTeam()
-			w.delTeam(t)
+			delete(w.Teams, id)
 		}
 		w.PService.CmdCh <- Cmd{Cmd: "delWorld", Args: w}
 	}()
@@ -144,20 +135,23 @@ loop:
 				log.Printf("unknown cmd %v\n", cmd)
 			}
 		case ftime := <-timer60Ch:
+			//log.Printf("in frame %v %v", ftime, w)
 			ok := w.Do1Frame(ftime)
 			if !ok {
 				break loop
 			}
+			//log.Printf("out frame %v %v", ftime, w)
 		case <-timer1secCh:
 		}
 	}
 }
 
-func (w *World) addNewTeam(conn interface{}) {
-	t := NewTeam(w, conn)
-	w.Teams[t.ID] = t
-}
-
-func (w *World) delTeam(t *Team) {
-	delete(w.Teams, t.ID)
+func (w *World) teamCount(ct ClientType) int {
+	n := 0
+	for _, t := range w.Teams {
+		if t.ClientConnInfo.clientType == ct {
+			n++
+		}
+	}
+	return n
 }

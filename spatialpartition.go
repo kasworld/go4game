@@ -1,7 +1,7 @@
 package go4game
 
 import (
-	"log"
+	//"log"
 	"math"
 )
 
@@ -102,7 +102,7 @@ func (p *SpatialPartition) Pos2PartPos(pos Vector3D) [3]int {
 		}
 		if rtn[i] < 0 {
 			rtn[i] = 0
-			log.Printf("invalid pos %v %v", v, rtn[i])
+			//log.Printf("invalid pos %v %v", v, rtn[i]) homming can
 		}
 	}
 	return rtn

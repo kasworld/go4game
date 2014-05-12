@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/rand"
 	"sort"
+	"time"
 )
 
 // AI3 ----------------------------------------------------------------
@@ -17,6 +18,17 @@ type AI3 struct {
 	worldBound  HyperRect
 	ActionPoint int
 	Score       int
+	lastHommingTarget map[int]time.Time
+}
+
+func (a *AI3) delOld() {
+	validold := time.Now().Add(-1*time.Second)
+	ts := a.lastHommingTarget
+	for i, o := range ts {
+		if validold.Before(o) {
+			delete(ts, i)
+		}
+	}
 }
 
 type AI3AimTargetList []*AI3AimTarget
@@ -29,11 +41,11 @@ type AI3AimTarget struct {
 	HommingAttackFactor float64
 }
 
-// remain frame to contact( len == 0 )
-func (me *SPObj) safeFrame(t *SPObj) float64 {
-	collen := me.CollisionRadius + t.CollisionRadius
-	curlen := me.PosVector.LenTo(&t.PosVector) - collen
-	nextposme := me.PosVector.Add(me.MoveVector.Idiv(60.0))
+// estmate remain frame to contact( len == 0 )
+func (a *AI3) frame2Contact(t *SPObj) float64 {
+	collen := a.me.CollisionRadius + t.CollisionRadius
+	curlen := a.me.PosVector.LenTo(&t.PosVector) - collen
+	nextposme := a.me.PosVector.Add(a.me.MoveVector.Idiv(60.0))
 	nextpost := t.PosVector.Add(t.MoveVector.Idiv(60.0))
 	nextlen := nextposme.LenTo(nextpost) - collen
 	if curlen <= 0 || nextlen <= 0 {

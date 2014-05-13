@@ -108,7 +108,7 @@ func (t *Team) processClientReq(ftime time.Time, w *WorldSerialize, spp *Spatial
 	case <-time.After(GameConst.FrameRate):
 	}
 	if p == nil {
-		log.Printf("timeout team%v", t.ID)
+		//log.Printf("timeout team%v", t.ID)
 		return true
 	}
 	t.PacketStat.Inc()

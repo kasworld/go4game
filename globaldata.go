@@ -68,7 +68,7 @@ var GameConst = struct {
 	WsListen:             "0.0.0.0:8080",
 	ClearY:               true,
 	FrameRate:            1000 / 60 * time.Millisecond,
-	NpcCountPerWorld:     32,
+	NpcCountPerWorld:     8,
 	MaxTcpClientPerWorld: 32,
 	MaxWsClientPerWorld:  32,
 	StartWorldCount:      1,
@@ -81,7 +81,7 @@ var GameConst = struct {
 	APBurstShot:     10,
 	APHommingBullet: 50,
 	APSuperBullet:   100,
-	APIncFrame:      10,
+	APIncFrame:      20,
 
 	KillScore:       1,
 	ShieldCount:     8,

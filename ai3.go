@@ -1,7 +1,7 @@
 package go4game
 
 import (
-	//"log"
+	// "log"
 	//"time"
 	"math"
 	"math/rand"
@@ -10,23 +10,54 @@ import (
 )
 
 // AI3 ----------------------------------------------------------------
-type AI3 struct {
-	me          *SPObj
-	spp         *SpatialPartition
-	targetlist  AI3AimTargetList
-	mainobjlist AI3AimTargetList
-	worldBound  HyperRect
-	ActionPoint int
-	Score       int
-	lastHommingTarget map[int]time.Time
+
+type AI3ActionType int
+
+const (
+	AI3ActionAccel AI3ActionType = iota
+	AI3ActionBullet
+	AI3ActionSuperBullet
+	AI3ActionHommingBullet
+	AI3ActionBurstBullet
+	AI3ActionEnd
+)
+
+var AI3AP = map[AI3ActionType]int{
+	AI3ActionAccel:         GameConst.APAccel,
+	AI3ActionBullet:        GameConst.APBullet,
+	AI3ActionSuperBullet:   GameConst.APSuperBullet,
+	AI3ActionHommingBullet: GameConst.APHommingBullet,
+	AI3ActionBurstBullet:   GameConst.APBurstShot,
 }
 
-func (a *AI3) delOld() {
-	validold := time.Now().Add(-1*time.Second)
-	ts := a.lastHommingTarget
-	for i, o := range ts {
-		if validold.Before(o) {
-			delete(ts, i)
+type AI3 struct {
+	me                *SPObj
+	spp               *SpatialPartition
+	worldBound        HyperRect
+	ActionPoint       int
+	Score             int
+	preparedTargets   [AI3ActionEnd]AI3AimTargetList
+	lastHommingTarget map[int]time.Time
+	lastSuperTarget   map[int]time.Time
+	lastBulletTarget  map[int]time.Time
+}
+
+func (a *AI3) delOldTagets() {
+	validold := time.Now().Add(-500 * time.Millisecond)
+	for i, lastfiretime := range a.lastHommingTarget {
+		if validold.After(lastfiretime) {
+			delete(a.lastHommingTarget, i)
+		}
+	}
+	for i, lastfiretime := range a.lastSuperTarget {
+		if validold.After(lastfiretime) {
+			delete(a.lastSuperTarget, i)
+		}
+	}
+	validold = time.Now().Add(-100 * time.Millisecond)
+	for i, lastfiretime := range a.lastBulletTarget {
+		if validold.After(lastfiretime) {
+			delete(a.lastBulletTarget, i)
 		}
 	}
 }
@@ -35,10 +66,7 @@ type AI3AimTargetList []*AI3AimTarget
 
 type AI3AimTarget struct {
 	*SPObj
-	EvasionFactor       float64
-	BulletAttackFactor  float64
-	SBulletAttackFactor float64
-	HommingAttackFactor float64
+	actFactor [AI3ActionEnd]float64
 }
 
 // estmate remain frame to contact( len == 0 )
@@ -64,19 +92,22 @@ func (a *AI3) CalcEvasionFactor(o *SPObj) float64 {
 		return -1.0
 	}
 	// higher is danger : 0 ~ 2
-	anglefactor := 2 - a.me.PosVector.Sub(&o.PosVector).Angle(&o.MoveVector)*2/math.Pi
+	// anglefactor := 2 - a.me.PosVector.Sub(&o.PosVector).Angle(&o.MoveVector)*2/math.Pi
+	anglefactor := 1.0
 
 	typefactor := map[GameObjectType]float64{
-		GameObjMain:          1.2,
-		GameObjBullet:        1.0,
-		GameObjShield:        1.0,
-		GameObjHommingBullet: 1.3,
-		GameObjSuperBullet:   1.4,
+		GameObjMain:          1.0,
+		GameObjBullet:        0.7,
+		GameObjShield:        0,
+		GameObjHommingBullet: 1.1,
+		GameObjSuperBullet:   1.2,
 	}[o.ObjType]
 
-	collen := a.me.CollisionRadius + o.CollisionRadius
-	curlen := a.me.PosVector.LenTo(&o.PosVector)
-	lenfactor := collen * 10 / curlen
+	// collen := a.me.CollisionRadius + o.CollisionRadius
+	// curlen := a.me.PosVector.LenTo(&o.PosVector)
+	// lenfactor := collen * 10 / curlen
+
+	lenfactor := 30.0 / a.frame2Contact(o)
 
 	factor := anglefactor * typefactor * lenfactor
 	return factor
@@ -96,7 +127,7 @@ func (a *AI3) CalcAttackFactor(o *SPObj, bulletType GameObjectType) float64 {
 	typefactor := map[GameObjectType]float64{
 		GameObjMain:          1.2,
 		GameObjBullet:        1.0,
-		GameObjShield:        1.0,
+		GameObjShield:        0,
 		GameObjHommingBullet: 1.3,
 		GameObjSuperBullet:   1.4,
 	}[o.ObjType]
@@ -113,15 +144,27 @@ func (a *AI3) prepareTarget(s SPObjList) bool {
 	for _, t := range s {
 		if a.me.TeamID != t.TeamID {
 			o := AI3AimTarget{
-				SPObj:               t,
-				EvasionFactor:       a.CalcEvasionFactor(t),
-				BulletAttackFactor:  a.CalcAttackFactor(t, GameObjBullet),
-				SBulletAttackFactor: a.CalcAttackFactor(t, GameObjSuperBullet),
-				HommingAttackFactor: a.CalcAttackFactor(t, GameObjHommingBullet),
+				SPObj: t,
 			}
-			a.targetlist = append(a.targetlist, &o)
-			if t.ObjType == GameObjMain {
-				a.mainobjlist = append(a.mainobjlist, &o)
+			o.actFactor[AI3ActionAccel] = a.CalcEvasionFactor(t)
+			o.actFactor[AI3ActionBullet] = a.CalcAttackFactor(t, GameObjBullet)
+			o.actFactor[AI3ActionSuperBullet] = a.CalcAttackFactor(t, GameObjSuperBullet)
+			o.actFactor[AI3ActionHommingBullet] = a.CalcAttackFactor(t, GameObjHommingBullet)
+
+			if InteractionMap[a.me.ObjType][t.ObjType] {
+				a.preparedTargets[AI3ActionAccel] = append(a.preparedTargets[AI3ActionAccel], &o)
+			}
+			if InteractionMap[t.ObjType][GameObjBullet] {
+				a.preparedTargets[AI3ActionBullet] = append(a.preparedTargets[AI3ActionBullet], &o)
+			}
+			if t.ObjType == GameObjMain || t.ObjType == GameObjHommingBullet || t.ObjType == GameObjSuperBullet {
+				a.preparedTargets[AI3ActionSuperBullet] = append(a.preparedTargets[AI3ActionSuperBullet], &o)
+			}
+			if t.ObjType == GameObjMain || t.ObjType == GameObjHommingBullet || t.ObjType == GameObjSuperBullet {
+				a.preparedTargets[AI3ActionHommingBullet] = append(a.preparedTargets[AI3ActionHommingBullet], &o)
+			}
+			if InteractionMap[t.ObjType][GameObjBullet] {
+				a.preparedTargets[AI3ActionBurstBullet] = append(a.preparedTargets[AI3ActionBurstBullet], &o)
 			}
 		}
 	}
@@ -129,7 +172,7 @@ func (a *AI3) prepareTarget(s SPObjList) bool {
 }
 
 func (a *AI3) calcEvasionVector(t *SPObj) *Vector3D {
-	speed := (a.me.CollisionRadius + t.CollisionRadius) * 60
+	speed := ObjDefault.MoveLimit[a.me.ObjType]                    //(a.me.CollisionRadius + t.CollisionRadius) * 60
 	backvt := a.me.PosVector.Sub(&t.PosVector).NormalizedTo(speed) // backward
 	tocentervt := a.me.PosVector.NormalizedTo(speed).Neg()
 	return backvt.Add(backvt).Add(tocentervt)
@@ -145,7 +188,27 @@ func (a *AI3) calcAims(t *SPObj, projectilemovelimit float64) (float64, *Vector3
 	return dur, estpos, estangle
 }
 
+func (a *AI3) sortActTargets(act AI3ActionType) bool {
+	if a.ActionPoint >= AI3AP[act] {
+		softFn := func(p1, p2 *AI3AimTarget) bool {
+			return p1.actFactor[act] > p2.actFactor[act]
+		}
+		AI3By(softFn).Sort(a.preparedTargets[act])
+		return true
+	}
+	return false
+}
+
 func (a *AI3) MakeAction(packet *GamePacket) *GamePacket {
+	if a.lastHommingTarget == nil {
+		a.lastHommingTarget = make(map[int]time.Time, 0)
+	}
+	if a.lastSuperTarget == nil {
+		a.lastSuperTarget = make(map[int]time.Time, 0)
+	}
+	if a.lastBulletTarget == nil {
+		a.lastBulletTarget = make(map[int]time.Time, 0)
+	}
 	a.spp = packet.Spp
 	a.me = packet.TeamInfo.SPObj
 	a.ActionPoint = packet.TeamInfo.ActionPoint
@@ -155,14 +218,12 @@ func (a *AI3) MakeAction(packet *GamePacket) *GamePacket {
 		return &GamePacket{Cmd: ReqFrameInfo}
 	}
 	a.worldBound = HyperRect{Min: a.spp.Min, Max: a.spp.Max}
-	a.targetlist = make(AI3AimTargetList, 0)
-	a.mainobjlist = make(AI3AimTargetList, 0)
+	for i := AI3ActionAccel; i < AI3ActionEnd; i++ {
+		a.preparedTargets[i] = make(AI3AimTargetList, 0)
+	}
 	a.spp.ApplyParts27Fn(a.prepareTarget, a.me.PosVector)
 
-	if len(a.targetlist) == 0 {
-		return &GamePacket{Cmd: ReqFrameInfo}
-	}
-
+	a.delOldTagets()
 	// for return packet
 	var bulletMoveVector *Vector3D = nil
 	var accvt *Vector3D = nil
@@ -170,68 +231,73 @@ func (a *AI3) MakeAction(packet *GamePacket) *GamePacket {
 	var hommingTargetID []int // objid, teamid
 	var superBulletMv *Vector3D = nil
 
-	if a.ActionPoint >= GameConst.APAccel {
-		softFn := func(p1, p2 *AI3AimTarget) bool {
-			return p1.EvasionFactor > p2.EvasionFactor
-		}
-		AI3By(softFn).Sort(a.targetlist)
-		for _, o := range a.targetlist {
-			if o.EvasionFactor > 1 {
+	var act AI3ActionType
+
+	act = AI3ActionAccel
+	if a.sortActTargets(act) {
+		for _, o := range a.preparedTargets[act] {
+			if o.actFactor[act] > 1 && rand.Float64() < 0.9 {
 				accvt = a.calcEvasionVector(o.SPObj)
-				a.ActionPoint -= GameConst.APAccel
+				a.ActionPoint -= AI3AP[act]
 				break
 			}
 		}
-	}
-
-	if a.ActionPoint >= GameConst.APBullet {
-		sortFn := func(p1, p2 *AI3AimTarget) bool {
-			return p1.BulletAttackFactor > p2.BulletAttackFactor
-		}
-		AI3By(sortFn).Sort(a.targetlist)
-		for _, o := range a.targetlist {
-			if o.BulletAttackFactor > 1 && rand.Float64() < 0.5 {
-				_, estpos, _ := a.calcAims(o.SPObj, ObjDefault.MoveLimit[GameObjBullet])
-
-				bulletMoveVector = estpos.Sub(&a.me.PosVector).NormalizedTo(ObjDefault.MoveLimit[GameObjBullet])
-				a.ActionPoint -= GameConst.APBullet
-				break
-			}
+		if accvt == nil && rand.Float64() < 0.5 {
+			accvt = a.me.PosVector.Neg()
+			a.ActionPoint -= AI3AP[act]
 		}
 	}
 
-	if a.ActionPoint >= GameConst.APSuperBullet {
-		sortFn := func(p1, p2 *AI3AimTarget) bool {
-			return p1.SBulletAttackFactor > p2.SBulletAttackFactor
-		}
-		AI3By(sortFn).Sort(a.mainobjlist)
-		for _, o := range a.mainobjlist {
-			if o.SBulletAttackFactor > 1 {
-				//log.Printf("super %#v", o)
+	act = AI3ActionSuperBullet
+	if a.sortActTargets(act) {
+		for _, o := range a.preparedTargets[act] {
+			if o.actFactor[act] > 1 && a.lastSuperTarget[o.ID].IsZero() {
 				_, estpos, _ := a.calcAims(o.SPObj, ObjDefault.MoveLimit[GameObjSuperBullet])
 				superBulletMv = estpos.Sub(&a.me.PosVector).NormalizedTo(ObjDefault.MoveLimit[GameObjSuperBullet])
-				a.ActionPoint -= GameConst.APSuperBullet
-				break
-			}
-		}
-	}
-	if a.ActionPoint >= GameConst.APHommingBullet {
-		sortFn := func(p1, p2 *AI3AimTarget) bool {
-			return p1.HommingAttackFactor > p2.HommingAttackFactor
-		}
-		AI3By(sortFn).Sort(a.mainobjlist)
-		for _, o := range a.mainobjlist {
-			if o.HommingAttackFactor > 1 && rand.Float64() < 0.5 {
-				hommingTargetID = []int{o.ID, o.TeamID}
-				a.ActionPoint -= GameConst.APHommingBullet
+				a.lastSuperTarget[o.ID] = time.Now()
+
+				a.ActionPoint -= AI3AP[act]
 				break
 			}
 		}
 	}
 
-	if a.ActionPoint >= GameConst.APBurstShot*72 {
-		burstCount = a.ActionPoint / GameConst.APBurstShot / 2
-		a.ActionPoint -= GameConst.APBurstShot * burstCount
+	act = AI3ActionHommingBullet
+	if a.sortActTargets(act) {
+		for _, o := range a.preparedTargets[act] {
+			if o.actFactor[act] > 1 && a.lastHommingTarget[o.ID].IsZero() {
+				hommingTargetID = []int{o.ID, o.TeamID}
+				a.lastHommingTarget[o.ID] = time.Now()
+
+				a.ActionPoint -= AI3AP[act]
+				break
+			}
+		}
+	}
+
+	act = AI3ActionBullet
+	if a.sortActTargets(act) {
+		for _, o := range a.preparedTargets[act] {
+			if o.actFactor[act] > 1 && a.lastBulletTarget[o.ID].IsZero() {
+				_, estpos, _ := a.calcAims(o.SPObj, ObjDefault.MoveLimit[GameObjBullet])
+				bulletMoveVector = estpos.Sub(&a.me.PosVector).NormalizedTo(ObjDefault.MoveLimit[GameObjBullet])
+				a.lastBulletTarget[o.ID] = time.Now()
+
+				a.ActionPoint -= AI3AP[act]
+				break
+			}
+		}
+	}
+
+	act = AI3ActionBurstBullet
+	if a.ActionPoint >= AI3AP[act]*(72-len(a.preparedTargets[act])) {
+		if a.ActionPoint >= AI3AP[act]*72 {
+			burstCount = 36
+			a.ActionPoint -= AI3AP[act] * burstCount
+		} else {
+			burstCount = a.ActionPoint / AI3AP[act] / 2
+			a.ActionPoint -= AI3AP[act] * burstCount
+		}
 	}
 
 	return &GamePacket{

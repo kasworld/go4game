@@ -71,7 +71,7 @@ func (g *GameService) findFreeWorld(teamCount int, ct ClientType) *World {
 func (g *GameService) Loop() {
 	<-g.CmdCh
 	timer1secCh := time.Tick(1 * time.Second)
-	timer60Ch := time.Tick(GameConst.FrameRate)
+	timer60Ch := time.Tick(time.Duration(1000/GameConst.FramePerSec) * time.Millisecond)
 loop:
 	for {
 		select {

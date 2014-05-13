@@ -120,7 +120,7 @@ func (w *World) Loop() {
 		w.PService.CmdCh <- Cmd{Cmd: "delWorld", Args: w}
 	}()
 
-	timer60Ch := time.Tick(GameConst.FrameRate)
+	timer60Ch := time.Tick(time.Duration(1000/GameConst.FramePerSec) * time.Millisecond)
 	timer1secCh := time.Tick(1 * time.Second)
 loop:
 	for {

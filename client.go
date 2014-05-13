@@ -25,7 +25,7 @@ func repeatReq(connectTo string, rundur time.Duration) {
 	}
 	defer conn.Close()
 	timerCh := time.After(rundur * time.Second)
-	timer60Ch := time.Tick(1000 / 60 * time.Millisecond)
+	timer60Ch := time.Tick(time.Duration(1000/GameConst.FramePerSec) * time.Millisecond)
 	//timer60Ch := time.Tick(1 * time.Microsecond)
 	enc := json.NewEncoder(conn)
 	dec := json.NewDecoder(conn)

@@ -225,7 +225,7 @@ func (a *AI2) MakeAction(packet *GamePacket) *GamePacket {
 	}
 }
 func (a *AI2) calcEvasionVector(t *AimTarget) *Vector3D {
-	speed := (a.me.CollisionRadius + t.SPObj.CollisionRadius) * 60
+	speed := (a.me.CollisionRadius + t.SPObj.CollisionRadius) * GameConst.FramePerSec
 	backvt := a.me.PosVector.Sub(&t.SPObj.PosVector).NormalizedTo(speed) // backward
 	sidevt := t.AimPos.Sub(&a.me.PosVector).NormalizedTo(speed)
 	tocentervt := a.me.PosVector.NormalizedTo(speed / 2).Neg()
@@ -290,8 +290,8 @@ type AimTarget struct {
 func (me *SPObj) calcLenRate(t *SPObj) float64 {
 	collen := me.CollisionRadius + t.CollisionRadius
 	curlen := me.PosVector.LenTo(&t.PosVector) - collen
-	nextposme := me.PosVector.Add(me.MoveVector.Idiv(60.0))
-	nextpost := t.PosVector.Add(t.MoveVector.Idiv(60.0))
+	nextposme := me.PosVector.Add(me.MoveVector.Idiv(GameConst.FramePerSec))
+	nextpost := t.PosVector.Add(t.MoveVector.Idiv(GameConst.FramePerSec))
 	nextlen := nextposme.LenTo(nextpost) - collen
 	if curlen <= 0 || nextlen <= 0 {
 		return math.Inf(1)

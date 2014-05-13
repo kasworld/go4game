@@ -73,8 +73,8 @@ type AI3AimTarget struct {
 func (a *AI3) frame2Contact(t *SPObj) float64 {
 	collen := a.me.CollisionRadius + t.CollisionRadius
 	curlen := a.me.PosVector.LenTo(&t.PosVector) - collen
-	nextposme := a.me.PosVector.Add(a.me.MoveVector.Idiv(60.0))
-	nextpost := t.PosVector.Add(t.MoveVector.Idiv(60.0))
+	nextposme := a.me.PosVector.Add(a.me.MoveVector.Idiv(GameConst.FramePerSec))
+	nextpost := t.PosVector.Add(t.MoveVector.Idiv(GameConst.FramePerSec))
 	nextlen := nextposme.LenTo(nextpost) - collen
 	if curlen <= 0 || nextlen <= 0 {
 		return 0
@@ -107,7 +107,7 @@ func (a *AI3) CalcEvasionFactor(o *SPObj) float64 {
 	// curlen := a.me.PosVector.LenTo(&o.PosVector)
 	// lenfactor := collen * 10 / curlen
 
-	lenfactor := 30.0 / a.frame2Contact(o)
+	lenfactor := GameConst.FramePerSec / 2 / a.frame2Contact(o) // in 0.5 sec len
 
 	factor := anglefactor * typefactor * lenfactor
 	return factor
@@ -172,7 +172,7 @@ func (a *AI3) prepareTarget(s SPObjList) bool {
 }
 
 func (a *AI3) calcEvasionVector(t *SPObj) *Vector3D {
-	speed := ObjDefault.MoveLimit[a.me.ObjType]                    //(a.me.CollisionRadius + t.CollisionRadius) * 60
+	speed := ObjDefault.MoveLimit[a.me.ObjType]
 	backvt := a.me.PosVector.Sub(&t.PosVector).NormalizedTo(speed) // backward
 	tocentervt := a.me.PosVector.NormalizedTo(speed).Neg()
 	return backvt.Add(backvt).Add(tocentervt)

@@ -1,8 +1,8 @@
 package go4game
 
 import (
-	//"log"
-	"time"
+//"log"
+//"time"
 )
 
 type GameObjectType int
@@ -44,7 +44,7 @@ var GameConst = struct {
 	TcpListen            string
 	WsListen             string
 	ClearY               bool
-	FrameRate            time.Duration
+	FramePerSec          float64
 	NpcCountPerWorld     int
 	MaxTcpClientPerWorld int
 	MaxWsClientPerWorld  int
@@ -67,7 +67,7 @@ var GameConst = struct {
 	TcpListen:            "0.0.0.0:6666",
 	WsListen:             "0.0.0.0:8080",
 	ClearY:               true,
-	FrameRate:            1000 / 60 * time.Millisecond,
+	FramePerSec:          60.0,
 	NpcCountPerWorld:     8,
 	MaxTcpClientPerWorld: 32,
 	MaxWsClientPerWorld:  32,

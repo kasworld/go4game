@@ -105,7 +105,7 @@ func (t *Team) processClientReq(ftime time.Time, w *WorldSerialize, spp *Spatial
 			//log.Printf("client quit %v", t)
 			return false
 		}
-	case <-time.After(GameConst.FrameRate):
+	case <-time.After(time.Duration(1000/GameConst.FramePerSec) * time.Millisecond):
 	}
 	if p == nil {
 		//log.Printf("timeout team%v", t.ID)

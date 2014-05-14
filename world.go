@@ -62,7 +62,8 @@ func NewWorld(g *GameService) *World {
 		MaxObjectRadius: GameConst.MaxObjectRadius,
 	}
 	for i := 0; i < GameConst.NpcCountPerWorld/4; i++ {
-		w.addNewTeam(&AINothing{})
+		// w.addNewTeam(&AINothing{})
+		w.addNewTeam(&AICloud{})
 		w.addNewTeam(&AIRandom{})
 		w.addNewTeam(&AI2{})
 		w.addNewTeam(&AI3{})

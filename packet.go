@@ -101,6 +101,7 @@ type TeamInfoPacket struct {
 	*SPObj
 	ActionPoint int
 	Score       int
+	HomePos     Vector3D
 }
 
 type ClientActionPacket struct {

@@ -1,7 +1,7 @@
 package go4game
 
 import (
-	// "log"
+	"log"
 	//"time"
 	"math"
 	"math/rand"
@@ -36,6 +36,7 @@ type AI3 struct {
 	worldBound      HyperRect
 	ActionPoint     int
 	Score           int
+	HomePos         Vector3D
 	preparedTargets [AI3ActionEnd]AI3AimTargetList
 	lastTargets     [AI3ActionEnd]map[int]time.Time
 }
@@ -58,7 +59,7 @@ func (a *AI3) delOldTagets() {
 	}
 
 	validold = time.Now().Add(-100 * time.Millisecond)
-	act = AI3ActionSuperBullet
+	act = AI3ActionBullet
 	for i, lastfiretime := range a.lastTargets[act] {
 		if validold.After(lastfiretime) {
 			delete(a.lastTargets[act], i)
@@ -180,8 +181,8 @@ func (a *AI3) prepareTarget(s SPObjList) bool {
 func (a *AI3) calcEvasionVector(t *SPObj) *Vector3D {
 	speed := ObjDefault.MoveLimit[a.me.ObjType]
 	backvt := a.me.PosVector.Sub(&t.PosVector).NormalizedTo(speed) // backward
-	tocentervt := a.me.PosVector.NormalizedTo(speed).Neg()
-	return backvt.Add(backvt).Add(tocentervt)
+	tohomevt := a.HomePos.Sub(&a.me.PosVector).NormalizedTo(speed) // to home pos
+	return backvt.Add(backvt).Add(tohomevt)
 }
 
 func (a *AI3) calcAims(t *SPObj, projectilemovelimit float64) (float64, *Vector3D, float64) {
@@ -207,6 +208,7 @@ func (a *AI3) sortActTargets(act AI3ActionType) bool {
 
 func (a *AI3) MakeAction(packet *GamePacket) *GamePacket {
 	if a.lastTargets[0] == nil {
+		log.Printf("init historydata ")
 		for act := AI3ActionAccel; act < AI3ActionEnd; act++ {
 			a.lastTargets[act] = make(map[int]time.Time)
 		}
@@ -215,6 +217,7 @@ func (a *AI3) MakeAction(packet *GamePacket) *GamePacket {
 	a.me = packet.TeamInfo.SPObj
 	a.ActionPoint = packet.TeamInfo.ActionPoint
 	a.Score = packet.TeamInfo.Score
+	a.HomePos = packet.TeamInfo.HomePos
 
 	if a.spp == nil || a.me == nil {
 		return &GamePacket{Cmd: ReqFrameInfo}
@@ -248,7 +251,7 @@ func (a *AI3) MakeAction(packet *GamePacket) *GamePacket {
 			}
 		}
 		if rtn.ClientAct.Accel == nil && rand.Float64() < 0.5 {
-			rtn.ClientAct.Accel = a.me.PosVector.Neg()
+			rtn.ClientAct.Accel = a.HomePos.Sub(&a.me.PosVector)
 			a.ActionPoint -= AI3AP[act]
 		}
 	}
@@ -267,6 +270,7 @@ func (a *AI3) MakeAction(packet *GamePacket) *GamePacket {
 	}
 
 	if act = AI3ActionHommingBullet; a.sortActTargets(act) {
+		// offencive homming
 		for _, o := range a.preparedTargets[act] {
 			if o.actFactor[act] > 1 && a.lastTargets[act][o.ID].IsZero() {
 				rtn.ClientAct.HommingTargetID = []int{o.ID, o.TeamID}
@@ -274,6 +278,15 @@ func (a *AI3) MakeAction(packet *GamePacket) *GamePacket {
 
 				a.ActionPoint -= AI3AP[act]
 				break
+			}
+		}
+		// defencive homming
+		if rtn.ClientAct.HommingTargetID == nil {
+			o := a.me
+			if a.lastTargets[act][o.ID].IsZero() {
+				rtn.ClientAct.HommingTargetID = []int{o.ID, o.TeamID}
+				a.lastTargets[act][o.ID] = time.Now()
+				a.ActionPoint -= AI3AP[act]
 			}
 		}
 	}

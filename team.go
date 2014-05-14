@@ -20,17 +20,19 @@ type Team struct {
 	PacketStat     ActionStat
 	ActionPoint    int
 	Score          int
+	HomePos        Vector3D
 }
 
 func (m Team) String() string {
-	return fmt.Sprintf("Team%v %v Objs:%v Score:%v AP:%v, PacketStat:%v",
-		m.ID, m.ClientConnInfo, len(m.GameObjs), m.Score, m.ActionPoint, m.PacketStat)
+	return fmt.Sprintf("Team%v %v Objs:%v Score:%v AP:%v, PacketStat:%v, Home:%v",
+		m.ID, m.ClientConnInfo, len(m.GameObjs), m.Score, m.ActionPoint, m.PacketStat, m.HomePos)
 }
 
 type TeamInfo struct {
-	Disp  string
-	Color int
-	Score int
+	Disp    string
+	Color   int
+	Score   int
+	HomePos Vector3D
 }
 
 type ByScore []TeamInfo
@@ -47,9 +49,10 @@ func (s ByScore) Less(i, j int) bool {
 
 func (t *Team) NewTeamInfo() *TeamInfo {
 	return &TeamInfo{
-		Disp:  t.String(),
-		Color: t.Color,
-		Score: t.Score,
+		Disp:    t.String(),
+		Color:   t.Color,
+		Score:   t.Score,
+		HomePos: t.HomePos,
 	}
 }
 
@@ -73,8 +76,26 @@ func NewTeam(w *World, conn interface{}) *Team {
 	default:
 		log.Printf("unknown type %#v", conn)
 	}
-
+	t.HomePos = *RandVector(w.MinPos, w.MaxPos).Idiv(2)
+	if GameConst.ClearY {
+		t.HomePos[1] = 0
+	}
 	return &t
+}
+
+func (t *Team) moveHomePos() {
+	t.HomePos = *t.HomePos.Add(RandVector(t.PWorld.MinPos, t.PWorld.MaxPos).Idiv(100))
+	for i, v := range t.HomePos {
+		if v > t.PWorld.MaxPos[i] {
+			t.HomePos[i] = t.PWorld.MaxPos[i]
+		}
+		if v < t.PWorld.MinPos[i] {
+			t.HomePos[i] = t.PWorld.MinPos[i]
+		}
+	}
+	if GameConst.ClearY {
+		t.HomePos[1] = 0
+	}
 }
 
 func (t *Team) findMainObj() *GameObject {
@@ -130,6 +151,7 @@ func (t *Team) processClientReq(ftime time.Time, w *WorldSerialize, spp *Spatial
 				SPObj:       NewSPObj(t.findMainObj()),
 				ActionPoint: t.ActionPoint,
 				Score:       t.Score,
+				HomePos:     t.HomePos,
 			},
 		}
 	default:
@@ -183,6 +205,7 @@ func (t *Team) actByTime(ftime time.Time, spp *SpatialPartition) []int {
 			}
 		}
 	}
+	t.moveHomePos()
 	// log.Printf("out team.actbytime  %v", t)
 	return clist
 }
@@ -193,9 +216,9 @@ func (t *Team) CalcAP(spp *SpatialPartition) int {
 	if o == nil {
 		return 0
 	}
-	l := o.PosVector.Abs()
-	lm := spp.Size.Abs() / 2
-	rtn := int((lm - l) / lm * float64(GameConst.APIncFrame))
+	lenToHomepos := o.PosVector.LenTo(&t.HomePos)
+	lmax := spp.Size.Abs()
+	rtn := int((lmax - lenToHomepos) / lmax * float64(GameConst.APIncFrame))
 	//log.Printf("ap:%v", rtn)
 	return rtn
 }

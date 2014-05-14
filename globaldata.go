@@ -68,7 +68,7 @@ var GameConst = struct {
 	WsListen:             "0.0.0.0:8080",
 	ClearY:               true,
 	FramePerSec:          60.0,
-	NpcCountPerWorld:     4,
+	NpcCountPerWorld:     8,
 	MaxTcpClientPerWorld: 32,
 	MaxWsClientPerWorld:  32,
 	StartWorldCount:      1,

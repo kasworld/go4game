@@ -26,8 +26,8 @@ type World struct {
 
 func (m World) String() string {
 	if m.spp != nil {
-		return fmt.Sprintf("World%v Teams:%v spp:%v",
-			m.ID, len(m.Teams), m.spp.PartCount)
+		return fmt.Sprintf("World%v Teams:%v spp:%v objs:%v",
+			m.ID, len(m.Teams), m.spp.PartCount, m.spp.ObjectCount)
 	} else {
 		return fmt.Sprintf("World%v Teams:%v spp:%v",
 			m.ID, len(m.Teams), nil)

@@ -39,6 +39,7 @@ type SpatialPartition struct {
 	PartMins        []Vector3D
 	Parts           [][][]SPObjList
 	MaxObjectRadius float64
+	ObjectCount     int
 }
 
 func (p *SpatialPartition) AddPartPos(pos [3]int, obj *SPObj) {
@@ -56,6 +57,7 @@ func (w *World) MakeSpatialPartition() *SpatialPartition {
 	for _, t := range w.Teams {
 		objcount += len(t.GameObjs)
 	}
+	rtn.ObjectCount = objcount
 
 	rtn.PartCount = int(math.Pow(float64(objcount), 1.0/3.0))
 	if rtn.PartCount < 3 {

@@ -61,23 +61,15 @@ func (c *ConnInfo) aiLoop() {
 		//log.Printf("aiLoop end team:%v", c.PTeam.ID)
 		close(c.ReadCh)
 	}()
-	c.ReadCh <- &GamePacket{
-		Cmd: ReqFrameInfo,
-	}
+	c.ReadCh <- &GamePacket{Cmd: ReqFrameInfo}
 loop:
-	for {
-		select {
-		case packet, ok := <-c.WriteCh: // get rsp from server
-			if !ok {
-				break loop
-			}
-			switch packet.Cmd {
-			case RspFrameInfo:
-				c.ReadCh <- c.AiConn.MakeAction(packet)
-			default:
-				log.Printf("unknown packet %v", packet.Cmd)
-				break loop
-			}
+	for packet := range c.WriteCh { // get rsp from server
+		switch packet.Cmd {
+		case RspFrameInfo:
+			c.ReadCh <- c.AiConn.MakeAction(packet)
+		default:
+			log.Printf("unknown packet %v", packet.Cmd)
+			break loop
 		}
 	}
 }
@@ -119,16 +111,10 @@ func (c *ConnInfo) tcpWriteLoop() {
 	}()
 	enc := json.NewEncoder(c.Conn)
 loop:
-	for {
-		select {
-		case packet, ok := <-c.WriteCh:
-			if !ok {
-				break loop
-			}
-			err := enc.Encode(packet)
-			if err != nil {
-				break loop
-			}
+	for packet := range c.WriteCh {
+		err := enc.Encode(packet)
+		if err != nil {
+			break loop
 		}
 	}
 }

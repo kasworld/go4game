@@ -258,10 +258,6 @@ func (t *Team) addNewGameObject(ObjType GameObjectType, args interface{}) *GameO
 	return o
 }
 
-// func (t *Team) delGameObject(o *GameObject) {
-// 	delete(t.GameObjs, o.ID)
-// }
-
 func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) int {
 	rtn := 0
 	if act == nil {

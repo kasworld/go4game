@@ -1,8 +1,8 @@
 package go4game
 
 import (
-//"log"
-//"time"
+	"log"
+	//"time"
 )
 
 type GameObjectType int
@@ -14,6 +14,7 @@ const (
 	GameObjBullet
 	GameObjHommingBullet
 	GameObjSuperBullet
+	GameObjEnd
 )
 
 var ObjDefault = struct {
@@ -64,17 +65,18 @@ var GameConst = struct {
 	ShieldCount     int
 	MaxObjectRadius float64
 }{
-	TcpListen:            "0.0.0.0:6666",
-	WsListen:             "0.0.0.0:8080",
-	ClearY:               true,
+	TcpListen: "0.0.0.0:6666",
+	WsListen:  "0.0.0.0:8080",
+	WorldMin:  Vector3D{-500, -500, -500},
+	WorldMax:  Vector3D{500, 500, 500},
+
 	FramePerSec:          60.0,
-	NpcCountPerWorld:     8,
+	RemoveEmptyWorld:     false,
 	MaxTcpClientPerWorld: 32,
 	MaxWsClientPerWorld:  32,
 	StartWorldCount:      1,
-	RemoveEmptyWorld:     false,
-	WorldMin:             Vector3D{-500, -500, -500},
-	WorldMax:             Vector3D{500, 500, 500},
+	NpcCountPerWorld:     4,
+	ClearY:               true,
 
 	APAccel:         1,
 	APBullet:        10,
@@ -88,10 +90,18 @@ var GameConst = struct {
 	MaxObjectRadius: 20, // changed by init
 }
 
+var ObjSqd [GameObjEnd][GameObjEnd]float64
+
 func init() {
 	for _, o := range ObjDefault.Radius {
 		if o > GameConst.MaxObjectRadius {
 			GameConst.MaxObjectRadius = o
 		}
 	}
+	for o1 := GameObjMain; o1 < GameObjEnd; o1++ {
+		for o2 := GameObjMain; o2 < GameObjEnd; o2++ {
+			ObjSqd[o1][o2] = (ObjDefault.Radius[o1] + ObjDefault.Radius[o2]) * (ObjDefault.Radius[o1] + ObjDefault.Radius[o2])
+		}
+	}
+	log.Printf("%#v", ObjSqd)
 }

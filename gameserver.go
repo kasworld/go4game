@@ -152,13 +152,28 @@ func init() {
 		{{range .Worlds}}
 		{{.Disp}}
 		</br>
+		<table>
+		<tr >
+			<td>TeamID</td>
+			<td>ClientInfo</td>
+			<td>ObjCount</td>
+			<td>Score</td>
+			<td>ActionPoint</td>
+			<td>PacketStat</td>
+			<td>CollStat</td>
+		</tr>
 		{{range .Teams}}
-		<font color="#{{.Color | printf "%x"}}">
-		{{.Disp}}
-		</font>
-		</br>
+		<tr bgcolor="#{{.Color | printf "%x"}}">
+			<td><font color="#{{.FontColor | printf "%x"}}">{{.ID}}</font></td>
+			<td><font color="#{{.FontColor | printf "%x"}}">{{.ClientInfo}}</font></td>
+			<td><font color="#{{.FontColor | printf "%x"}}">{{.Objs}}</font></td>
+			<td><font color="#{{.FontColor | printf "%x"}}">{{.Score}}</font></td>
+			<td><font color="#{{.FontColor | printf "%x"}}">{{.AP}}</font></td>
+			<td><font color="#{{.FontColor | printf "%x"}}">{{.PacketStat}}</font></td>
+			<td><font color="#{{.FontColor | printf "%x"}}">{{.CollStat}}</font></td>
+		</tr>
 		{{end}}
-		</br>
+		</table>
 		{{end}}
 		</body>
 		</html>

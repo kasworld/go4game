@@ -18,21 +18,41 @@ type Team struct {
 	chStep         <-chan []int
 	Color          int
 	PacketStat     ActionStat
+	CollisionStat  ActionStat
 	ActionPoint    int
 	Score          int
 	HomePos        Vector3D
 }
 
 func (m Team) String() string {
-	return fmt.Sprintf("Team%v %v Objs:%v Score:%v AP:%v, PacketStat:%v, Home:%v",
-		m.ID, m.ClientConnInfo, len(m.GameObjs), m.Score, m.ActionPoint, m.PacketStat, m.HomePos)
+	return fmt.Sprintf("Team%v %v Objs:%v Score:%v AP:%v, PacketStat:%v, Coll:%v",
+		m.ID, m.ClientConnInfo, len(m.GameObjs), m.Score, m.ActionPoint, m.PacketStat, m.CollisionStat)
 }
 
 type TeamInfo struct {
-	Disp    string
-	Color   int
-	Score   int
-	HomePos Vector3D
+	ID         int
+	ClientInfo string
+	Objs       int
+	AP         int
+	PacketStat string
+	CollStat   string
+	Color      int
+	FontColor  int
+	Score      int
+}
+
+func (t *Team) NewTeamInfo() *TeamInfo {
+	return &TeamInfo{
+		ID:         t.ID,
+		ClientInfo: t.ClientConnInfo.String(),
+		Objs:       len(t.GameObjs),
+		AP:         t.ActionPoint,
+		PacketStat: t.PacketStat.String(),
+		CollStat:   t.CollisionStat.String(),
+		Color:      t.Color,
+		FontColor:  0xffffff - t.Color,
+		Score:      t.Score,
+	}
 }
 
 type ByScore []TeamInfo
@@ -47,22 +67,14 @@ func (s ByScore) Less(i, j int) bool {
 	return s[i].Score > s[j].Score
 }
 
-func (t *Team) NewTeamInfo() *TeamInfo {
-	return &TeamInfo{
-		Disp:    t.String(),
-		Color:   t.Color,
-		Score:   t.Score,
-		HomePos: t.HomePos,
-	}
-}
-
 func NewTeam(w *World, conn interface{}) *Team {
 	t := Team{
-		ID:         <-IdGenCh,
-		PWorld:     w,
-		GameObjs:   make(map[int]*GameObject),
-		Color:      rand.Intn(0x1000000),
-		PacketStat: *NewActionStat(),
+		ID:            <-IdGenCh,
+		PWorld:        w,
+		GameObjs:      make(map[int]*GameObject),
+		Color:         rand.Intn(0x1000000),
+		PacketStat:    *NewActionStat(),
+		CollisionStat: *NewActionStat(),
 	}
 	switch conn.(type) {
 	case net.Conn:

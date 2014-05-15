@@ -143,12 +143,13 @@ type ActionFnEnvInfo struct {
 }
 
 func (o *GameObject) IsCollision(s *SPObj) bool {
+	o.PTeam.CollisionStat.Inc()
 	teamrule := s.TeamID != o.PTeam.ID
-	checklen := s.PosVector.LenTo(&o.PosVector) <= (s.CollisionRadius + o.CollisionRadius)
-	if (teamrule) && (checklen) {
-		if InteractionMap[o.ObjType][s.ObjType] {
-			return true
-		}
+	//checklen := s.PosVector.LenTo(&o.PosVector) <= (s.CollisionRadius + o.CollisionRadius)
+	//checklen := s.PosVector.Sqd(&o.PosVector) <= (s.CollisionRadius+o.CollisionRadius)*(s.CollisionRadius+o.CollisionRadius)
+	checklen := s.PosVector.Sqd(&o.PosVector) <= ObjSqd[s.ObjType][o.ObjType]
+	if (teamrule) && (checklen) && InteractionMap[o.ObjType][s.ObjType] {
+		return true
 	}
 	return false
 }

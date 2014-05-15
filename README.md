@@ -54,19 +54,8 @@ http://kasw.blogspot.kr/2014/04/go4game.html
 
 http://kasw.blogspot.kr/2014/04/go4game-go.html
 
-주요 object 정의
+http://kasw.blogspot.kr/2014/04/go4game.html
 
-Server : serverMain 과 같은 것, 실행된 서버 instance , 여러개의 world를 관장한다.
+http://kasw.blogspot.kr/2014/05/go4game-ai.html
 
-World : World : ai와 user가 접속해서 interaction하는 공간. 실 game contents가 일어나는 곳.
-
-Team : gameObject list , AI , user 경쟁의 단위
-
-GameObject : team을 구성하는 object
-
-ConnInfo : net.Conn to channel, 2 goroutine
-
-PacketStat : packet 통계용
-
-Cmd : cmd channel object
-
+http://kasw.blogspot.kr/2014/05/go4game.html

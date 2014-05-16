@@ -15,7 +15,7 @@ func (m GameObject) String() string {
 }
 
 type GameObject struct {
-	ID        int
+	ID        int64
 	PTeam     *Team
 	enabled   bool
 	ObjType   GameObjectType
@@ -28,8 +28,8 @@ type GameObject struct {
 	MoveVector      Vector3D
 	moveLimit       float64
 	accelVector     Vector3D
-	targetObjID     int
-	targetTeamID    int
+	targetObjID     int64
+	targetTeamID    int64
 	rotateAxis      Vector3D
 	rotateSpeed     float64
 	bounceDamping   float64
@@ -120,7 +120,7 @@ func (o *GameObject) MakeSuperBullet(mo *GameObject, MoveVector *Vector3D) {
 
 	o.ClearY()
 }
-func (o *GameObject) MakeHommingBullet(mo *GameObject, targetteamid int, targetid int) {
+func (o *GameObject) MakeHommingBullet(mo *GameObject, targetteamid int64, targetid int64) {
 	o.endTime = o.startTime.Add(time.Second * 60)
 	o.PosVector = mo.PosVector
 	o.borderActionFn = borderActionFn_None
@@ -144,19 +144,15 @@ type ActionFnEnvInfo struct {
 
 func (o *GameObject) IsCollision(s *SPObj) bool {
 	o.PTeam.CollisionStat.Inc()
-	teamrule := s.TeamID != o.PTeam.ID
-	//checklen := s.PosVector.LenTo(&o.PosVector) <= (s.CollisionRadius + o.CollisionRadius)
-	//checklen := s.PosVector.Sqd(&o.PosVector) <= (s.CollisionRadius+o.CollisionRadius)*(s.CollisionRadius+o.CollisionRadius)
-	checklen := s.PosVector.Sqd(&o.PosVector) <= ObjSqd[s.ObjType][o.ObjType]
-	if (teamrule) && (checklen) && InteractionMap[o.ObjType][s.ObjType] {
+	if (s.TeamID != o.PTeam.ID) && InteractionMap[o.ObjType][s.ObjType] && (s.PosVector.Sqd(&o.PosVector) <= ObjSqd[s.ObjType][o.ObjType]) {
 		return true
 	}
 	return false
 }
 
-func (o *GameObject) ActByTime(t time.Time, spp *SpatialPartition) []int {
+func (o *GameObject) ActByTime(t time.Time, spp *SpatialPartition) IDList {
 	o.ClearY()
-	var clist []int
+	var clist IDList
 
 	defer func() {
 		o.lastMoveTime = t
@@ -177,12 +173,12 @@ func (o *GameObject) ActByTime(t time.Time, spp *SpatialPartition) []int {
 	// modify own status only
 	var isCollsion bool
 	if o.ObjType == GameObjMain {
-		clist = spp.GetCollisionList(o.IsCollision, o.PosVector, spp.MaxObjectRadius)
+		clist = spp.GetCollisionList(o.IsCollision, &o.PosVector, spp.MaxObjectRadius)
 		if len(clist) > 0 {
 			isCollsion = true
 		}
 	} else {
-		isCollsion = spp.IsCollision(o.IsCollision, o.PosVector, spp.MaxObjectRadius)
+		isCollsion = spp.IsCollision(o.IsCollision, &o.PosVector, o.CollisionRadius+spp.MaxObjectRadius)
 	}
 	if isCollsion {
 		if o.collisionActionFn != nil {

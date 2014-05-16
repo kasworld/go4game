@@ -13,12 +13,12 @@ import (
 )
 
 type World struct {
-	ID              int
+	ID              int64
 	CmdCh           chan Cmd
 	PService        *GameService
 	MinPos          Vector3D
 	MaxPos          Vector3D
-	Teams           map[int]*Team
+	Teams           map[int64]*Team
 	spp             *SpatialPartition
 	worldSerial     *WorldSerialize
 	MaxObjectRadius float64
@@ -58,7 +58,7 @@ func NewWorld(g *GameService) *World {
 		PService:        g,
 		MinPos:          GameConst.WorldMin,
 		MaxPos:          GameConst.WorldMax,
-		Teams:           make(map[int]*Team),
+		Teams:           make(map[int64]*Team),
 		MaxObjectRadius: GameConst.MaxObjectRadius,
 	}
 	for i := 0; i < GameConst.NpcCountPerWorld/4; i++ {

@@ -15,24 +15,24 @@ import (
 )
 
 type GameService struct {
-	ID     int
+	ID     int64
 	CmdCh  chan Cmd
-	Worlds map[int]*World
+	Worlds map[int64]*World
 
 	clientConnectionCh   chan net.Conn
 	wsClientConnectionCh chan *websocket.Conn
 }
 
 func (m GameService) String() string {
-	return fmt.Sprintf("GameService%v Worlds:%v goroutine:%v",
-		m.ID, len(m.Worlds), runtime.NumGoroutine())
+	return fmt.Sprintf("GameService%v Worlds:%v goroutine:%v IDs:%v",
+		m.ID, len(m.Worlds), runtime.NumGoroutine(), <-IdGenCh)
 }
 
 func NewGameService() *GameService {
 	g := GameService{
 		ID:                   <-IdGenCh,
 		CmdCh:                make(chan Cmd, 10),
-		Worlds:               make(map[int]*World),
+		Worlds:               make(map[int64]*World),
 		clientConnectionCh:   make(chan net.Conn),
 		wsClientConnectionCh: make(chan *websocket.Conn),
 	}

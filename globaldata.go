@@ -1,8 +1,8 @@
 package go4game
 
 import (
-	"log"
-	//"time"
+//"log"
+//"time"
 )
 
 type GameObjectType int
@@ -75,14 +75,14 @@ var GameConst = struct {
 	MaxTcpClientPerWorld: 32,
 	MaxWsClientPerWorld:  32,
 	StartWorldCount:      1,
-	NpcCountPerWorld:     4,
+	NpcCountPerWorld:     32,
 	ClearY:               true,
 
 	APAccel:         1,
 	APBullet:        10,
 	APBurstShot:     10,
-	APHommingBullet: 50,
-	APSuperBullet:   100,
+	APHommingBullet: 100,
+	APSuperBullet:   80,
 	APIncFrame:      10,
 
 	KillScore:       1,
@@ -103,5 +103,5 @@ func init() {
 			ObjSqd[o1][o2] = (ObjDefault.Radius[o1] + ObjDefault.Radius[o2]) * (ObjDefault.Radius[o1] + ObjDefault.Radius[o2])
 		}
 	}
-	log.Printf("%#v", ObjSqd)
+	//log.Printf("%#v", ObjSqd)
 }

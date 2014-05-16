@@ -38,7 +38,7 @@ type AI3 struct {
 	Score           int
 	HomePos         Vector3D
 	preparedTargets [AI3ActionEnd]AI3AimTargetList
-	lastTargets     [AI3ActionEnd]map[int]time.Time
+	lastTargets     [AI3ActionEnd]map[int64]time.Time
 }
 
 func (a *AI3) delOldTagets() {
@@ -210,7 +210,7 @@ func (a *AI3) MakeAction(packet *GamePacket) *GamePacket {
 	if a.lastTargets[0] == nil {
 		log.Printf("init historydata ")
 		for act := AI3ActionAccel; act < AI3ActionEnd; act++ {
-			a.lastTargets[act] = make(map[int]time.Time)
+			a.lastTargets[act] = make(map[int64]time.Time)
 		}
 	}
 	a.spp = packet.Spp
@@ -226,7 +226,7 @@ func (a *AI3) MakeAction(packet *GamePacket) *GamePacket {
 	for i := AI3ActionAccel; i < AI3ActionEnd; i++ {
 		a.preparedTargets[i] = make(AI3AimTargetList, 0)
 	}
-	a.spp.ApplyParts27Fn(a.prepareTarget, a.me.PosVector)
+	a.spp.ApplyParts27Fn(a.prepareTarget, &a.me.PosVector)
 
 	a.delOldTagets()
 	rtn := &GamePacket{
@@ -273,7 +273,7 @@ func (a *AI3) MakeAction(packet *GamePacket) *GamePacket {
 		// offencive homming
 		for _, o := range a.preparedTargets[act] {
 			if o.actFactor[act] > 1 && a.lastTargets[act][o.ID].IsZero() {
-				rtn.ClientAct.HommingTargetID = []int{o.ID, o.TeamID}
+				rtn.ClientAct.HommingTargetID = IDList{o.ID, o.TeamID}
 				a.lastTargets[act][o.ID] = time.Now()
 
 				a.ActionPoint -= AI3AP[act]
@@ -284,7 +284,7 @@ func (a *AI3) MakeAction(packet *GamePacket) *GamePacket {
 		if rtn.ClientAct.HommingTargetID == nil {
 			o := a.me
 			if a.lastTargets[act][o.ID].IsZero() {
-				rtn.ClientAct.HommingTargetID = []int{o.ID, o.TeamID}
+				rtn.ClientAct.HommingTargetID = IDList{o.ID, o.TeamID}
 				a.lastTargets[act][o.ID] = time.Now()
 				a.ActionPoint -= AI3AP[act]
 			}

@@ -167,6 +167,20 @@ type HyperRect struct {
 	Min, Max Vector3D
 }
 
+func (h *HyperRect) Center() *Vector3D {
+	return h.Min.Add(&h.Max).Idiv(2)
+}
+
+func (h *HyperRect) DiagLen() float64 {
+	return h.Min.LenTo(&h.Max)
+}
+
+func (h *HyperRect) IsContact(c *Vector3D, r float64) bool {
+	hc := h.Center()
+	hl := h.DiagLen()
+	return hl/2+r >= hc.LenTo(c)
+}
+
 // make normalized hyperrect , if not need use HyperRect{Min: , Max:}
 func NewHyperRect(v1 *Vector3D, v2 *Vector3D) *HyperRect {
 	rtn := HyperRect{}

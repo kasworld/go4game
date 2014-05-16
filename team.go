@@ -11,11 +11,11 @@ import (
 )
 
 type Team struct {
-	ID             int
+	ID             int64
 	PWorld         *World
-	GameObjs       map[int]*GameObject
+	GameObjs       map[int64]*GameObject
 	ClientConnInfo ConnInfo
-	chStep         <-chan []int
+	chStep         <-chan IDList
 	Color          int
 	PacketStat     ActionStat
 	CollisionStat  ActionStat
@@ -30,7 +30,7 @@ func (m Team) String() string {
 }
 
 type TeamInfo struct {
-	ID         int
+	ID         int64
 	ClientInfo string
 	Objs       int
 	AP         int
@@ -71,7 +71,7 @@ func NewTeam(w *World, conn interface{}) *Team {
 	t := Team{
 		ID:            <-IdGenCh,
 		PWorld:        w,
-		GameObjs:      make(map[int]*GameObject),
+		GameObjs:      make(map[int64]*GameObject),
 		Color:         rand.Intn(0x1000000),
 		PacketStat:    *NewActionStat(),
 		CollisionStat: *NewActionStat(),
@@ -176,14 +176,14 @@ func (t *Team) processClientReq(ftime time.Time, w *WorldSerialize, spp *Spatial
 	return true
 }
 
-func (t *Team) doFrameWork(ftime time.Time, spp *SpatialPartition, w *WorldSerialize) <-chan []int {
+func (t *Team) doFrameWork(ftime time.Time, spp *SpatialPartition, w *WorldSerialize) <-chan IDList {
 	ap := t.CalcAP(spp)
 	if ap < 0 {
 		log.Printf("invalid ap team%v %v", t.ID, ap)
 	}
 	t.ActionPoint += ap
 
-	chRtn := make(chan []int)
+	chRtn := make(chan IDList)
 	// log.Printf("doFrameWork %v", t)
 	go func() {
 		// log.Printf("in team.doFrameWork %v", t)
@@ -200,9 +200,9 @@ func (t *Team) doFrameWork(ftime time.Time, spp *SpatialPartition, w *WorldSeria
 	return chRtn
 }
 
-func (t *Team) actByTime(ftime time.Time, spp *SpatialPartition) []int {
+func (t *Team) actByTime(ftime time.Time, spp *SpatialPartition) IDList {
 	// log.Printf("in team.actbytime  %v", t)
-	clist := make([]int, 0)
+	clist := make(IDList, 0)
 	for _, v := range t.GameObjs {
 		clist = append(clist, v.ActByTime(ftime, spp)...)
 	}
@@ -281,8 +281,8 @@ func (t *Team) addNewGameObject(ObjType GameObjectType, args interface{}) *GameO
 	case GameObjHommingBullet:
 		mo := t.findMainObj()
 		if mo != nil {
-			targetid := args.([]int)[0]
-			targetteamid := args.([]int)[1]
+			targetid := args.(IDList)[0]
+			targetteamid := args.(IDList)[1]
 			o.MakeHommingBullet(mo, targetteamid, targetid)
 		}
 	default:

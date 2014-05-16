@@ -8,7 +8,7 @@ import (
 )
 
 type GameObjectSeiralize struct {
-	ID              int
+	ID              int64
 	ObjType         GameObjectType
 	PosVector       Vector3D
 	MoveVector      Vector3D
@@ -28,7 +28,7 @@ func NewGameObjectSeiralize(o *GameObject) *GameObjectSeiralize {
 }
 
 type TeamSeialize struct {
-	ID     int
+	ID     int64
 	Color  int
 	GOList []GameObjectSeiralize
 }
@@ -49,7 +49,7 @@ func NewTeamSeialize(t *Team) *TeamSeialize {
 }
 
 type WorldSerialize struct {
-	ID       int
+	ID       int64
 	MinPos   Vector3D
 	MaxPos   Vector3D
 	TeamList []TeamSeialize
@@ -108,6 +108,6 @@ type ClientActionPacket struct {
 	Accel           *Vector3D
 	NormalBulletMv  *Vector3D
 	BurstShot       int
-	HommingTargetID []int
+	HommingTargetID IDList
 	SuperBulletMv   *Vector3D
 }

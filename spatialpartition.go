@@ -6,8 +6,8 @@ import (
 )
 
 type SPObj struct {
-	ID              int
-	TeamID          int
+	ID              int64
+	TeamID          int64
 	PosVector       Vector3D
 	MoveVector      Vector3D
 	CollisionRadius float64
@@ -84,7 +84,7 @@ func (w *World) MakeSpatialPartition() *SpatialPartition {
 	for _, t := range w.Teams {
 		for _, obj := range t.GameObjs {
 			if obj != nil && obj.ObjType != 0 {
-				partPos := rtn.Pos2PartPos(obj.PosVector)
+				partPos := rtn.Pos2PartPos(&obj.PosVector)
 				rtn.AddPartPos(partPos, NewSPObj(obj))
 			}
 		}
@@ -92,7 +92,7 @@ func (w *World) MakeSpatialPartition() *SpatialPartition {
 	return &rtn
 }
 
-func (p *SpatialPartition) Pos2PartPos(pos Vector3D) [3]int {
+func (p *SpatialPartition) Pos2PartPos(pos *Vector3D) [3]int {
 	nompos := pos.Sub(&p.Min)
 	rtn := [3]int{0, 0, 0}
 
@@ -128,7 +128,7 @@ func (p *SpatialPartition) makeRange2(c float64, r float64, min float64, max flo
 }
 
 // for collision check
-func (p *SpatialPartition) IsCollision(fn func(*SPObj) bool, pos Vector3D, r float64) bool {
+func (p *SpatialPartition) IsCollision(fn func(*SPObj) bool, pos *Vector3D, r float64) bool {
 	ppos := p.Pos2PartPos(pos)
 	partcube := p.GetPartCube(ppos)
 
@@ -139,6 +139,10 @@ func (p *SpatialPartition) IsCollision(fn func(*SPObj) bool, pos Vector3D, r flo
 	for _, i := range xr {
 		for _, j := range yr {
 			for _, k := range zr {
+				if !p.GetPartCube([3]int{i, j, k}).IsContact(pos, r) {
+					//log.Printf("not contact skipping %v", pos)
+					continue
+				}
 				for _, s := range p.Parts[i][j][k] {
 					if fn(s) {
 						return true
@@ -151,10 +155,10 @@ func (p *SpatialPartition) IsCollision(fn func(*SPObj) bool, pos Vector3D, r flo
 }
 
 // for find who kill gameobjmain
-func (p *SpatialPartition) GetCollisionList(fn func(*SPObj) bool, pos Vector3D, r float64) []int {
+func (p *SpatialPartition) GetCollisionList(fn func(*SPObj) bool, pos *Vector3D, r float64) IDList {
 	ppos := p.Pos2PartPos(pos)
 	partcube := p.GetPartCube(ppos)
-	rtn := make([]int, 0)
+	rtn := make(IDList, 0)
 
 	xr := p.makeRange2(pos[0], r, partcube.Min[0], partcube.Max[0], ppos[0])
 	yr := p.makeRange2(pos[1], r, partcube.Min[1], partcube.Max[1], ppos[1])
@@ -163,6 +167,10 @@ func (p *SpatialPartition) GetCollisionList(fn func(*SPObj) bool, pos Vector3D, 
 	for _, i := range xr {
 		for _, j := range yr {
 			for _, k := range zr {
+				if !p.GetPartCube([3]int{i, j, k}).IsContact(pos, r) {
+					//log.Printf("not contact skipping %v", pos)
+					continue
+				}
 				for _, s := range p.Parts[i][j][k] {
 					if fn(s) {
 						rtn = append(rtn, s.TeamID)
@@ -185,7 +193,7 @@ func (p *SpatialPartition) makeRange3(n int) []int {
 }
 
 // for ai action
-func (p *SpatialPartition) ApplyParts27Fn(fn func(SPObjList) bool, pos Vector3D) bool {
+func (p *SpatialPartition) ApplyParts27Fn(fn func(SPObjList) bool, pos *Vector3D) bool {
 	ppos := p.Pos2PartPos(pos)
 	xr := p.makeRange3(ppos[0])
 	yr := p.makeRange3(ppos[1])

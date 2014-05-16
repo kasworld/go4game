@@ -16,7 +16,7 @@ func (a *AINothing) MakeAction(packet *GamePacket) *GamePacket {
 	var bulletMoveVector *Vector3D = nil
 	var accvt *Vector3D = nil
 	var burstCount int = 0
-	var hommingTargetID []int // objid, teamid
+	var hommingTargetID IDList // objid, teamid
 	var superBulletMv *Vector3D = nil
 	return &GamePacket{
 		Cmd: ReqFrameInfo,
@@ -69,7 +69,7 @@ func (a *AIRandom) MakeAction(packet *GamePacket) *GamePacket {
 	}
 
 	if a.ActionPoint >= GameConst.APHommingBullet && rand.Float64() < 0.5 {
-		rtn.ClientAct.HommingTargetID = []int{a.me.ID, a.me.TeamID}
+		rtn.ClientAct.HommingTargetID = IDList{a.me.ID, a.me.TeamID}
 		a.ActionPoint -= GameConst.APHommingBullet
 	}
 
@@ -130,7 +130,7 @@ func (a *AICloud) MakeAction(packet *GamePacket) *GamePacket {
 	}
 
 	if a.ActionPoint >= GameConst.APHommingBullet && rand.Float64() < 0.5 {
-		rtn.ClientAct.HommingTargetID = []int{a.me.ID, a.me.TeamID}
+		rtn.ClientAct.HommingTargetID = IDList{a.me.ID, a.me.TeamID}
 		a.ActionPoint -= GameConst.APHommingBullet
 	}
 
@@ -198,7 +198,7 @@ func (a *AI2) MakeAction(packet *GamePacket) *GamePacket {
 	a.worldBound = HyperRect{Min: a.spp.Min, Max: a.spp.Max}
 	a.targetlist = make(AimTargetList, 0)
 	a.mainobjlist = make(AimTargetList, 0)
-	a.spp.ApplyParts27Fn(a.prepareTarget, a.me.PosVector)
+	a.spp.ApplyParts27Fn(a.prepareTarget, &a.me.PosVector)
 
 	if len(a.targetlist) == 0 {
 		return &GamePacket{Cmd: ReqFrameInfo}
@@ -208,7 +208,7 @@ func (a *AI2) MakeAction(packet *GamePacket) *GamePacket {
 	var bulletMoveVector *Vector3D = nil
 	var accvt *Vector3D = nil
 	var burstCount int = 0
-	var hommingTargetID []int // objid, teamid
+	var hommingTargetID IDList // objid, teamid
 	var superBulletMv *Vector3D = nil
 
 	if a.ActionPoint >= GameConst.APSuperBullet {
@@ -231,7 +231,7 @@ func (a *AI2) MakeAction(packet *GamePacket) *GamePacket {
 		By(attackFn).Sort(a.mainobjlist)
 		for _, o := range a.mainobjlist {
 			if o.AttackFactor > 1 && rand.Float64() < 0.5 {
-				hommingTargetID = []int{o.ID, o.TeamID}
+				hommingTargetID = IDList{o.ID, o.TeamID}
 				a.ActionPoint -= GameConst.APHommingBullet
 				break
 			}

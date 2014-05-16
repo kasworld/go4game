@@ -9,14 +9,16 @@ import (
 	"time"
 )
 
-var IdGenCh chan int
+type IDList []int64
+
+var IdGenCh chan int64
 
 func init() {
 	rand.Seed(time.Now().Unix())
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	IdGenCh = make(chan int)
+	IdGenCh = make(chan int64)
 	go func() {
-		i := 0
+		var i int64
 		for {
 			i++
 			IdGenCh <- i

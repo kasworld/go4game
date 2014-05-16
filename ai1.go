@@ -34,7 +34,7 @@ func (a *AINothing) MakeAction(packet *GamePacket) *GamePacket {
 type AIRandom struct {
 	me          *SPObj
 	spp         *SpatialPartition
-	worldBound  HyperRect
+	worldBound  *HyperRect
 	ActionPoint int
 	Score       int
 	HomePos     Vector3D
@@ -50,7 +50,7 @@ func (a *AIRandom) MakeAction(packet *GamePacket) *GamePacket {
 	if a.spp == nil || a.me == nil {
 		return &GamePacket{Cmd: ReqFrameInfo}
 	}
-	a.worldBound = HyperRect{Min: a.spp.Min, Max: a.spp.Max}
+	a.worldBound = &HyperRect{Min: a.spp.Min, Max: a.spp.Max}
 
 	rtn := &GamePacket{
 		Cmd: ReqFrameInfo,
@@ -64,7 +64,8 @@ func (a *AIRandom) MakeAction(packet *GamePacket) *GamePacket {
 	}
 
 	if a.ActionPoint >= GameConst.APSuperBullet && rand.Float64() < 0.5 {
-		rtn.ClientAct.SuperBulletMv = RandVector(a.spp.Min, a.spp.Max)
+		tmp := RandVector(a.spp.Min, a.spp.Max)
+		rtn.ClientAct.SuperBulletMv = &tmp
 		a.ActionPoint -= GameConst.APSuperBullet
 	}
 
@@ -74,16 +75,19 @@ func (a *AIRandom) MakeAction(packet *GamePacket) *GamePacket {
 	}
 
 	if a.ActionPoint >= GameConst.APBullet && rand.Float64() < 0.5 {
-		rtn.ClientAct.NormalBulletMv = RandVector(a.spp.Min, a.spp.Max)
+		tmp := RandVector(a.spp.Min, a.spp.Max)
+		rtn.ClientAct.NormalBulletMv = &tmp
 		a.ActionPoint -= GameConst.APBullet
 	}
 
 	if a.ActionPoint >= GameConst.APAccel {
 		if rand.Float64() < 0.5 {
-			rtn.ClientAct.Accel = RandVector(a.spp.Min, a.spp.Max)
+			tmp := RandVector(a.spp.Min, a.spp.Max)
+			rtn.ClientAct.Accel = &tmp
 			a.ActionPoint -= GameConst.APAccel
 		} else {
-			rtn.ClientAct.Accel = a.HomePos.Sub(&a.me.PosVector)
+			tmp := a.HomePos.Sub(a.me.PosVector)
+			rtn.ClientAct.Accel = &tmp
 			a.ActionPoint -= GameConst.APAccel
 		}
 	}
@@ -100,7 +104,7 @@ func (a *AIRandom) MakeAction(packet *GamePacket) *GamePacket {
 type AICloud struct {
 	me          *SPObj
 	spp         *SpatialPartition
-	worldBound  HyperRect
+	worldBound  *HyperRect
 	ActionPoint int
 	Score       int
 	HomePos     Vector3D
@@ -116,7 +120,7 @@ func (a *AICloud) MakeAction(packet *GamePacket) *GamePacket {
 	if a.spp == nil || a.me == nil {
 		return &GamePacket{Cmd: ReqFrameInfo}
 	}
-	a.worldBound = HyperRect{Min: a.spp.Min, Max: a.spp.Max}
+	a.worldBound = &HyperRect{Min: a.spp.Min, Max: a.spp.Max}
 
 	rtn := &GamePacket{
 		Cmd: ReqFrameInfo,
@@ -136,10 +140,12 @@ func (a *AICloud) MakeAction(packet *GamePacket) *GamePacket {
 
 	if a.ActionPoint >= GameConst.APAccel {
 		if rand.Float64() < 0.5 {
-			rtn.ClientAct.Accel = RandVector(a.spp.Min, a.spp.Max)
+			tmp := RandVector(a.spp.Min, a.spp.Max)
+			rtn.ClientAct.Accel = &tmp
 			a.ActionPoint -= GameConst.APAccel
 		} else {
-			rtn.ClientAct.Accel = a.HomePos.Sub(&a.me.PosVector)
+			tmp := a.HomePos.Sub(a.me.PosVector)
+			rtn.ClientAct.Accel = &tmp
 			a.ActionPoint -= GameConst.APAccel
 		}
 	}
@@ -151,7 +157,7 @@ func (a *AICloud) MakeAction(packet *GamePacket) *GamePacket {
 type AI2 struct {
 	me          *SPObj
 	spp         *SpatialPartition
-	worldBound  HyperRect
+	worldBound  *HyperRect
 	ActionPoint int
 	Score       int
 	HomePos     Vector3D
@@ -164,7 +170,7 @@ func (a *AI2) prepareTarget(s SPObjList) bool {
 	for _, t := range s {
 		if a.me.TeamID != t.TeamID {
 			estdur, estpos, estangle := a.me.calcAims(t, ObjDefault.MoveLimit[t.ObjType])
-			if math.IsInf(estdur, 1) || !estpos.IsIn(&a.worldBound) {
+			if math.IsInf(estdur, 1) || !estpos.IsIn(a.worldBound) {
 				estpos = nil
 			}
 			lenRate := a.me.calcLenRate(t)
@@ -195,10 +201,10 @@ func (a *AI2) MakeAction(packet *GamePacket) *GamePacket {
 	if a.spp == nil || a.me == nil {
 		return &GamePacket{Cmd: ReqFrameInfo}
 	}
-	a.worldBound = HyperRect{Min: a.spp.Min, Max: a.spp.Max}
+	a.worldBound = &HyperRect{Min: a.spp.Min, Max: a.spp.Max}
 	a.targetlist = make(AimTargetList, 0)
 	a.mainobjlist = make(AimTargetList, 0)
-	a.spp.ApplyParts27Fn(a.prepareTarget, &a.me.PosVector)
+	a.spp.ApplyParts27Fn(a.prepareTarget, a.me.PosVector)
 
 	if len(a.targetlist) == 0 {
 		return &GamePacket{Cmd: ReqFrameInfo}
@@ -218,7 +224,8 @@ func (a *AI2) MakeAction(packet *GamePacket) *GamePacket {
 		By(attackFn).Sort(a.mainobjlist)
 		for _, o := range a.mainobjlist {
 			if o.AttackFactor > 1 && rand.Float64() < 0.5 {
-				superBulletMv = o.AimPos.Sub(&a.me.PosVector).NormalizedTo(ObjDefault.MoveLimit[GameObjSuperBullet])
+				t := o.AimPos.Sub(a.me.PosVector).NormalizedTo(ObjDefault.MoveLimit[GameObjSuperBullet])
+				superBulletMv = &t
 				a.ActionPoint -= GameConst.APSuperBullet
 				break
 			}
@@ -259,7 +266,8 @@ func (a *AI2) MakeAction(packet *GamePacket) *GamePacket {
 		By(attackFn).Sort(a.targetlist)
 		for _, o := range a.targetlist {
 			if o.AttackFactor > 1 && rand.Float64() < 0.5 {
-				bulletMoveVector = o.AimPos.Sub(&a.me.PosVector).NormalizedTo(ObjDefault.MoveLimit[GameObjBullet])
+				tmpbulletMoveVector := o.AimPos.Sub(a.me.PosVector).NormalizedTo(ObjDefault.MoveLimit[GameObjBullet])
+				bulletMoveVector = &tmpbulletMoveVector
 				a.ActionPoint -= GameConst.APBullet
 				break
 			}
@@ -284,10 +292,11 @@ func (a *AI2) MakeAction(packet *GamePacket) *GamePacket {
 }
 func (a *AI2) calcEvasionVector(t *AimTarget) *Vector3D {
 	speed := (a.me.CollisionRadius + t.SPObj.CollisionRadius) * GameConst.FramePerSec
-	backvt := a.me.PosVector.Sub(&t.SPObj.PosVector).NormalizedTo(speed) // backward
-	sidevt := t.AimPos.Sub(&a.me.PosVector).NormalizedTo(speed)
-	tohomevt := a.HomePos.Sub(&a.me.PosVector).NormalizedTo(speed) // to home pos
-	return backvt.Add(backvt).Add(sidevt).Add(tohomevt)
+	backvt := a.me.PosVector.Sub(t.SPObj.PosVector).NormalizedTo(speed) // backward
+	sidevt := t.AimPos.Sub(a.me.PosVector).NormalizedTo(speed)
+	tohomevt := a.HomePos.Sub(a.me.PosVector).NormalizedTo(speed) // to home pos
+	rtn := backvt.Add(backvt).Add(sidevt).Add(tohomevt)
+	return &rtn
 }
 
 // attack
@@ -347,7 +356,7 @@ type AimTarget struct {
 // < 1 safe , > 1 danger
 func (me *SPObj) calcLenRate(t *SPObj) float64 {
 	collen := me.CollisionRadius + t.CollisionRadius
-	curlen := me.PosVector.LenTo(&t.PosVector) - collen
+	curlen := me.PosVector.LenTo(t.PosVector) - collen
 	nextposme := me.PosVector.Add(me.MoveVector.Idiv(GameConst.FramePerSec))
 	nextpost := t.PosVector.Add(t.MoveVector.Idiv(GameConst.FramePerSec))
 	nextlen := nextposme.LenTo(nextpost) - collen
@@ -360,13 +369,13 @@ func (me *SPObj) calcLenRate(t *SPObj) float64 {
 
 //
 func (me *SPObj) calcAims(t *SPObj, movelimit float64) (float64, *Vector3D, float64) {
-	dur := me.PosVector.CalcAimAheadDur(&t.PosVector, &t.MoveVector, movelimit)
+	dur := me.PosVector.CalcAimAheadDur(t.PosVector, t.MoveVector, movelimit)
 	if math.IsInf(dur, 1) {
 		return math.Inf(1), nil, 0
 	}
 	estpos := t.PosVector.Add(t.MoveVector.Imul(dur))
-	estangle := t.MoveVector.Angle(estpos.Sub(&me.PosVector))
-	return dur, estpos, estangle
+	estangle := t.MoveVector.Angle(estpos.Sub(me.PosVector))
+	return dur, &estpos, estangle
 }
 
 // By is the type of a "less" function that defines the ordering of its AimTarget arguments.

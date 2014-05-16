@@ -77,7 +77,7 @@ type AI3AimTarget struct {
 // estmate remain frame to contact( len == 0 )
 func (a *AI3) frame2Contact(t *SPObj) float64 {
 	collen := a.me.CollisionRadius + t.CollisionRadius
-	curlen := a.me.PosVector.LenTo(&t.PosVector) - collen
+	curlen := a.me.PosVector.LenTo(t.PosVector) - collen
 	nextposme := a.me.PosVector.Add(a.me.MoveVector.Idiv(GameConst.FramePerSec))
 	nextpost := t.PosVector.Add(t.MoveVector.Idiv(GameConst.FramePerSec))
 	nextlen := nextposme.LenTo(nextpost) - collen
@@ -111,7 +111,7 @@ func (a *AI3) CalcEvasionFactor(o *SPObj) float64 {
 	speedrate := ObjDefault.MoveLimit[o.ObjType] / ObjDefault.MoveLimit[a.me.ObjType]
 
 	collen := a.me.CollisionRadius + o.CollisionRadius
-	curlen := a.me.PosVector.LenTo(&o.PosVector)
+	curlen := a.me.PosVector.LenTo(o.PosVector)
 	lenfactor := collen * 5 / curlen
 
 	timefactor := GameConst.FramePerSec / 2 / a.frame2Contact(o) // in 0.5 sec len
@@ -140,7 +140,7 @@ func (a *AI3) CalcAttackFactor(o *SPObj, bulletType GameObjectType) float64 {
 	}[o.ObjType]
 
 	collen := a.me.CollisionRadius + o.CollisionRadius
-	curlen := a.me.PosVector.LenTo(&o.PosVector)
+	curlen := a.me.PosVector.LenTo(o.PosVector)
 	lenfactor := collen * 50 / curlen
 
 	factor := anglefactor * typefactor * lenfactor
@@ -180,19 +180,20 @@ func (a *AI3) prepareTarget(s SPObjList) bool {
 
 func (a *AI3) calcEvasionVector(t *SPObj) *Vector3D {
 	speed := ObjDefault.MoveLimit[a.me.ObjType]
-	backvt := a.me.PosVector.Sub(&t.PosVector).NormalizedTo(speed) // backward
-	tohomevt := a.HomePos.Sub(&a.me.PosVector).NormalizedTo(speed) // to home pos
-	return backvt.Add(backvt).Add(tohomevt)
+	backvt := a.me.PosVector.Sub(t.PosVector).NormalizedTo(speed) // backward
+	tohomevt := a.HomePos.Sub(a.me.PosVector).NormalizedTo(speed) // to home pos
+	rtn := backvt.Add(backvt).Add(tohomevt)
+	return &rtn
 }
 
 func (a *AI3) calcAims(t *SPObj, projectilemovelimit float64) (float64, *Vector3D, float64) {
-	dur := a.me.PosVector.CalcAimAheadDur(&t.PosVector, &t.MoveVector, projectilemovelimit)
+	dur := a.me.PosVector.CalcAimAheadDur(t.PosVector, t.MoveVector, projectilemovelimit)
 	if math.IsInf(dur, 1) {
 		return math.Inf(1), nil, 0
 	}
 	estpos := t.PosVector.Add(t.MoveVector.Imul(dur))
-	estangle := t.MoveVector.Angle(estpos.Sub(&a.me.PosVector))
-	return dur, estpos, estangle
+	estangle := t.MoveVector.Angle(estpos.Sub(a.me.PosVector))
+	return dur, &estpos, estangle
 }
 
 func (a *AI3) sortActTargets(act AI3ActionType) bool {
@@ -226,7 +227,7 @@ func (a *AI3) MakeAction(packet *GamePacket) *GamePacket {
 	for i := AI3ActionAccel; i < AI3ActionEnd; i++ {
 		a.preparedTargets[i] = make(AI3AimTargetList, 0)
 	}
-	a.spp.ApplyParts27Fn(a.prepareTarget, &a.me.PosVector)
+	a.spp.ApplyParts27Fn(a.prepareTarget, a.me.PosVector)
 
 	a.delOldTagets()
 	rtn := &GamePacket{
@@ -251,7 +252,8 @@ func (a *AI3) MakeAction(packet *GamePacket) *GamePacket {
 			}
 		}
 		if rtn.ClientAct.Accel == nil && rand.Float64() < 0.5 {
-			rtn.ClientAct.Accel = a.HomePos.Sub(&a.me.PosVector)
+			tmp := a.HomePos.Sub(a.me.PosVector)
+			rtn.ClientAct.Accel = &tmp
 			a.ActionPoint -= AI3AP[act]
 		}
 	}
@@ -260,7 +262,8 @@ func (a *AI3) MakeAction(packet *GamePacket) *GamePacket {
 		for _, o := range a.preparedTargets[act] {
 			if o.actFactor[act] > 1 && a.lastTargets[act][o.ID].IsZero() {
 				_, estpos, _ := a.calcAims(o.SPObj, ObjDefault.MoveLimit[GameObjSuperBullet])
-				rtn.ClientAct.SuperBulletMv = estpos.Sub(&a.me.PosVector).NormalizedTo(ObjDefault.MoveLimit[GameObjSuperBullet])
+				tmp := estpos.Sub(a.me.PosVector).NormalizedTo(ObjDefault.MoveLimit[GameObjSuperBullet])
+				rtn.ClientAct.SuperBulletMv = &tmp
 				a.lastTargets[act][o.ID] = time.Now()
 
 				a.ActionPoint -= AI3AP[act]
@@ -295,7 +298,8 @@ func (a *AI3) MakeAction(packet *GamePacket) *GamePacket {
 		for _, o := range a.preparedTargets[act] {
 			if o.actFactor[act] > 1 && a.lastTargets[act][o.ID].IsZero() {
 				_, estpos, _ := a.calcAims(o.SPObj, ObjDefault.MoveLimit[GameObjBullet])
-				rtn.ClientAct.NormalBulletMv = estpos.Sub(&a.me.PosVector).NormalizedTo(ObjDefault.MoveLimit[GameObjBullet])
+				tmp := estpos.Sub(a.me.PosVector).NormalizedTo(ObjDefault.MoveLimit[GameObjBullet])
+				rtn.ClientAct.NormalBulletMv = &tmp
 				a.lastTargets[act][o.ID] = time.Now()
 
 				a.ActionPoint -= AI3AP[act]

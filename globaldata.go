@@ -75,8 +75,8 @@ var GameConst = struct {
 	MaxTcpClientPerWorld: 32,
 	MaxWsClientPerWorld:  32,
 	StartWorldCount:      1,
-	NpcCountPerWorld:     32,
-	ClearY:               true,
+	NpcCountPerWorld:     1024,
+	ClearY:               false,
 
 	APAccel:         1,
 	APBullet:        10,

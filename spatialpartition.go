@@ -50,7 +50,7 @@ func (w *World) MakeSpatialPartition() *SpatialPartition {
 	rtn := SpatialPartition{
 		Min:             w.MinPos,
 		Max:             w.MaxPos,
-		Size:            *w.MaxPos.Sub(&w.MinPos),
+		Size:            w.MaxPos.Sub(w.MinPos),
 		MaxObjectRadius: w.MaxObjectRadius,
 	}
 	objcount := 0
@@ -63,10 +63,10 @@ func (w *World) MakeSpatialPartition() *SpatialPartition {
 	if rtn.PartCount < 3 {
 		rtn.PartCount = 3
 	}
-	rtn.PartSize = *rtn.Size.Idiv(float64(rtn.PartCount))
+	rtn.PartSize = rtn.Size.Idiv(float64(rtn.PartCount))
 	rtn.PartMins = make([]Vector3D, rtn.PartCount+1)
 	for i := 0; i < rtn.PartCount; i++ {
-		rtn.PartMins[i] = *rtn.Min.Add(&Vector3D{
+		rtn.PartMins[i] = rtn.Min.Add(Vector3D{
 			float64(i) * rtn.PartSize[0],
 			float64(i) * rtn.PartSize[1],
 			float64(i) * rtn.PartSize[2]})
@@ -84,7 +84,7 @@ func (w *World) MakeSpatialPartition() *SpatialPartition {
 	for _, t := range w.Teams {
 		for _, obj := range t.GameObjs {
 			if obj != nil && obj.ObjType != 0 {
-				partPos := rtn.Pos2PartPos(&obj.PosVector)
+				partPos := rtn.Pos2PartPos(obj.PosVector)
 				rtn.AddPartPos(partPos, NewSPObj(obj))
 			}
 		}
@@ -92,8 +92,8 @@ func (w *World) MakeSpatialPartition() *SpatialPartition {
 	return &rtn
 }
 
-func (p *SpatialPartition) Pos2PartPos(pos *Vector3D) [3]int {
-	nompos := pos.Sub(&p.Min)
+func (p *SpatialPartition) Pos2PartPos(pos Vector3D) [3]int {
+	nompos := pos.Sub(p.Min)
 	rtn := [3]int{0, 0, 0}
 
 	for i, v := range nompos {
@@ -128,7 +128,7 @@ func (p *SpatialPartition) makeRange2(c float64, r float64, min float64, max flo
 }
 
 // for collision check
-func (p *SpatialPartition) IsCollision(fn func(*SPObj) bool, pos *Vector3D, r float64) bool {
+func (p *SpatialPartition) IsCollision(fn func(*SPObj) bool, pos Vector3D, r float64) bool {
 	ppos := p.Pos2PartPos(pos)
 	partcube := p.GetPartCube(ppos)
 
@@ -155,7 +155,7 @@ func (p *SpatialPartition) IsCollision(fn func(*SPObj) bool, pos *Vector3D, r fl
 }
 
 // for find who kill gameobjmain
-func (p *SpatialPartition) GetCollisionList(fn func(*SPObj) bool, pos *Vector3D, r float64) IDList {
+func (p *SpatialPartition) GetCollisionList(fn func(*SPObj) bool, pos Vector3D, r float64) IDList {
 	ppos := p.Pos2PartPos(pos)
 	partcube := p.GetPartCube(ppos)
 	rtn := make(IDList, 0)
@@ -193,7 +193,7 @@ func (p *SpatialPartition) makeRange3(n int) []int {
 }
 
 // for ai action
-func (p *SpatialPartition) ApplyParts27Fn(fn func(SPObjList) bool, pos *Vector3D) bool {
+func (p *SpatialPartition) ApplyParts27Fn(fn func(SPObjList) bool, pos Vector3D) bool {
 	ppos := p.Pos2PartPos(pos)
 	xr := p.makeRange3(ppos[0])
 	yr := p.makeRange3(ppos[1])

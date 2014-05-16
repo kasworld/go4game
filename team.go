@@ -88,7 +88,7 @@ func NewTeam(w *World, conn interface{}) *Team {
 	default:
 		log.Printf("unknown type %#v", conn)
 	}
-	t.HomePos = *RandVector(w.MinPos, w.MaxPos).Idiv(2)
+	t.HomePos = RandVector(w.MinPos, w.MaxPos).Idiv(2)
 	if GameConst.ClearY {
 		t.HomePos[1] = 0
 	}
@@ -96,7 +96,7 @@ func NewTeam(w *World, conn interface{}) *Team {
 }
 
 func (t *Team) moveHomePos() {
-	t.HomePos = *t.HomePos.Add(RandVector(t.PWorld.MinPos, t.PWorld.MaxPos).Idiv(100))
+	t.HomePos = t.HomePos.Add(RandVector(t.PWorld.MinPos, t.PWorld.MaxPos).Idiv(100))
 	for i, v := range t.HomePos {
 		if v > t.PWorld.MaxPos[i] {
 			t.HomePos[i] = t.PWorld.MaxPos[i]
@@ -228,7 +228,7 @@ func (t *Team) CalcAP(spp *SpatialPartition) int {
 	if o == nil {
 		return 0
 	}
-	lenToHomepos := o.PosVector.LenTo(&t.HomePos)
+	lenToHomepos := o.PosVector.LenTo(t.HomePos)
 	lmax := spp.Size.Abs()
 	rtn := int((lmax - lenToHomepos) / lmax * float64(GameConst.APIncFrame))
 	//log.Printf("ap:%v", rtn)
@@ -271,12 +271,12 @@ func (t *Team) addNewGameObject(ObjType GameObjectType, args interface{}) *GameO
 	case GameObjBullet:
 		mo := t.findMainObj()
 		if mo != nil {
-			o.MakeBullet(mo, args.(*Vector3D))
+			o.MakeBullet(mo, args.(Vector3D))
 		}
 	case GameObjSuperBullet:
 		mo := t.findMainObj()
 		if mo != nil {
-			o.MakeSuperBullet(mo, args.(*Vector3D))
+			o.MakeSuperBullet(mo, args.(Vector3D))
 		}
 	case GameObjHommingBullet:
 		mo := t.findMainObj()
@@ -315,7 +315,7 @@ func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) int {
 	}
 	if act.NormalBulletMv != nil {
 		if t.ActionPoint >= GameConst.APBullet {
-			t.addNewGameObject(GameObjBullet, act.NormalBulletMv)
+			t.addNewGameObject(GameObjBullet, *act.NormalBulletMv)
 			t.ActionPoint -= GameConst.APBullet
 			rtn++
 		} else {
@@ -347,7 +347,7 @@ func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) int {
 	}
 	if act.SuperBulletMv != nil {
 		if t.ActionPoint >= GameConst.APSuperBullet {
-			t.addNewGameObject(GameObjSuperBullet, act.SuperBulletMv)
+			t.addNewGameObject(GameObjSuperBullet, *act.SuperBulletMv)
 			t.ActionPoint -= GameConst.APSuperBullet
 			rtn++
 		} else {

@@ -72,9 +72,9 @@ func (o *GameObject) ClearY() {
 }
 
 func (o *GameObject) MakeMainObj() {
-	o.PosVector = *RandVector(o.MinPos, o.MaxPos)
-	o.MoveVector = *RandVector(o.MinPos, o.MaxPos)
-	o.accelVector = *RandVector(o.MinPos, o.MaxPos)
+	o.PosVector = RandVector(o.MinPos, o.MaxPos)
+	o.MoveVector = RandVector(o.MinPos, o.MaxPos)
+	o.accelVector = RandVector(o.MinPos, o.MaxPos)
 
 	o.ObjType = GameObjMain
 	o.moveLimit = ObjDefault.MoveLimit[o.ObjType]
@@ -83,8 +83,8 @@ func (o *GameObject) MakeMainObj() {
 	o.ClearY()
 }
 func (o *GameObject) MakeShield(mo *GameObject) {
-	o.MoveVector = *RandVector(o.MinPos, o.MaxPos)
-	o.accelVector = *RandVector(o.MinPos, o.MaxPos)
+	o.MoveVector = RandVector(o.MinPos, o.MaxPos)
+	o.accelVector = RandVector(o.MinPos, o.MaxPos)
 	o.endTime = o.startTime.Add(time.Second * 60)
 	o.moveByTimeFn = moveByTimeFn_shield
 	o.borderActionFn = borderActionFn_None
@@ -94,10 +94,10 @@ func (o *GameObject) MakeShield(mo *GameObject) {
 	o.moveLimit = ObjDefault.MoveLimit[o.ObjType]
 	o.CollisionRadius = ObjDefault.Radius[o.ObjType]
 }
-func (o *GameObject) MakeBullet(mo *GameObject, MoveVector *Vector3D) {
+func (o *GameObject) MakeBullet(mo *GameObject, MoveVector Vector3D) {
 	o.endTime = o.startTime.Add(time.Second * 60)
 	o.PosVector = mo.PosVector
-	o.MoveVector = *MoveVector
+	o.MoveVector = MoveVector
 	o.borderActionFn = borderActionFn_Disable
 	o.accelVector = Vector3D{0, 0, 0}
 
@@ -107,10 +107,10 @@ func (o *GameObject) MakeBullet(mo *GameObject, MoveVector *Vector3D) {
 
 	o.ClearY()
 }
-func (o *GameObject) MakeSuperBullet(mo *GameObject, MoveVector *Vector3D) {
+func (o *GameObject) MakeSuperBullet(mo *GameObject, MoveVector Vector3D) {
 	o.endTime = o.startTime.Add(time.Second * 60)
 	o.PosVector = mo.PosVector
-	o.MoveVector = *MoveVector
+	o.MoveVector = MoveVector
 	o.borderActionFn = borderActionFn_Disable
 	o.accelVector = Vector3D{0, 0, 0}
 
@@ -126,7 +126,7 @@ func (o *GameObject) MakeHommingBullet(mo *GameObject, targetteamid int64, targe
 	o.borderActionFn = borderActionFn_None
 	o.accelVector = Vector3D{0, 0, 0}
 
-	//o.MoveVector = *MoveVector
+	o.MoveVector = Vector3D{0, 0, 0}
 	o.targetObjID = targetid
 	o.targetTeamID = targetteamid
 	o.moveByTimeFn = moveByTimeFn_homming
@@ -144,7 +144,7 @@ type ActionFnEnvInfo struct {
 
 func (o *GameObject) IsCollision(s *SPObj) bool {
 	o.PTeam.CollisionStat.Inc()
-	if (s.TeamID != o.PTeam.ID) && InteractionMap[o.ObjType][s.ObjType] && (s.PosVector.Sqd(&o.PosVector) <= ObjSqd[s.ObjType][o.ObjType]) {
+	if (s.TeamID != o.PTeam.ID) && InteractionMap[o.ObjType][s.ObjType] && (s.PosVector.Sqd(o.PosVector) <= ObjSqd[s.ObjType][o.ObjType]) {
 		return true
 	}
 	return false
@@ -173,12 +173,12 @@ func (o *GameObject) ActByTime(t time.Time, spp *SpatialPartition) IDList {
 	// modify own status only
 	var isCollsion bool
 	if o.ObjType == GameObjMain {
-		clist = spp.GetCollisionList(o.IsCollision, &o.PosVector, spp.MaxObjectRadius)
+		clist = spp.GetCollisionList(o.IsCollision, o.PosVector, spp.MaxObjectRadius)
 		if len(clist) > 0 {
 			isCollsion = true
 		}
 	} else {
-		isCollsion = spp.IsCollision(o.IsCollision, &o.PosVector, o.CollisionRadius+spp.MaxObjectRadius)
+		isCollsion = spp.IsCollision(o.IsCollision, o.PosVector, o.CollisionRadius+spp.MaxObjectRadius)
 	}
 	if isCollsion {
 		if o.collisionActionFn != nil {
@@ -220,11 +220,11 @@ func collisionFn_default(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 func moveByTimeFn_default(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 	dur := float64(envInfo.frameTime.Sub(m.lastMoveTime)) / float64(time.Second)
 	//log.Printf("frame dur %v %v", m.lastMoveTime, dur)
-	m.MoveVector = *m.MoveVector.Add(m.accelVector.Imul(dur))
+	m.MoveVector = m.MoveVector.Add(m.accelVector.Imul(dur))
 	if m.MoveVector.Abs() > m.moveLimit {
-		m.MoveVector = *m.MoveVector.Normalized().Imul(m.moveLimit)
+		m.MoveVector = m.MoveVector.Normalized().Imul(m.moveLimit)
 	}
-	m.PosVector = *m.PosVector.Add(m.MoveVector.Imul(dur))
+	m.PosVector = m.PosVector.Add(m.MoveVector.Imul(dur))
 	return true
 }
 
@@ -237,8 +237,8 @@ func moveByTimeFn_shield(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 	//axis := &Vector3D{0, math.Copysign(20, m.MoveVector[0]), 0}
 	axis := mo.MoveVector.Normalized().Imul(20)
 	//p := m.accelVector.Normalized().Imul(20)
-	p := mo.MoveVector.Cross(&m.MoveVector).Normalized().Imul(20)
-	m.PosVector = *mo.PosVector.Add(p.RotateAround(axis, dur+m.accelVector.Abs()))
+	p := mo.MoveVector.Cross(m.MoveVector).Normalized().Imul(20)
+	m.PosVector = mo.PosVector.Add(p.RotateAround(axis, dur+m.accelVector.Abs()))
 	return true
 }
 
@@ -248,7 +248,7 @@ func moveByTimeFn_homming(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 		m.enabled = false
 		return false
 	}
-	m.accelVector = *targetobj.PosVector.Sub(&m.PosVector).NormalizedTo(m.moveLimit)
+	m.accelVector = targetobj.PosVector.Sub(m.PosVector).NormalizedTo(m.moveLimit)
 	return moveByTimeFn_default(m, envInfo)
 }
 

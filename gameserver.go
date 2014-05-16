@@ -2,15 +2,13 @@ package go4game
 
 import (
 	"fmt"
-	"log"
-	"net"
-	//"reflect"
-	//"encoding/json"
-	//"flag"
 	"github.com/gorilla/websocket"
 	"html/template"
+	"log"
+	"net"
 	"net/http"
 	"runtime"
+	"strconv"
 	"time"
 )
 
@@ -136,9 +134,10 @@ func (g *GameService) wsServer() {
 }
 
 var TopTemplate *template.Template
+var WorldTemplate *template.Template
 
 func init() {
-	const t = `
+	const tindex = `
 		<html>
 		<head>
 		<title>go4game stat</title>
@@ -149,7 +148,24 @@ func init() {
 		</br>
 		{{.Disp}}
 		</br>
-		{{range .Worlds}}
+		{{range $id, $s := .Worlds}}
+		<a href='?worldid={{$id}}' target="_blank">{{$s}}</a>
+		</br>
+		{{end}}
+		</body>
+		</html>
+		`
+	TopTemplate = template.Must(template.New("indexpage").Parse(tindex))
+
+	const tworld = `
+		<html>
+		<head>
+		<title>go4game stat</title>
+		<meta http-equiv="refresh" content="1">
+		</head>
+		<body>
+		<a href='www/client3d.html' target="_blank">Open 3d client</a>
+		</br>
 		{{.Disp}}
 		</br>
 		<table>
@@ -174,25 +190,37 @@ func init() {
 		</tr>
 		{{end}}
 		</table>
-		{{end}}
 		</body>
 		</html>
 		`
-	TopTemplate = template.Must(template.New("indexpage").Parse(t))
+	WorldTemplate = template.Must(template.New("indexpage").Parse(tworld))
 }
 
 func (g *GameService) Stat(w http.ResponseWriter, r *http.Request) {
-	ws := make([]WorldInfo, 0, len(g.Worlds))
-	for _, w := range g.Worlds {
-		ws = append(ws, *w.makeWorldInfo())
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, "parse error", 405)
 	}
-	TopTemplate.Execute(w, struct {
-		Disp   string
-		Worlds []WorldInfo
-	}{
-		Disp:   g.String(),
-		Worlds: ws,
-	})
+	wid := r.Form.Get("worldid")
+	worldid, err := strconv.ParseInt(wid, 0, 64)
+	//log.Printf("worldid %v, %v", worldid, err)
+
+	if err != nil {
+		ws := make(map[int64]string, len(g.Worlds))
+		for id, w := range g.Worlds {
+			ws[id] = w.String()
+		}
+		TopTemplate.Execute(w, struct {
+			Disp   string
+			Worlds map[int64]string
+		}{
+			Disp:   g.String(),
+			Worlds: ws,
+		})
+	} else {
+		wi := g.Worlds[worldid].makeWorldInfo()
+		WorldTemplate.Execute(w, wi)
+	}
 }
 
 func (g *GameService) wsServe(w http.ResponseWriter, r *http.Request) {

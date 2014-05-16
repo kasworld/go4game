@@ -1,7 +1,7 @@
 package go4game
 
 import (
-	"log"
+	//"log"
 	//"time"
 	"math"
 	"math/rand"
@@ -209,7 +209,7 @@ func (a *AI3) sortActTargets(act AI3ActionType) bool {
 
 func (a *AI3) MakeAction(packet *GamePacket) *GamePacket {
 	if a.lastTargets[0] == nil {
-		log.Printf("init historydata ")
+		//log.Printf("init historydata ")
 		for act := AI3ActionAccel; act < AI3ActionEnd; act++ {
 			a.lastTargets[act] = make(map[int64]time.Time)
 		}

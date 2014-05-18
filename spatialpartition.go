@@ -6,12 +6,11 @@ import (
 )
 
 type SPObj struct {
-	ID              int64
-	TeamID          int64
-	PosVector       Vector3D
-	MoveVector      Vector3D
-	CollisionRadius float64
-	ObjType         GameObjectType
+	ID         int64
+	TeamID     int64
+	PosVector  Vector3D
+	MoveVector Vector3D
+	ObjType    GameObjectType
 }
 
 func NewSPObj(o *GameObject) *SPObj {
@@ -19,12 +18,11 @@ func NewSPObj(o *GameObject) *SPObj {
 		return nil
 	}
 	return &SPObj{
-		ID:              o.ID,
-		TeamID:          o.PTeam.ID,
-		PosVector:       o.PosVector,
-		MoveVector:      o.MoveVector,
-		CollisionRadius: o.CollisionRadius,
-		ObjType:         o.ObjType,
+		ID:         o.ID,
+		TeamID:     o.PTeam.ID,
+		PosVector:  o.PosVector,
+		MoveVector: o.MoveVector,
+		ObjType:    o.ObjType,
 	}
 }
 

@@ -21,7 +21,7 @@ func NewGameObjectSeiralize(o *GameObject) *GameObjectSeiralize {
 		ObjType:         o.ObjType,
 		PosVector:       o.PosVector,
 		MoveVector:      o.MoveVector,
-		CollisionRadius: o.CollisionRadius,
+		CollisionRadius: ObjDefault.Radius[o.ObjType],
 	}
 	//log.Printf("%#v", gi)
 	return &gi

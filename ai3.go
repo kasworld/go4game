@@ -76,7 +76,7 @@ type AI3AimTarget struct {
 
 // estmate remain frame to contact( len == 0 )
 func (a *AI3) frame2Contact(t *SPObj) float64 {
-	collen := a.me.CollisionRadius + t.CollisionRadius
+	collen := math.Sqrt(ObjSqd[a.me.ObjType][t.ObjType])
 	curlen := a.me.PosVector.LenTo(t.PosVector) - collen
 	nextposme := a.me.PosVector.Add(a.me.MoveVector.Idiv(GameConst.FramePerSec))
 	nextpost := t.PosVector.Add(t.MoveVector.Idiv(GameConst.FramePerSec))
@@ -110,7 +110,7 @@ func (a *AI3) CalcEvasionFactor(o *SPObj) float64 {
 
 	speedrate := ObjDefault.MoveLimit[o.ObjType] / ObjDefault.MoveLimit[a.me.ObjType]
 
-	collen := a.me.CollisionRadius + o.CollisionRadius
+	collen := math.Sqrt(ObjSqd[a.me.ObjType][o.ObjType])
 	curlen := a.me.PosVector.LenTo(o.PosVector)
 	lenfactor := collen * 5 / curlen
 
@@ -139,7 +139,7 @@ func (a *AI3) CalcAttackFactor(o *SPObj, bulletType GameObjectType) float64 {
 		GameObjSuperBullet:   1.4,
 	}[o.ObjType]
 
-	collen := a.me.CollisionRadius + o.CollisionRadius
+	collen := math.Sqrt(ObjSqd[a.me.ObjType][o.ObjType])
 	curlen := a.me.PosVector.LenTo(o.PosVector)
 	lenfactor := collen * 50 / curlen
 

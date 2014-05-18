@@ -22,6 +22,7 @@ type Team struct {
 	ActionPoint    int
 	Score          int
 	HomePos        Vector3D
+	MainObjID      int64
 }
 
 func (m Team) String() string {
@@ -111,12 +112,13 @@ func (t *Team) moveHomePos() {
 }
 
 func (t *Team) findMainObj() *GameObject {
-	for _, v := range t.GameObjs {
-		if v.ObjType == GameObjMain {
-			return v
-		}
-	}
-	return nil
+	return t.GameObjs[t.MainObjID]
+	// for _, v := range t.GameObjs {
+	// 	if v.ObjType == GameObjMain {
+	// 		return v
+	// 	}
+	// }
+	// return nil
 }
 
 func (t *Team) countObjByType(got GameObjectType) int {
@@ -263,6 +265,7 @@ func (t *Team) addNewGameObject(ObjType GameObjectType, args interface{}) *GameO
 	switch ObjType {
 	case GameObjMain:
 		o.MakeMainObj()
+		t.MainObjID = o.ID
 	case GameObjShield:
 		mo := t.findMainObj()
 		if mo != nil {

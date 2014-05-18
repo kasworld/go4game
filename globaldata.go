@@ -24,7 +24,7 @@ var ObjDefault = struct {
 	MoveLimit: map[GameObjectType]float64{
 		GameObjMain: 100, GameObjShield: 200, GameObjBullet: 300, GameObjHommingBullet: 200, GameObjSuperBullet: 600},
 	Radius: map[GameObjectType]float64{
-		GameObjMain: 10, GameObjShield: 5, GameObjBullet: 5, GameObjHommingBullet: 10, GameObjSuperBullet: 20},
+		GameObjMain: 10, GameObjShield: 5, GameObjBullet: 5, GameObjHommingBullet: 7, GameObjSuperBullet: 15},
 }
 
 // harmed obj : can harm obj
@@ -74,7 +74,7 @@ var GameConst = struct {
 	RemoveEmptyWorld:     false,
 	MaxTcpClientPerWorld: 32,
 	MaxWsClientPerWorld:  32,
-	StartWorldCount:      8,
+	StartWorldCount:      1,
 	NpcCountPerWorld:     8,
 	ClearY:               true,
 
@@ -87,7 +87,7 @@ var GameConst = struct {
 
 	KillScore:       1,
 	ShieldCount:     8,
-	MaxObjectRadius: 20, // changed by init
+	MaxObjectRadius: 1, // changed by init
 }
 
 var ObjSqd [GameObjEnd][GameObjEnd]float64

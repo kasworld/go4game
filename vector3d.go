@@ -77,7 +77,7 @@ func (p Vector3D) Normalized() Vector3D {
 }
 func (p Vector3D) NormalizedTo(l float64) Vector3D {
 	d := p.Abs() / l
-	if d > 0 {
+	if d != 0 {
 		return p.Idiv(d)
 	}
 	return p

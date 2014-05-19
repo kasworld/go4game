@@ -81,7 +81,7 @@ func (a *AI3) CalcEvasionFactor(o *SPObj) float64 {
 	// anglefactor := 2 - a.me.PosVector.Sub(&o.PosVector).Angle(&o.MoveVector)*2/math.Pi
 	anglefactor := 1.0
 
-	typefactor := map[GameObjectType]float64{
+	typefactor := [GameObjEnd]float64{
 		GameObjMain:          2.0,
 		GameObjBullet:        1.0,
 		GameObjShield:        0.0,
@@ -112,7 +112,7 @@ func (a *AI3) CalcAttackFactor(o *SPObj, bulletType GameObjectType) float64 {
 	}
 	anglefactor := math.Pow(estangle/math.Pi, 2)
 
-	typefactor := map[GameObjectType]float64{
+	typefactor := [GameObjEnd]float64{
 		GameObjMain:          1.2,
 		GameObjBullet:        1.0,
 		GameObjShield:        0,

@@ -11,18 +11,19 @@ import (
 )
 
 type Team struct {
-	ID             int64
+	ID          int64
+	Color       int
+	ActionPoint int
+	Score       int
+	HomePos     Vector3D
+	MainObjID   int64
+
+	PacketStat     ActionStat
+	CollisionStat  ActionStat
 	PWorld         *World
 	GameObjs       map[int64]*GameObject
 	ClientConnInfo ConnInfo
 	chStep         <-chan IDList
-	Color          int
-	PacketStat     ActionStat
-	CollisionStat  ActionStat
-	ActionPoint    int
-	Score          int
-	HomePos        Vector3D
-	MainObjID      int64
 }
 
 func (m Team) String() string {
@@ -89,7 +90,7 @@ func NewTeam(w *World, conn interface{}) *Team {
 	default:
 		log.Printf("unknown type %#v", conn)
 	}
-	t.HomePos = RandVector(w.MinPos, w.MaxPos).Idiv(2)
+	t.HomePos = RandVector(GameConst.WorldMin, GameConst.WorldMax).Idiv(2)
 	if GameConst.ClearY {
 		t.HomePos[1] = 0
 	}
@@ -97,13 +98,13 @@ func NewTeam(w *World, conn interface{}) *Team {
 }
 
 func (t *Team) moveHomePos() {
-	t.HomePos = t.HomePos.Add(RandVector(t.PWorld.MinPos, t.PWorld.MaxPos).Idiv(100))
+	t.HomePos = t.HomePos.Add(RandVector(GameConst.WorldMin, GameConst.WorldMax).Idiv(100))
 	for i, v := range t.HomePos {
-		if v > t.PWorld.MaxPos[i] {
-			t.HomePos[i] = t.PWorld.MaxPos[i]
+		if v > GameConst.WorldMax[i] {
+			t.HomePos[i] = GameConst.WorldMax[i]
 		}
-		if v < t.PWorld.MinPos[i] {
-			t.HomePos[i] = t.PWorld.MinPos[i]
+		if v < GameConst.WorldMin[i] {
+			t.HomePos[i] = GameConst.WorldMin[i]
 		}
 	}
 	if GameConst.ClearY {
@@ -306,9 +307,9 @@ func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) int {
 		return rtn
 	}
 	if act.Accel != nil {
-		if t.ActionPoint >= GameConst.APAccel {
+		if t.ActionPoint >= ActionPoints[ActionAccel] {
 			mo.accelVector = *act.Accel
-			t.ActionPoint -= GameConst.APAccel
+			t.ActionPoint -= ActionPoints[ActionAccel]
 			rtn++
 		} else {
 			log.Printf("Team%v ap:%v over use accel %v",
@@ -317,9 +318,9 @@ func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) int {
 
 	}
 	if act.NormalBulletMv != nil {
-		if t.ActionPoint >= GameConst.APBullet {
+		if t.ActionPoint >= ActionPoints[ActionBullet] {
 			t.addNewGameObject(GameObjBullet, *act.NormalBulletMv)
-			t.ActionPoint -= GameConst.APBullet
+			t.ActionPoint -= ActionPoints[ActionBullet]
 			rtn++
 		} else {
 			log.Printf("Team%v ap:%v over use bullet %v",
@@ -327,11 +328,11 @@ func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) int {
 		}
 	}
 	if act.BurstShot > 0 {
-		if t.ActionPoint >= act.BurstShot*GameConst.APBurstShot {
+		if t.ActionPoint >= act.BurstShot*ActionPoints[ActionBurstBullet] {
 			for i := 0; i < act.BurstShot; i++ {
 				t.addNewGameObject(GameObjBullet, RandVector3D(-300, 300))
 			}
-			t.ActionPoint -= GameConst.APBurstShot * act.BurstShot
+			t.ActionPoint -= ActionPoints[ActionBurstBullet] * act.BurstShot
 			rtn++
 		} else {
 			log.Printf("Team%v ap:%v over use burstbullet %v",
@@ -339,9 +340,9 @@ func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) int {
 		}
 	}
 	if act.HommingTargetID != nil {
-		if t.ActionPoint >= GameConst.APHommingBullet {
+		if t.ActionPoint >= ActionPoints[ActionHommingBullet] {
 			t.addNewGameObject(GameObjHommingBullet, act.HommingTargetID)
-			t.ActionPoint -= GameConst.APHommingBullet
+			t.ActionPoint -= ActionPoints[ActionHommingBullet]
 			rtn++
 		} else {
 			log.Printf("Team%v ap:%v over use hommingbullet %v",
@@ -349,9 +350,9 @@ func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) int {
 		}
 	}
 	if act.SuperBulletMv != nil {
-		if t.ActionPoint >= GameConst.APSuperBullet {
+		if t.ActionPoint >= ActionPoints[ActionSuperBullet] {
 			t.addNewGameObject(GameObjSuperBullet, *act.SuperBulletMv)
-			t.ActionPoint -= GameConst.APSuperBullet
+			t.ActionPoint -= ActionPoints[ActionSuperBullet]
 			rtn++
 		} else {
 			log.Printf("Team%v ap:%v over use superbullet %v",

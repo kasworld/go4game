@@ -58,8 +58,8 @@ type WorldSerialize struct {
 func NewWorldSerialize(w *World) *WorldSerialize {
 	ws := WorldSerialize{
 		ID:       w.ID,
-		MinPos:   w.MinPos,
-		MaxPos:   w.MaxPos,
+		MinPos:   GameConst.WorldMin,
+		MaxPos:   GameConst.WorldMax,
 		TeamList: make([]TeamSeialize, 0, len(w.Teams)),
 	}
 	for _, t := range w.Teams {

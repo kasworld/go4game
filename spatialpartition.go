@@ -29,15 +29,14 @@ func NewSPObj(o *GameObject) *SPObj {
 type SPObjList []*SPObj
 
 type SpatialPartition struct {
-	Min             Vector3D
-	Max             Vector3D
-	Size            Vector3D
-	PartCount       int
-	PartSize        Vector3D
-	PartMins        []Vector3D
-	Parts           [][][]SPObjList
-	MaxObjectRadius float64
-	ObjectCount     int
+	Min         Vector3D
+	Max         Vector3D
+	Size        Vector3D
+	PartCount   int
+	PartSize    Vector3D
+	PartMins    []Vector3D
+	Parts       [][][]SPObjList
+	ObjectCount int
 }
 
 func (p *SpatialPartition) AddPartPos(pos [3]int, obj *SPObj) {
@@ -46,10 +45,9 @@ func (p *SpatialPartition) AddPartPos(pos [3]int, obj *SPObj) {
 
 func (w *World) MakeSpatialPartition() *SpatialPartition {
 	rtn := SpatialPartition{
-		Min:             w.MinPos,
-		Max:             w.MaxPos,
-		Size:            w.MaxPos.Sub(w.MinPos),
-		MaxObjectRadius: w.MaxObjectRadius,
+		Min:  GameConst.WorldMin,
+		Max:  GameConst.WorldMax,
+		Size: GameConst.WorldMax.Sub(GameConst.WorldMin),
 	}
 	objcount := 0
 	for _, t := range w.Teams {

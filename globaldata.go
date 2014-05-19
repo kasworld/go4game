@@ -77,17 +77,30 @@ var GameConst = struct {
 	StartWorldCount:      1,
 	NpcCountPerWorld:     8,
 	ClearY:               true,
-
-	APAccel:         1,
-	APBullet:        10,
-	APBurstShot:     10,
-	APHommingBullet: 100,
-	APSuperBullet:   80,
-	APIncFrame:      10,
+	APIncFrame:           10,
 
 	KillScore:       1,
 	ShieldCount:     8,
 	MaxObjectRadius: 1, // changed by init
+}
+
+type ClientActionType int
+
+const (
+	ActionAccel ClientActionType = iota
+	ActionBullet
+	ActionSuperBullet
+	ActionHommingBullet
+	ActionBurstBullet
+	ActionEnd
+)
+
+var ActionPoints = map[ClientActionType]int{
+	ActionAccel:         1,
+	ActionBullet:        10,
+	ActionSuperBullet:   80,
+	ActionHommingBullet: 100,
+	ActionBurstBullet:   10,
 }
 
 var ObjSqd [GameObjEnd][GameObjEnd]float64

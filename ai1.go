@@ -63,38 +63,38 @@ func (a *AIRandom) MakeAction(packet *GamePacket) *GamePacket {
 		},
 	}
 
-	if a.ActionPoint >= GameConst.APSuperBullet && rand.Float64() < 0.5 {
+	if a.ActionPoint >= ActionPoints[ActionSuperBullet] && rand.Float64() < 0.5 {
 		tmp := RandVector(a.spp.Min, a.spp.Max)
 		rtn.ClientAct.SuperBulletMv = &tmp
-		a.ActionPoint -= GameConst.APSuperBullet
+		a.ActionPoint -= ActionPoints[ActionSuperBullet]
 	}
 
-	if a.ActionPoint >= GameConst.APHommingBullet && rand.Float64() < 0.5 {
+	if a.ActionPoint >= ActionPoints[ActionHommingBullet] && rand.Float64() < 0.5 {
 		rtn.ClientAct.HommingTargetID = IDList{a.me.ID, a.me.TeamID}
-		a.ActionPoint -= GameConst.APHommingBullet
+		a.ActionPoint -= ActionPoints[ActionHommingBullet]
 	}
 
-	if a.ActionPoint >= GameConst.APBullet && rand.Float64() < 0.5 {
+	if a.ActionPoint >= ActionPoints[ActionBullet] && rand.Float64() < 0.5 {
 		tmp := RandVector(a.spp.Min, a.spp.Max)
 		rtn.ClientAct.NormalBulletMv = &tmp
-		a.ActionPoint -= GameConst.APBullet
+		a.ActionPoint -= ActionPoints[ActionBullet]
 	}
 
-	if a.ActionPoint >= GameConst.APAccel {
+	if a.ActionPoint >= ActionPoints[ActionAccel] {
 		if rand.Float64() < 0.5 {
 			tmp := RandVector(a.spp.Min, a.spp.Max)
 			rtn.ClientAct.Accel = &tmp
-			a.ActionPoint -= GameConst.APAccel
+			a.ActionPoint -= ActionPoints[ActionAccel]
 		} else {
 			tmp := a.HomePos.Sub(a.me.PosVector)
 			rtn.ClientAct.Accel = &tmp
-			a.ActionPoint -= GameConst.APAccel
+			a.ActionPoint -= ActionPoints[ActionAccel]
 		}
 	}
 
-	if a.ActionPoint >= GameConst.APBurstShot*40 && rand.Float64() < 0.5 {
-		rtn.ClientAct.BurstShot = a.ActionPoint/GameConst.APBurstShot - 4
-		a.ActionPoint -= GameConst.APBurstShot * rtn.ClientAct.BurstShot
+	if a.ActionPoint >= ActionPoints[ActionBurstBullet]*40 && rand.Float64() < 0.5 {
+		rtn.ClientAct.BurstShot = a.ActionPoint/ActionPoints[ActionBurstBullet] - 4
+		a.ActionPoint -= ActionPoints[ActionBurstBullet] * rtn.ClientAct.BurstShot
 	}
 
 	return rtn
@@ -133,20 +133,20 @@ func (a *AICloud) MakeAction(packet *GamePacket) *GamePacket {
 		},
 	}
 
-	if a.ActionPoint >= GameConst.APHommingBullet && rand.Float64() < 0.5 {
+	if a.ActionPoint >= ActionPoints[ActionHommingBullet] && rand.Float64() < 0.5 {
 		rtn.ClientAct.HommingTargetID = IDList{a.me.ID, a.me.TeamID}
-		a.ActionPoint -= GameConst.APHommingBullet
+		a.ActionPoint -= ActionPoints[ActionHommingBullet]
 	}
 
-	if a.ActionPoint >= GameConst.APAccel {
+	if a.ActionPoint >= ActionPoints[ActionAccel] {
 		if rand.Float64() < 0.5 {
 			tmp := RandVector(a.spp.Min, a.spp.Max)
 			rtn.ClientAct.Accel = &tmp
-			a.ActionPoint -= GameConst.APAccel
+			a.ActionPoint -= ActionPoints[ActionAccel]
 		} else {
 			tmp := a.HomePos.Sub(a.me.PosVector)
 			rtn.ClientAct.Accel = &tmp
-			a.ActionPoint -= GameConst.APAccel
+			a.ActionPoint -= ActionPoints[ActionAccel]
 		}
 	}
 
@@ -217,7 +217,7 @@ func (a *AI2) MakeAction(packet *GamePacket) *GamePacket {
 	var hommingTargetID IDList // objid, teamid
 	var superBulletMv *Vector3D = nil
 
-	if a.ActionPoint >= GameConst.APSuperBullet {
+	if a.ActionPoint >= ActionPoints[ActionSuperBullet] {
 		attackFn := func(p1, p2 *AimTarget) bool {
 			return p1.AttackFactor > p2.AttackFactor
 		}
@@ -226,12 +226,12 @@ func (a *AI2) MakeAction(packet *GamePacket) *GamePacket {
 			if o.AttackFactor > 1 && rand.Float64() < 0.5 {
 				t := o.AimPos.Sub(a.me.PosVector).NormalizedTo(ObjDefault.MoveLimit[GameObjSuperBullet])
 				superBulletMv = &t
-				a.ActionPoint -= GameConst.APSuperBullet
+				a.ActionPoint -= ActionPoints[ActionSuperBullet]
 				break
 			}
 		}
 	}
-	if a.ActionPoint >= GameConst.APHommingBullet {
+	if a.ActionPoint >= ActionPoints[ActionHommingBullet] {
 		attackFn := func(p1, p2 *AimTarget) bool {
 			return p1.AttackFactor > p2.AttackFactor
 		}
@@ -239,13 +239,13 @@ func (a *AI2) MakeAction(packet *GamePacket) *GamePacket {
 		for _, o := range a.mainobjlist {
 			if o.AttackFactor > 1 && rand.Float64() < 0.5 {
 				hommingTargetID = IDList{o.ID, o.TeamID}
-				a.ActionPoint -= GameConst.APHommingBullet
+				a.ActionPoint -= ActionPoints[ActionHommingBullet]
 				break
 			}
 		}
 	}
 
-	if a.ActionPoint >= GameConst.APAccel {
+	if a.ActionPoint >= ActionPoints[ActionAccel] {
 		evasionFn := func(p1, p2 *AimTarget) bool {
 			return p1.EvasionFactor > p2.EvasionFactor
 		}
@@ -253,13 +253,13 @@ func (a *AI2) MakeAction(packet *GamePacket) *GamePacket {
 		for _, o := range a.targetlist {
 			if o.EvasionFactor > 1 && rand.Float64() < 0.9 {
 				accvt = a.calcEvasionVector(o)
-				a.ActionPoint -= GameConst.APAccel
+				a.ActionPoint -= ActionPoints[ActionAccel]
 				break
 			}
 		}
 	}
 
-	if a.ActionPoint >= GameConst.APBullet {
+	if a.ActionPoint >= ActionPoints[ActionBullet] {
 		attackFn := func(p1, p2 *AimTarget) bool {
 			return p1.AttackFactor > p2.AttackFactor
 		}
@@ -268,15 +268,15 @@ func (a *AI2) MakeAction(packet *GamePacket) *GamePacket {
 			if o.AttackFactor > 1 && rand.Float64() < 0.5 {
 				tmpbulletMoveVector := o.AimPos.Sub(a.me.PosVector).NormalizedTo(ObjDefault.MoveLimit[GameObjBullet])
 				bulletMoveVector = &tmpbulletMoveVector
-				a.ActionPoint -= GameConst.APBullet
+				a.ActionPoint -= ActionPoints[ActionBullet]
 				break
 			}
 		}
 	}
 
-	if a.ActionPoint >= GameConst.APBurstShot*40 {
-		burstCount = a.ActionPoint/GameConst.APBurstShot - 4
-		a.ActionPoint -= GameConst.APBurstShot * burstCount
+	if a.ActionPoint >= ActionPoints[ActionBurstBullet]*40 {
+		burstCount = a.ActionPoint/ActionPoints[ActionBurstBullet] - 4
+		a.ActionPoint -= ActionPoints[ActionBurstBullet] * burstCount
 	}
 
 	return &GamePacket{

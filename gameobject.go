@@ -142,12 +142,12 @@ func (o *GameObject) ActByTime(t time.Time, spp *SpatialPartition) IDList {
 	// modify own status only
 	var isCollsion bool
 	if o.ObjType == GameObjMain {
-		clist = spp.GetCollisionList(o.IsCollision, o.PosVector, spp.MaxObjectRadius)
+		clist = spp.GetCollisionList(o.IsCollision, o.PosVector, GameConst.MaxObjectRadius)
 		if len(clist) > 0 {
 			isCollsion = true
 		}
 	} else {
-		isCollsion = spp.IsCollision(o.IsCollision, o.PosVector, ObjDefault.Radius[o.ObjType]+spp.MaxObjectRadius)
+		isCollsion = spp.IsCollision(o.IsCollision, o.PosVector, ObjDefault.Radius[o.ObjType]+GameConst.MaxObjectRadius)
 	}
 	if isCollsion {
 		if o.collisionActionFn != nil {

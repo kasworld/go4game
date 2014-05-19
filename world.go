@@ -13,15 +13,12 @@ import (
 )
 
 type World struct {
-	ID              int64
-	CmdCh           chan Cmd
-	PService        *GameService
-	MinPos          Vector3D
-	MaxPos          Vector3D
-	Teams           map[int64]*Team
-	spp             *SpatialPartition
-	worldSerial     *WorldSerialize
-	MaxObjectRadius float64
+	ID          int64
+	CmdCh       chan Cmd
+	PService    *GameService
+	Teams       map[int64]*Team
+	spp         *SpatialPartition
+	worldSerial *WorldSerialize
 }
 
 func (m World) String() string {
@@ -53,13 +50,10 @@ func (m *World) makeWorldInfo() *WorldInfo {
 
 func NewWorld(g *GameService) *World {
 	w := World{
-		ID:              <-IdGenCh,
-		CmdCh:           make(chan Cmd, 10),
-		PService:        g,
-		MinPos:          GameConst.WorldMin,
-		MaxPos:          GameConst.WorldMax,
-		Teams:           make(map[int64]*Team),
-		MaxObjectRadius: GameConst.MaxObjectRadius,
+		ID:       <-IdGenCh,
+		CmdCh:    make(chan Cmd, 10),
+		PService: g,
+		Teams:    make(map[int64]*Team),
 	}
 	for i := 0; i < GameConst.NpcCountPerWorld/4; i++ {
 		// w.addNewTeam(&AINothing{})

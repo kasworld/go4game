@@ -135,6 +135,9 @@ func (p *SpatialPartition) IsCollision(fn func(*SPObj) bool, pos Vector3D, r flo
 	for _, i := range xr {
 		for _, j := range yr {
 			for _, k := range zr {
+				if len(p.Parts[i][j][k]) == 0 {
+					continue
+				}
 				if !p.GetPartCube([3]int{i, j, k}).IsContact(pos, r) {
 					//log.Printf("not contact skipping %v", pos)
 					continue
@@ -163,6 +166,9 @@ func (p *SpatialPartition) GetCollisionList(fn func(*SPObj) bool, pos Vector3D, 
 	for _, i := range xr {
 		for _, j := range yr {
 			for _, k := range zr {
+				if len(p.Parts[i][j][k]) == 0 {
+					continue
+				}
 				if !p.GetPartCube([3]int{i, j, k}).IsContact(pos, r) {
 					//log.Printf("not contact skipping %v", pos)
 					continue

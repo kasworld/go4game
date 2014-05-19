@@ -1,8 +1,8 @@
 package go4game
 
 import (
-//"log"
-//"time"
+	"log"
+	//"time"
 )
 
 type GameObjectType int
@@ -18,26 +18,26 @@ const (
 )
 
 var ObjDefault = struct {
-	MoveLimit map[GameObjectType]float64
-	Radius    map[GameObjectType]float64
+	MoveLimit [GameObjEnd]float64
+	Radius    [GameObjEnd]float64
 }{
-	MoveLimit: map[GameObjectType]float64{
+	MoveLimit: [GameObjEnd]float64{
 		GameObjMain: 100, GameObjShield: 200, GameObjBullet: 300, GameObjHommingBullet: 200, GameObjSuperBullet: 600},
-	Radius: map[GameObjectType]float64{
+	Radius: [GameObjEnd]float64{
 		GameObjMain: 10, GameObjShield: 5, GameObjBullet: 5, GameObjHommingBullet: 7, GameObjSuperBullet: 15},
 }
 
 // harmed obj : can harm obj
-var InteractionMap = map[GameObjectType]map[GameObjectType]bool{
-	GameObjMain: map[GameObjectType]bool{
+var InteractionMap = [GameObjEnd][GameObjEnd]bool{
+	GameObjMain: [GameObjEnd]bool{
 		GameObjMain: true, GameObjShield: true, GameObjBullet: true, GameObjHommingBullet: true, GameObjSuperBullet: true},
-	GameObjShield: map[GameObjectType]bool{
+	GameObjShield: [GameObjEnd]bool{
 		GameObjMain: true, GameObjShield: true, GameObjBullet: true, GameObjHommingBullet: true, GameObjSuperBullet: true},
-	GameObjBullet: map[GameObjectType]bool{
+	GameObjBullet: [GameObjEnd]bool{
 		GameObjMain: true, GameObjShield: true, GameObjBullet: true, GameObjHommingBullet: true, GameObjSuperBullet: true},
-	GameObjHommingBullet: map[GameObjectType]bool{
+	GameObjHommingBullet: [GameObjEnd]bool{
 		GameObjMain: true, GameObjShield: true, GameObjBullet: false, GameObjHommingBullet: true, GameObjSuperBullet: true},
-	GameObjSuperBullet: map[GameObjectType]bool{
+	GameObjSuperBullet: [GameObjEnd]bool{
 		GameObjMain: true, GameObjShield: true, GameObjBullet: false, GameObjHommingBullet: true, GameObjSuperBullet: true},
 }
 
@@ -53,23 +53,15 @@ var GameConst = struct {
 	RemoveEmptyWorld     bool
 	WorldMax             Vector3D
 	WorldMin             Vector3D
-
-	APAccel         int
-	APBullet        int
-	APBurstShot     int
-	APHommingBullet int
-	APSuperBullet   int
-	APIncFrame      int
-
-	KillScore       int
-	ShieldCount     int
-	MaxObjectRadius float64
+	APIncFrame           int
+	KillScore            int
+	ShieldCount          int
+	MaxObjectRadius      float64
 }{
-	TcpListen: "0.0.0.0:6666",
-	WsListen:  "0.0.0.0:8080",
-	WorldMin:  Vector3D{-500, -500, -500},
-	WorldMax:  Vector3D{500, 500, 500},
-
+	TcpListen:            "0.0.0.0:6666",
+	WsListen:             "0.0.0.0:8080",
+	WorldMin:             Vector3D{-500, -500, -500},
+	WorldMax:             Vector3D{500, 500, 500},
 	FramePerSec:          60.0,
 	RemoveEmptyWorld:     false,
 	MaxTcpClientPerWorld: 32,
@@ -78,10 +70,9 @@ var GameConst = struct {
 	NpcCountPerWorld:     8,
 	ClearY:               true,
 	APIncFrame:           10,
-
-	KillScore:       1,
-	ShieldCount:     8,
-	MaxObjectRadius: 1, // changed by init
+	KillScore:            1,
+	ShieldCount:          8,
+	MaxObjectRadius:      1, // changed by init
 }
 
 type ClientActionType int
@@ -95,7 +86,7 @@ const (
 	ActionEnd
 )
 
-var ActionPoints = map[ClientActionType]int{
+var ActionPoints = [ActionEnd]int{
 	ActionAccel:         1,
 	ActionBullet:        10,
 	ActionSuperBullet:   80,
@@ -116,5 +107,5 @@ func init() {
 			ObjSqd[o1][o2] = (ObjDefault.Radius[o1] + ObjDefault.Radius[o2]) * (ObjDefault.Radius[o1] + ObjDefault.Radius[o2])
 		}
 	}
-	//log.Printf("%#v", ObjSqd)
+	log.Printf("%#v", ObjDefault)
 }

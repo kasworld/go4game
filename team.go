@@ -114,12 +114,6 @@ func (t *Team) moveHomePos() {
 
 func (t *Team) findMainObj() *GameObject {
 	return t.GameObjs[t.MainObjID]
-	// for _, v := range t.GameObjs {
-	// 	if v.ObjType == GameObjMain {
-	// 		return v
-	// 	}
-	// }
-	// return nil
 }
 
 func (t *Team) countObjByType(got GameObjectType) int {

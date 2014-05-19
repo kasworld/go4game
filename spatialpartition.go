@@ -29,12 +29,15 @@ func NewSPObj(o *GameObject) *SPObj {
 type SPObjList []*SPObj
 
 type SpatialPartition struct {
-	Min         Vector3D
-	Max         Vector3D
-	Size        Vector3D
-	PartCount   int
-	PartSize    Vector3D
-	PartMins    []Vector3D
+	Min  Vector3D
+	Max  Vector3D
+	Size Vector3D
+
+	PartCount int
+	PartSize  Vector3D
+	PartLen   float64
+	PartMins  []Vector3D
+
 	Parts       [][][]SPObjList
 	ObjectCount int
 }
@@ -60,12 +63,11 @@ func (w *World) MakeSpatialPartition() *SpatialPartition {
 		rtn.PartCount = 3
 	}
 	rtn.PartSize = rtn.Size.Idiv(float64(rtn.PartCount))
+	rtn.PartLen = rtn.PartSize.Abs()
 	rtn.PartMins = make([]Vector3D, rtn.PartCount+1)
-	for i := 0; i < rtn.PartCount; i++ {
-		rtn.PartMins[i] = rtn.Min.Add(Vector3D{
-			float64(i) * rtn.PartSize[0],
-			float64(i) * rtn.PartSize[1],
-			float64(i) * rtn.PartSize[2]})
+	rtn.PartMins[0] = rtn.Min
+	for i := 1; i < rtn.PartCount; i++ {
+		rtn.PartMins[i] = rtn.PartMins[i-1].Add(rtn.PartSize)
 	}
 	rtn.PartMins[rtn.PartCount] = rtn.Max
 
@@ -96,11 +98,8 @@ func (p *SpatialPartition) Pos2PartPos(pos Vector3D) [3]int {
 		rtn[i] = int(v / p.PartSize[i])
 		if rtn[i] >= p.PartCount {
 			rtn[i] = p.PartCount - 1
-			//log.Printf("invalid pos %v %v", v, rtn[i])
-		}
-		if rtn[i] < 0 {
+		} else if rtn[i] < 0 {
 			rtn[i] = 0
-			//log.Printf("invalid pos %v %v", v, rtn[i]) homming can
 		}
 	}
 	return rtn
@@ -123,10 +122,18 @@ func (p *SpatialPartition) makeRange2(c float64, r float64, min float64, max flo
 	}
 }
 
+func (p *SpatialPartition) IsContactTo(c Vector3D, ppos [3]int, plenrsqd float64) bool {
+	pMin := Vector3D{p.PartMins[ppos[0]][0], p.PartMins[ppos[1]][1], p.PartMins[ppos[2]][2]}
+	pCenter := pMin.Add(p.PartSize.Idiv(2))
+	return plenrsqd >= pCenter.Sqd(c)
+}
+
 // for collision check
 func (p *SpatialPartition) IsCollision(fn func(*SPObj) bool, pos Vector3D, r float64) bool {
 	ppos := p.Pos2PartPos(pos)
 	partcube := p.GetPartCube(ppos)
+
+	plenrsqd := (p.PartLen/2 + r) * (p.PartLen/2 + r)
 
 	xr := p.makeRange2(pos[0], r, partcube.Min[0], partcube.Max[0], ppos[0])
 	yr := p.makeRange2(pos[1], r, partcube.Min[1], partcube.Max[1], ppos[1])
@@ -138,7 +145,7 @@ func (p *SpatialPartition) IsCollision(fn func(*SPObj) bool, pos Vector3D, r flo
 				if len(p.Parts[i][j][k]) == 0 {
 					continue
 				}
-				if !p.GetPartCube([3]int{i, j, k}).IsContact(pos, r) {
+				if !p.IsContactTo(pos, [3]int{i, j, k}, plenrsqd) {
 					//log.Printf("not contact skipping %v", pos)
 					continue
 				}
@@ -157,6 +164,7 @@ func (p *SpatialPartition) IsCollision(fn func(*SPObj) bool, pos Vector3D, r flo
 func (p *SpatialPartition) GetCollisionList(fn func(*SPObj) bool, pos Vector3D, r float64) IDList {
 	ppos := p.Pos2PartPos(pos)
 	partcube := p.GetPartCube(ppos)
+	plenrsqd := (p.PartLen/2 + r) * (p.PartLen/2 + r)
 	rtn := make(IDList, 0)
 
 	xr := p.makeRange2(pos[0], r, partcube.Min[0], partcube.Max[0], ppos[0])
@@ -169,7 +177,7 @@ func (p *SpatialPartition) GetCollisionList(fn func(*SPObj) bool, pos Vector3D, 
 				if len(p.Parts[i][j][k]) == 0 {
 					continue
 				}
-				if !p.GetPartCube([3]int{i, j, k}).IsContact(pos, r) {
+				if !p.IsContactTo(pos, [3]int{i, j, k}, plenrsqd) {
 					//log.Printf("not contact skipping %v", pos)
 					continue
 				}

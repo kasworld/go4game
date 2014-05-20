@@ -183,6 +183,14 @@ func (h *HyperRect) IsContact(c Vector3D, r float64) bool {
 	return hl/2+r >= hc.LenTo(c)
 }
 
+func (h *HyperRect) RandVector() Vector3D {
+	return Vector3D{
+		rand.Float64()*(h.Max[0]-h.Min[0]) + h.Min[0],
+		rand.Float64()*(h.Max[1]-h.Min[1]) + h.Min[1],
+		rand.Float64()*(h.Max[2]-h.Min[2]) + h.Min[2],
+	}
+}
+
 // make normalized hyperrect , if not need use HyperRect{Min: , Max:}
 func NewHyperRect(v1 Vector3D, v2 Vector3D) *HyperRect {
 	rtn := HyperRect{}

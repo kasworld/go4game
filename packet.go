@@ -7,63 +7,54 @@ import (
 	//"log"
 )
 
-type GameObjectSeiralize struct {
-	ID              int64
-	ObjType         GameObjectType
-	PosVector       Vector3D
-	MoveVector      Vector3D
-	CollisionRadius float64
+type GameObjectDisp struct {
+	ID int64
+	P  Vector3D
+	R  float64
 }
 
-func NewGameObjectSeiralize(o *GameObject) *GameObjectSeiralize {
-	gi := GameObjectSeiralize{
-		ID:              o.ID,
-		ObjType:         o.ObjType,
-		PosVector:       o.PosVector,
-		MoveVector:      o.MoveVector,
-		CollisionRadius: ObjDefault.Radius[o.ObjType],
+func NewGameObjectDisp(o *GameObject) *GameObjectDisp {
+	gi := GameObjectDisp{
+		ID: o.ID,
+		P:  o.PosVector,
+		R:  ObjDefault.Radius[o.ObjType],
 	}
-	//log.Printf("%#v", gi)
 	return &gi
 }
 
-type TeamSeialize struct {
+type TeamDisp struct {
 	ID     int64
 	Color  int
-	GOList []GameObjectSeiralize
+	GOList []GameObjectDisp
 }
 
-func NewTeamSeialize(t *Team) *TeamSeialize {
-	ts := TeamSeialize{
+func NewTeamDisp(t *Team) *TeamDisp {
+	ts := TeamDisp{
 		ID:     t.ID,
 		Color:  t.Color,
-		GOList: make([]GameObjectSeiralize, 0, len(t.GameObjs)),
+		GOList: make([]GameObjectDisp, 0, len(t.GameObjs)),
 	}
 	for _, o := range t.GameObjs {
 		if o.enabled {
-			ts.GOList = append(ts.GOList, *NewGameObjectSeiralize(o))
+			ts.GOList = append(ts.GOList, *NewGameObjectDisp(o))
 		}
 
 	}
 	return &ts
 }
 
-type WorldSerialize struct {
+type WorldDisp struct {
 	ID       int64
-	MinPos   Vector3D
-	MaxPos   Vector3D
-	TeamList []TeamSeialize
+	TeamList []TeamDisp
 }
 
-func NewWorldSerialize(w *World) *WorldSerialize {
-	ws := WorldSerialize{
+func NewWorldDisp(w *World) *WorldDisp {
+	ws := WorldDisp{
 		ID:       w.ID,
-		MinPos:   GameConst.WorldMin,
-		MaxPos:   GameConst.WorldMax,
-		TeamList: make([]TeamSeialize, 0, len(w.Teams)),
+		TeamList: make([]TeamDisp, 0, len(w.Teams)),
 	}
 	for _, t := range w.Teams {
-		ws.TeamList = append(ws.TeamList, *NewTeamSeialize(t))
+		ws.TeamList = append(ws.TeamList, *NewTeamDisp(t))
 	}
 	return &ws
 }
@@ -84,7 +75,7 @@ const (
 type GamePacket struct {
 	Cmd       PacketType
 	TeamInfo  *TeamInfoPacket
-	WorldInfo *WorldSerialize
+	WorldInfo *WorldDisp
 	ClientAct *ClientActionPacket
 	Spp       *SpatialPartition
 }

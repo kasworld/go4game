@@ -126,7 +126,7 @@ func (t *Team) countObjByType(got GameObjectType) int {
 	return rtn
 }
 
-func (t *Team) processClientReq(ftime time.Time, w *WorldSerialize, spp *SpatialPartition) bool {
+func (t *Team) processClientReq(ftime time.Time, w *WorldDisp, spp *SpatialPartition) bool {
 	var p *GamePacket
 	var ok bool
 	select {
@@ -173,7 +173,7 @@ func (t *Team) processClientReq(ftime time.Time, w *WorldSerialize, spp *Spatial
 	return true
 }
 
-func (t *Team) doFrameWork(ftime time.Time, spp *SpatialPartition, w *WorldSerialize) <-chan IDList {
+func (t *Team) doFrameWork(ftime time.Time, spp *SpatialPartition, w *WorldDisp) <-chan IDList {
 	ap := t.CalcAP(spp)
 	if ap < 0 {
 		log.Printf("invalid ap team%v %v", t.ID, ap)

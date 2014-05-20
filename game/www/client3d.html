@@ -225,11 +225,11 @@ function worldinfo2objects() {
         for ( goi in tobj.GOList) {
             var gobj = tobj.GOList[goi]
             if ( !(gobj.ID in objects) ) {
-                var sphere = newGameObject(gobj.CollisionRadius, tobj.Color);
+                var sphere = newGameObject(gobj.R, tobj.Color);
                 objects[gobj.ID] = sphere;
                 scene.add( sphere );
             }
-            moveGameObject(objects[gobj.ID], gobj.PosVector );
+            moveGameObject(objects[gobj.ID], gobj.P );
             thisobjs[gobj.ID] = true;
         }
     }

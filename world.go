@@ -18,7 +18,7 @@ type World struct {
 	PService    *GameService
 	Teams       map[int64]*Team
 	spp         *SpatialPartition
-	worldSerial *WorldSerialize
+	worldSerial *WorldDisp
 }
 
 func (m World) String() string {
@@ -75,9 +75,9 @@ func (w *World) updateEnv() {
 	go func() {
 		chspp <- w.MakeSpatialPartition()
 	}()
-	chwsrl := make(chan *WorldSerialize)
+	chwsrl := make(chan *WorldDisp)
 	go func() {
-		chwsrl <- NewWorldSerialize(w)
+		chwsrl <- NewWorldDisp(w)
 	}()
 	w.spp = <-chspp
 	w.worldSerial = <-chwsrl

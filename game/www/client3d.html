@@ -22,7 +22,7 @@
 <script type="text/javascript">
 if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
 
-var worldinfo;
+var recvPacket;
 var conn;
 function initWebSocket() {
     if (conn && conn.readyState == 1) {
@@ -35,8 +35,8 @@ function initWebSocket() {
             window.setTimeout( function() { initWebSocket(); }, 1000);
         }
         conn.onmessage = function(evt) {
-            worldinfo = JSON.parse(evt.data)
-            //var msgpp = JSON.stringify(worldinfo, undefined, 2);
+            recvPacket = JSON.parse(evt.data)
+            //var msgpp = JSON.stringify(recvPacket, undefined, 2);
             //info.innerHTML = msgpp;
         }
         updateInfo("Connected to server.");
@@ -212,11 +212,11 @@ function moveGameObject( object , PosVector ) {
     object.position.set( PosVector[0],PosVector[1],PosVector[2] );
 }
 
-function worldinfo2objects() {
-    if (!worldinfo) {
+function recvPacket2objects() {
+    if (!recvPacket) {
         return false;
     }
-    var teams = worldinfo.WorldInfo.TeamList;
+    var teams = recvPacket.WorldInfo.TeamList;
 
     var thisobjs = [];
     for ( var ti in teams ) {
@@ -385,7 +385,7 @@ function renderDebugContext(){
 
 function render() {
     moveCamera(camera);
-    worldinfo2objects();
+    recvPacket2objects();
     renderDebugContext();
 
     cameraCube.rotation.copy( camera.rotation );

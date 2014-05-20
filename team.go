@@ -80,12 +80,12 @@ func NewTeam(w *World, conn interface{}) *Team {
 	}
 	switch conn.(type) {
 	case net.Conn:
-		t.ClientConnInfo = *NewTcpConnInfo(&t, conn.(net.Conn))
+		t.ClientConnInfo = *NewTcpConnInfo(conn.(net.Conn))
 		t.makeMainObj()
 	case *websocket.Conn:
-		t.ClientConnInfo = *NewWsConnInfo(&t, conn.(*websocket.Conn))
+		t.ClientConnInfo = *NewWsConnInfo(conn.(*websocket.Conn))
 	case AIActor:
-		t.ClientConnInfo = *NewAIConnInfo(&t, conn.(AIActor))
+		t.ClientConnInfo = *NewAIConnInfo(conn.(AIActor))
 		t.makeMainObj()
 	default:
 		log.Printf("unknown type %#v", conn)

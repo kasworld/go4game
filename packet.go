@@ -9,15 +9,17 @@ import (
 
 type GameObjectDisp struct {
 	ID int64
-	P  Vector3D
-	R  float64
+	P  [3]int
+	R  int
+	// P  Vector3D
+	// R  float64
 }
 
 func NewGameObjectDisp(o *GameObject) *GameObjectDisp {
 	gi := GameObjectDisp{
 		ID: o.ID,
-		P:  o.PosVector,
-		R:  ObjDefault.Radius[o.ObjType],
+		P:  [3]int{int(o.PosVector[0]), int(o.PosVector[1]), int(o.PosVector[2])},
+		R:  int(ObjDefault.Radius[o.ObjType]),
 	}
 	return &gi
 }

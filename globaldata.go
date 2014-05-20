@@ -41,6 +41,8 @@ var InteractionMap = [GameObjEnd][GameObjEnd]bool{
 		GameObjMain: true, GameObjShield: true, GameObjBullet: false, GameObjHommingBullet: true, GameObjSuperBullet: true},
 }
 
+const WorldSize = 500
+
 var GameConst = struct {
 	TcpListen            string
 	WsListen             string
@@ -60,8 +62,8 @@ var GameConst = struct {
 }{
 	TcpListen:            "0.0.0.0:6666",
 	WsListen:             "0.0.0.0:8080",
-	WorldMin:             Vector3D{-500, -500, -500},
-	WorldMax:             Vector3D{500, 500, 500},
+	WorldMin:             Vector3D{-WorldSize, -WorldSize, -WorldSize},
+	WorldMax:             Vector3D{WorldSize, WorldSize, WorldSize},
 	FramePerSec:          60.0,
 	RemoveEmptyWorld:     false,
 	MaxTcpClientPerWorld: 32,

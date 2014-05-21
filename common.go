@@ -59,7 +59,7 @@ func (ap *ActionPoint) Add(val int) {
 
 func (ap *ActionPoint) Use(apt ClientActionType, count int) bool {
 	if ap.CanUse(apt, count) {
-		ap.point -= ActionPoints[apt]
+		ap.point -= GameConst.AP[apt]
 		ap.as[apt].Inc()
 		return true
 	}
@@ -67,5 +67,5 @@ func (ap *ActionPoint) Use(apt ClientActionType, count int) bool {
 }
 
 func (ap *ActionPoint) CanUse(apt ClientActionType, count int) bool {
-	return ap.point >= ActionPoints[apt]*count
+	return ap.point >= GameConst.AP[apt]*count
 }

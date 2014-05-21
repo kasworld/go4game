@@ -149,6 +149,15 @@ func (srcpos Vector3D) CalcAimAheadDur(dstpos Vector3D, dstmv Vector3D, bulletsp
 	return rtn
 }
 
+// for serialize
+func (v Vector3D) NewInt32Vector() [3]int32 {
+	return [3]int32{int32(v[0]), int32(v[1]), int32(v[2])}
+}
+
+func FromInt32Vector(s [3]int32) Vector3D {
+	return Vector3D{float64(s[0]), float64(s[1]), float64(s[2])}
+}
+
 func RandVector3D(st, end float64) Vector3D {
 	return Vector3D{
 		rand.Float64()*(end-st) + st,

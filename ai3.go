@@ -57,7 +57,7 @@ type AI3AimTarget struct {
 
 // estmate remain frame to contact( len == 0 )
 func (a *AI3) frame2Contact(t *SPObj) float64 {
-	collen := math.Sqrt(ObjSqd[a.me.ObjType][t.ObjType])
+	collen := math.Sqrt(GameConst.ObjSqd[a.me.ObjType][t.ObjType])
 	curlen := a.me.PosVector.LenTo(t.PosVector) - collen
 	nextposme := a.me.PosVector.Add(a.me.MoveVector.Idiv(GameConst.FramePerSec))
 	nextpost := t.PosVector.Add(t.MoveVector.Idiv(GameConst.FramePerSec))
@@ -74,7 +74,7 @@ func (a *AI3) frame2Contact(t *SPObj) float64 {
 
 func (a *AI3) CalcEvasionFactor(o *SPObj) float64 {
 	// can obj damage me?
-	if !InteractionMap[a.me.ObjType][o.ObjType] {
+	if !GameConst.IsInteract[a.me.ObjType][o.ObjType] {
 		return -1.0
 	}
 	// higher is danger : 0 ~ 2
@@ -89,9 +89,9 @@ func (a *AI3) CalcEvasionFactor(o *SPObj) float64 {
 		GameObjSuperBullet:   1.0,
 	}[o.ObjType]
 
-	speedrate := ObjDefault.MoveLimit[o.ObjType] / ObjDefault.MoveLimit[a.me.ObjType]
+	speedrate := GameConst.MoveLimit[o.ObjType] / GameConst.MoveLimit[a.me.ObjType]
 
-	collen := math.Sqrt(ObjSqd[a.me.ObjType][o.ObjType])
+	collen := math.Sqrt(GameConst.ObjSqd[a.me.ObjType][o.ObjType])
 	curlen := a.me.PosVector.LenTo(o.PosVector)
 	lenfactor := collen * 5 / curlen
 
@@ -103,10 +103,10 @@ func (a *AI3) CalcEvasionFactor(o *SPObj) float64 {
 
 func (a *AI3) CalcAttackFactor(o *SPObj, bulletType GameObjectType) float64 {
 	// is obj attacked by bullet?
-	if !InteractionMap[o.ObjType][bulletType] {
+	if !GameConst.IsInteract[o.ObjType][bulletType] {
 		return -1.0
 	}
-	_, estpos, estangle := a.calcAims(o, ObjDefault.MoveLimit[bulletType])
+	_, estpos, estangle := a.calcAims(o, GameConst.MoveLimit[bulletType])
 	if estpos == nil || !estpos.IsIn(&a.worldBound) { // cannot contact
 		return -1.0
 	}
@@ -120,7 +120,7 @@ func (a *AI3) CalcAttackFactor(o *SPObj, bulletType GameObjectType) float64 {
 		GameObjSuperBullet:   1.4,
 	}[o.ObjType]
 
-	collen := math.Sqrt(ObjSqd[a.me.ObjType][o.ObjType])
+	collen := math.Sqrt(GameConst.ObjSqd[a.me.ObjType][o.ObjType])
 	curlen := a.me.PosVector.LenTo(o.PosVector)
 	lenfactor := collen * 50 / curlen
 
@@ -139,10 +139,10 @@ func (a *AI3) prepareTarget(s SPObjList) bool {
 			o.actFactor[ActionSuperBullet] = a.CalcAttackFactor(t, GameObjSuperBullet)
 			o.actFactor[ActionHommingBullet] = a.CalcAttackFactor(t, GameObjHommingBullet)
 
-			if InteractionMap[a.me.ObjType][t.ObjType] {
+			if GameConst.IsInteract[a.me.ObjType][t.ObjType] {
 				a.preparedTargets[ActionAccel] = append(a.preparedTargets[ActionAccel], &o)
 			}
-			if InteractionMap[t.ObjType][GameObjBullet] {
+			if GameConst.IsInteract[t.ObjType][GameObjBullet] {
 				a.preparedTargets[ActionBullet] = append(a.preparedTargets[ActionBullet], &o)
 			}
 			if t.ObjType == GameObjMain || t.ObjType == GameObjHommingBullet || t.ObjType == GameObjSuperBullet {
@@ -151,7 +151,7 @@ func (a *AI3) prepareTarget(s SPObjList) bool {
 			if t.ObjType == GameObjMain || t.ObjType == GameObjHommingBullet || t.ObjType == GameObjSuperBullet {
 				a.preparedTargets[ActionHommingBullet] = append(a.preparedTargets[ActionHommingBullet], &o)
 			}
-			if InteractionMap[t.ObjType][GameObjBullet] {
+			if GameConst.IsInteract[t.ObjType][GameObjBullet] {
 				a.preparedTargets[ActionBurstBullet] = append(a.preparedTargets[ActionBurstBullet], &o)
 			}
 		}
@@ -160,7 +160,7 @@ func (a *AI3) prepareTarget(s SPObjList) bool {
 }
 
 func (a *AI3) calcEvasionVector(t *SPObj) *Vector3D {
-	speed := ObjDefault.MoveLimit[a.me.ObjType]
+	speed := GameConst.MoveLimit[a.me.ObjType]
 	backvt := a.me.PosVector.Sub(t.PosVector).NormalizedTo(speed) // backward
 	tohomevt := a.HomePos.Sub(a.me.PosVector).NormalizedTo(speed) // to home pos
 	rtn := backvt.Add(backvt).Add(tohomevt)
@@ -178,7 +178,7 @@ func (a *AI3) calcAims(t *SPObj, projectilemovelimit float64) (float64, *Vector3
 }
 
 func (a *AI3) sortActTargets(act ClientActionType) bool {
-	if a.ActionPoint >= ActionPoints[act] {
+	if a.ActionPoint >= GameConst.AP[act] {
 		softFn := func(p1, p2 *AI3AimTarget) bool {
 			return p1.actFactor[act] > p2.actFactor[act]
 		}
@@ -228,26 +228,26 @@ func (a *AI3) MakeAction(packet *GamePacket) *GamePacket {
 		for _, o := range a.preparedTargets[act] {
 			if o.actFactor[act] > 1 && rand.Float64() < 0.9 {
 				rtn.ClientAct.Accel = a.calcEvasionVector(o.SPObj)
-				a.ActionPoint -= ActionPoints[act]
+				a.ActionPoint -= GameConst.AP[act]
 				break
 			}
 		}
 		if rtn.ClientAct.Accel == nil && rand.Float64() < 0.5 {
 			tmp := a.HomePos.Sub(a.me.PosVector)
 			rtn.ClientAct.Accel = &tmp
-			a.ActionPoint -= ActionPoints[act]
+			a.ActionPoint -= GameConst.AP[act]
 		}
 	}
 
 	if act = ActionSuperBullet; a.sortActTargets(act) {
 		for _, o := range a.preparedTargets[act] {
 			if o.actFactor[act] > 1 && a.lastTargets[act][o.ID].IsZero() {
-				_, estpos, _ := a.calcAims(o.SPObj, ObjDefault.MoveLimit[GameObjSuperBullet])
-				tmp := estpos.Sub(a.me.PosVector).NormalizedTo(ObjDefault.MoveLimit[GameObjSuperBullet])
+				_, estpos, _ := a.calcAims(o.SPObj, GameConst.MoveLimit[GameObjSuperBullet])
+				tmp := estpos.Sub(a.me.PosVector).NormalizedTo(GameConst.MoveLimit[GameObjSuperBullet])
 				rtn.ClientAct.SuperBulletMv = &tmp
 				a.lastTargets[act][o.ID] = time.Now()
 
-				a.ActionPoint -= ActionPoints[act]
+				a.ActionPoint -= GameConst.AP[act]
 				break
 			}
 		}
@@ -260,7 +260,7 @@ func (a *AI3) MakeAction(packet *GamePacket) *GamePacket {
 				rtn.ClientAct.HommingTargetID = IDList{o.ID, o.TeamID}
 				a.lastTargets[act][o.ID] = time.Now()
 
-				a.ActionPoint -= ActionPoints[act]
+				a.ActionPoint -= GameConst.AP[act]
 				break
 			}
 		}
@@ -270,7 +270,7 @@ func (a *AI3) MakeAction(packet *GamePacket) *GamePacket {
 			if a.lastTargets[act][o.ID].IsZero() {
 				rtn.ClientAct.HommingTargetID = IDList{o.ID, o.TeamID}
 				a.lastTargets[act][o.ID] = time.Now()
-				a.ActionPoint -= ActionPoints[act]
+				a.ActionPoint -= GameConst.AP[act]
 			}
 		}
 	}
@@ -278,24 +278,24 @@ func (a *AI3) MakeAction(packet *GamePacket) *GamePacket {
 	if act = ActionBullet; a.sortActTargets(act) {
 		for _, o := range a.preparedTargets[act] {
 			if o.actFactor[act] > 1 && a.lastTargets[act][o.ID].IsZero() {
-				_, estpos, _ := a.calcAims(o.SPObj, ObjDefault.MoveLimit[GameObjBullet])
-				tmp := estpos.Sub(a.me.PosVector).NormalizedTo(ObjDefault.MoveLimit[GameObjBullet])
+				_, estpos, _ := a.calcAims(o.SPObj, GameConst.MoveLimit[GameObjBullet])
+				tmp := estpos.Sub(a.me.PosVector).NormalizedTo(GameConst.MoveLimit[GameObjBullet])
 				rtn.ClientAct.NormalBulletMv = &tmp
 				a.lastTargets[act][o.ID] = time.Now()
 
-				a.ActionPoint -= ActionPoints[act]
+				a.ActionPoint -= GameConst.AP[act]
 				break
 			}
 		}
 	}
 
-	if act = ActionBurstBullet; a.ActionPoint >= ActionPoints[act]*(72-len(a.preparedTargets[act])) {
-		if a.ActionPoint >= ActionPoints[act]*72 {
+	if act = ActionBurstBullet; a.ActionPoint >= GameConst.AP[act]*(72-len(a.preparedTargets[act])) {
+		if a.ActionPoint >= GameConst.AP[act]*72 {
 			rtn.ClientAct.BurstShot = 36
-			a.ActionPoint -= ActionPoints[act] * rtn.ClientAct.BurstShot
+			a.ActionPoint -= GameConst.AP[act] * rtn.ClientAct.BurstShot
 		} else {
-			rtn.ClientAct.BurstShot = a.ActionPoint / ActionPoints[act] / 2
-			a.ActionPoint -= ActionPoints[act] * rtn.ClientAct.BurstShot
+			rtn.ClientAct.BurstShot = a.ActionPoint / GameConst.AP[act] / 2
+			a.ActionPoint -= GameConst.AP[act] * rtn.ClientAct.BurstShot
 		}
 	}
 

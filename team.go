@@ -301,9 +301,9 @@ func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) int {
 		return rtn
 	}
 	if act.Accel != nil {
-		if t.ActionPoint >= ActionPoints[ActionAccel] {
+		if t.ActionPoint >= GameConst.AP[ActionAccel] {
 			mo.accelVector = *act.Accel
-			t.ActionPoint -= ActionPoints[ActionAccel]
+			t.ActionPoint -= GameConst.AP[ActionAccel]
 			rtn++
 		} else {
 			log.Printf("Team%v ap:%v over use accel %v",
@@ -312,9 +312,9 @@ func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) int {
 
 	}
 	if act.NormalBulletMv != nil {
-		if t.ActionPoint >= ActionPoints[ActionBullet] {
+		if t.ActionPoint >= GameConst.AP[ActionBullet] {
 			t.addNewGameObject(GameObjBullet, *act.NormalBulletMv)
-			t.ActionPoint -= ActionPoints[ActionBullet]
+			t.ActionPoint -= GameConst.AP[ActionBullet]
 			rtn++
 		} else {
 			log.Printf("Team%v ap:%v over use bullet %v",
@@ -322,11 +322,11 @@ func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) int {
 		}
 	}
 	if act.BurstShot > 0 {
-		if t.ActionPoint >= act.BurstShot*ActionPoints[ActionBurstBullet] {
+		if t.ActionPoint >= act.BurstShot*GameConst.AP[ActionBurstBullet] {
 			for i := 0; i < act.BurstShot; i++ {
 				t.addNewGameObject(GameObjBullet, RandVector3D(-300, 300))
 			}
-			t.ActionPoint -= ActionPoints[ActionBurstBullet] * act.BurstShot
+			t.ActionPoint -= GameConst.AP[ActionBurstBullet] * act.BurstShot
 			rtn++
 		} else {
 			log.Printf("Team%v ap:%v over use burstbullet %v",
@@ -334,9 +334,9 @@ func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) int {
 		}
 	}
 	if act.HommingTargetID != nil {
-		if t.ActionPoint >= ActionPoints[ActionHommingBullet] {
+		if t.ActionPoint >= GameConst.AP[ActionHommingBullet] {
 			t.addNewGameObject(GameObjHommingBullet, act.HommingTargetID)
-			t.ActionPoint -= ActionPoints[ActionHommingBullet]
+			t.ActionPoint -= GameConst.AP[ActionHommingBullet]
 			rtn++
 		} else {
 			log.Printf("Team%v ap:%v over use hommingbullet %v",
@@ -344,9 +344,9 @@ func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) int {
 		}
 	}
 	if act.SuperBulletMv != nil {
-		if t.ActionPoint >= ActionPoints[ActionSuperBullet] {
+		if t.ActionPoint >= GameConst.AP[ActionSuperBullet] {
 			t.addNewGameObject(GameObjSuperBullet, *act.SuperBulletMv)
-			t.ActionPoint -= ActionPoints[ActionSuperBullet]
+			t.ActionPoint -= GameConst.AP[ActionSuperBullet]
 			rtn++
 		} else {
 			log.Printf("Team%v ap:%v over use superbullet %v",

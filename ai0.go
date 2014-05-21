@@ -63,38 +63,38 @@ func (a *AIRandom) MakeAction(packet *GamePacket) *GamePacket {
 		},
 	}
 
-	if a.ActionPoint >= ActionPoints[ActionSuperBullet] && rand.Float64() < 0.5 {
+	if a.ActionPoint >= GameConst.AP[ActionSuperBullet] && rand.Float64() < 0.5 {
 		tmp := RandVector(a.spp.Min, a.spp.Max)
 		rtn.ClientAct.SuperBulletMv = &tmp
-		a.ActionPoint -= ActionPoints[ActionSuperBullet]
+		a.ActionPoint -= GameConst.AP[ActionSuperBullet]
 	}
 
-	if a.ActionPoint >= ActionPoints[ActionHommingBullet] && rand.Float64() < 0.5 {
+	if a.ActionPoint >= GameConst.AP[ActionHommingBullet] && rand.Float64() < 0.5 {
 		rtn.ClientAct.HommingTargetID = IDList{a.me.ID, a.me.TeamID}
-		a.ActionPoint -= ActionPoints[ActionHommingBullet]
+		a.ActionPoint -= GameConst.AP[ActionHommingBullet]
 	}
 
-	if a.ActionPoint >= ActionPoints[ActionBullet] && rand.Float64() < 0.5 {
+	if a.ActionPoint >= GameConst.AP[ActionBullet] && rand.Float64() < 0.5 {
 		tmp := RandVector(a.spp.Min, a.spp.Max)
 		rtn.ClientAct.NormalBulletMv = &tmp
-		a.ActionPoint -= ActionPoints[ActionBullet]
+		a.ActionPoint -= GameConst.AP[ActionBullet]
 	}
 
-	if a.ActionPoint >= ActionPoints[ActionAccel] {
+	if a.ActionPoint >= GameConst.AP[ActionAccel] {
 		if rand.Float64() < 0.5 {
 			tmp := RandVector(a.spp.Min, a.spp.Max)
 			rtn.ClientAct.Accel = &tmp
-			a.ActionPoint -= ActionPoints[ActionAccel]
+			a.ActionPoint -= GameConst.AP[ActionAccel]
 		} else {
 			tmp := a.HomePos.Sub(a.me.PosVector)
 			rtn.ClientAct.Accel = &tmp
-			a.ActionPoint -= ActionPoints[ActionAccel]
+			a.ActionPoint -= GameConst.AP[ActionAccel]
 		}
 	}
 
-	if a.ActionPoint >= ActionPoints[ActionBurstBullet]*40 && rand.Float64() < 0.5 {
-		rtn.ClientAct.BurstShot = a.ActionPoint/ActionPoints[ActionBurstBullet] - 4
-		a.ActionPoint -= ActionPoints[ActionBurstBullet] * rtn.ClientAct.BurstShot
+	if a.ActionPoint >= GameConst.AP[ActionBurstBullet]*40 && rand.Float64() < 0.5 {
+		rtn.ClientAct.BurstShot = a.ActionPoint/GameConst.AP[ActionBurstBullet] - 4
+		a.ActionPoint -= GameConst.AP[ActionBurstBullet] * rtn.ClientAct.BurstShot
 	}
 
 	return rtn
@@ -133,20 +133,20 @@ func (a *AICloud) MakeAction(packet *GamePacket) *GamePacket {
 		},
 	}
 
-	if a.ActionPoint >= ActionPoints[ActionHommingBullet] && rand.Float64() < 0.5 {
+	if a.ActionPoint >= GameConst.AP[ActionHommingBullet] && rand.Float64() < 0.5 {
 		rtn.ClientAct.HommingTargetID = IDList{a.me.ID, a.me.TeamID}
-		a.ActionPoint -= ActionPoints[ActionHommingBullet]
+		a.ActionPoint -= GameConst.AP[ActionHommingBullet]
 	}
 
-	if a.ActionPoint >= ActionPoints[ActionAccel] {
+	if a.ActionPoint >= GameConst.AP[ActionAccel] {
 		if rand.Float64() < 0.5 {
 			tmp := RandVector(a.spp.Min, a.spp.Max)
 			rtn.ClientAct.Accel = &tmp
-			a.ActionPoint -= ActionPoints[ActionAccel]
+			a.ActionPoint -= GameConst.AP[ActionAccel]
 		} else {
 			tmp := a.HomePos.Sub(a.me.PosVector)
 			rtn.ClientAct.Accel = &tmp
-			a.ActionPoint -= ActionPoints[ActionAccel]
+			a.ActionPoint -= GameConst.AP[ActionAccel]
 		}
 	}
 

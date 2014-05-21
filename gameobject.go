@@ -113,7 +113,7 @@ type ActionFnEnvInfo struct {
 
 func (o *GameObject) IsCollision(s *SPObj) bool {
 	o.PTeam.CollisionStat.Inc()
-	if (s.TeamID != o.PTeam.ID) && InteractionMap[o.ObjType][s.ObjType] && (s.PosVector.Sqd(o.PosVector) <= ObjSqd[s.ObjType][o.ObjType]) {
+	if (s.TeamID != o.PTeam.ID) && GameConst.IsInteract[o.ObjType][s.ObjType] && (s.PosVector.Sqd(o.PosVector) <= GameConst.ObjSqd[s.ObjType][o.ObjType]) {
 		return true
 	}
 	return false
@@ -147,7 +147,7 @@ func (o *GameObject) ActByTime(t time.Time, spp *SpatialPartition) IDList {
 			isCollsion = true
 		}
 	} else {
-		isCollsion = spp.IsCollision(o.IsCollision, o.PosVector, ObjDefault.Radius[o.ObjType]+GameConst.MaxObjectRadius)
+		isCollsion = spp.IsCollision(o.IsCollision, o.PosVector, GameConst.Radius[o.ObjType]+GameConst.MaxObjectRadius)
 	}
 	if isCollsion {
 		if o.collisionActionFn != nil {
@@ -190,8 +190,8 @@ func moveByTimeFn_default(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 	dur := float64(envInfo.frameTime.Sub(m.lastMoveTime)) / float64(time.Second)
 	//log.Printf("frame dur %v %v", m.lastMoveTime, dur)
 	m.MoveVector = m.MoveVector.Add(m.accelVector.Imul(dur))
-	if m.MoveVector.Abs() > ObjDefault.MoveLimit[m.ObjType] {
-		m.MoveVector = m.MoveVector.NormalizedTo(ObjDefault.MoveLimit[m.ObjType])
+	if m.MoveVector.Abs() > GameConst.MoveLimit[m.ObjType] {
+		m.MoveVector = m.MoveVector.NormalizedTo(GameConst.MoveLimit[m.ObjType])
 	}
 	m.PosVector = m.PosVector.Add(m.MoveVector.Imul(dur))
 	return true
@@ -217,7 +217,7 @@ func moveByTimeFn_homming(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 		m.enabled = false
 		return false
 	}
-	m.accelVector = targetobj.PosVector.Sub(m.PosVector).NormalizedTo(ObjDefault.MoveLimit[m.ObjType])
+	m.accelVector = targetobj.PosVector.Sub(m.PosVector).NormalizedTo(GameConst.MoveLimit[m.ObjType])
 	return moveByTimeFn_default(m, envInfo)
 }
 

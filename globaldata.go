@@ -38,13 +38,12 @@ type GameConfig struct {
 	MaxWsClientPerWorld  int
 	StartWorldCount      int
 	RemoveEmptyWorld     bool
-	// WorldMax             Vector3D
-	// WorldMin             Vector3D
-	WorldCube       HyperRect
-	APIncFrame      int
-	KillScore       int
-	ShieldCount     int
-	MaxObjectRadius float64
+	TcpClientEncode      string // gob , json
+	WorldCube            HyperRect
+	APIncFrame           int
+	KillScore            int
+	ShieldCount          int
+	MaxObjectRadius      float64
 
 	MoveLimit  [GameObjEnd]float64
 	Radius     [GameObjEnd]float64
@@ -74,10 +73,11 @@ var defaultConfig = GameConfig{
 	WsListen:             "0.0.0.0:8080",
 	FramePerSec:          60.0,
 	RemoveEmptyWorld:     false,
+	TcpClientEncode:      "gob",
 	MaxTcpClientPerWorld: 32,
 	MaxWsClientPerWorld:  32,
 	StartWorldCount:      1,
-	NpcCountPerWorld:     8,
+	NpcCountPerWorld:     32,
 	ClearY:               true,
 	APIncFrame:           10,
 	KillScore:            1,
@@ -119,6 +119,7 @@ var profileConfig = GameConfig{
 	RemoveEmptyWorld:     false,
 	MaxTcpClientPerWorld: 32,
 	MaxWsClientPerWorld:  32,
+	TcpClientEncode:      "gob",
 	StartWorldCount:      1,
 	NpcCountPerWorld:     1000,
 	ClearY:               false,

@@ -3,6 +3,7 @@ package go4game
 import (
 	"log"
 	//"math/rand"
+	"encoding/gob"
 	"encoding/json"
 	"net"
 	"time"
@@ -27,15 +28,25 @@ func repeatReq(connectTo string, rundur time.Duration) {
 	timerCh := time.After(rundur * time.Second)
 	timer60Ch := time.Tick(time.Duration(1000/GameConst.FramePerSec) * time.Millisecond)
 	//timer60Ch := time.Tick(1 * time.Microsecond)
-	enc := json.NewEncoder(conn)
-	dec := json.NewDecoder(conn)
+
+	var dec IDecoder
+	var enc IEncoder
+	if GameConst.TcpClientEncode == "gob" {
+		dec = gob.NewDecoder(conn)
+		enc = gob.NewEncoder(conn)
+	} else if GameConst.TcpClientEncode == "json" {
+		dec = json.NewDecoder(conn)
+		enc = json.NewEncoder(conn)
+	} else {
+		log.Fatal("unknown tcp client encode %v", GameConst.TcpClientEncode)
+	}
 
 clientloop:
 	for {
 		select {
 		case <-timer60Ch:
 			// sp := GamePacket{
-			// 	Cmd: ReqAIAct,
+			// 	Cmd: ReqWorldInfo,
 			// }
 			sp := GamePacket{
 				Cmd: ReqFrameInfo,
@@ -54,6 +65,9 @@ clientloop:
 			}
 			switch rp.Cmd {
 			case RspFrameInfo:
+				//s, _ := json.MarshalIndent(rp.WorldInfo, "", "  ")
+				//log.Printf("%v", string(s))
+			case RspWorldInfo:
 				//s, _ := json.MarshalIndent(rp.WorldInfo, "", "  ")
 				//log.Printf("%v", string(s))
 			default:

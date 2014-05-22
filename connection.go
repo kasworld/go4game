@@ -2,6 +2,7 @@ package go4game
 
 import (
 	//"encoding/binary"
+	"encoding/gob"
 	"encoding/json"
 	//"errors"
 	"fmt"
@@ -71,6 +72,13 @@ loop:
 	}
 }
 
+type IDecoder interface {
+	Decode(v interface{}) error
+}
+type IEncoder interface {
+	Encode(v interface{}) error
+}
+
 func NewTcpConnInfo(conn net.Conn) *ConnInfo {
 	c := ConnInfo{
 		Conn:       conn,
@@ -88,7 +96,15 @@ func (c *ConnInfo) tcpReadLoop() {
 		c.Conn.Close()
 		close(c.ReadCh)
 	}()
-	dec := json.NewDecoder(c.Conn)
+	var dec IDecoder
+	if GameConst.TcpClientEncode == "gob" {
+		dec = gob.NewDecoder(c.Conn)
+	} else if GameConst.TcpClientEncode == "json" {
+		dec = json.NewDecoder(c.Conn)
+	} else {
+		log.Fatal("unknown tcp client encode %v", GameConst.TcpClientEncode)
+	}
+
 	for {
 		var v GamePacket
 		err := dec.Decode(&v)
@@ -103,7 +119,14 @@ func (c *ConnInfo) tcpWriteLoop() {
 	defer func() {
 		c.Conn.Close()
 	}()
-	enc := json.NewEncoder(c.Conn)
+	var enc IEncoder
+	if GameConst.TcpClientEncode == "gob" {
+		enc = gob.NewEncoder(c.Conn)
+	} else if GameConst.TcpClientEncode == "json" {
+		enc = json.NewEncoder(c.Conn)
+	} else {
+		log.Fatal("unknown tcp client encode %v", GameConst.TcpClientEncode)
+	}
 loop:
 	for packet := range c.WriteCh {
 		err := enc.Encode(packet)

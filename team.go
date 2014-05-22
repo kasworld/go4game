@@ -20,7 +20,6 @@ type Team struct {
 
 	PacketStat     ActionStat
 	CollisionStat  ActionStat
-	PWorld         *World
 	GameObjs       map[int64]*GameObject
 	ClientConnInfo ConnInfo
 	chStep         <-chan IDList
@@ -72,7 +71,6 @@ func (s ByScore) Less(i, j int) bool {
 func NewTeam(w *World, conn interface{}) *Team {
 	t := Team{
 		ID:            <-IdGenCh,
-		PWorld:        w,
 		GameObjs:      make(map[int64]*GameObject),
 		Color:         rand.Intn(0x1000000),
 		PacketStat:    *NewActionStat(),
@@ -168,7 +166,9 @@ func (t *Team) processClientReq(ftime time.Time, w *WorldDisp, spp *SpatialParti
 	return true
 }
 
-func (t *Team) doFrameWork(ftime time.Time, spp *SpatialPartition, w *WorldDisp) <-chan IDList {
+func (t *Team) doFrameWork(world *World, ftime time.Time) <-chan IDList {
+	spp := world.spp
+	w := world.worldSerial
 	ap := t.CalcAP(spp)
 	if ap < 0 {
 		log.Printf("invalid ap team%v %v", t.ID, ap)
@@ -182,16 +182,16 @@ func (t *Team) doFrameWork(ftime time.Time, spp *SpatialPartition, w *WorldDisp)
 			close(chRtn)
 			return
 		}
-		chRtn <- t.actByTime(ftime, spp)
+		chRtn <- t.actByTime(world, ftime)
 	}()
 	return chRtn
 }
 
-func (t *Team) actByTime(ftime time.Time, spp *SpatialPartition) IDList {
+func (t *Team) actByTime(world *World, ftime time.Time) IDList {
 	clist := make(IDList, 0)
 	for _, v := range t.GameObjs {
 		v.colcount = 0
-		clist = append(clist, v.ActByTime(t, ftime, spp)...)
+		clist = append(clist, v.ActByTime(world, ftime)...)
 		t.CollisionStat.Add(v.colcount)
 	}
 	for id, v := range t.GameObjs {

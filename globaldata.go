@@ -156,9 +156,9 @@ var profileConfig = GameConfig{
 	},
 }
 
-//var GameConst = defaultConfig
+var GameConst = defaultConfig
 
-var GameConst = profileConfig
+//var GameConst = profileConfig
 
 func init() {
 	ValidateConfig(&GameConst)

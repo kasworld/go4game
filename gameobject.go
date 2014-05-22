@@ -118,10 +118,12 @@ func (o *GameObject) IsCollision(s *SPObj) bool {
 
 type ActionFnEnvInfo struct {
 	frameTime time.Time
-	team      *Team
+	world     *World
 }
 
-func (o *GameObject) ActByTime(team *Team, t time.Time, spp *SpatialPartition) IDList {
+func (o *GameObject) ActByTime(world *World, t time.Time) IDList {
+	spp := world.spp
+
 	o.ClearY()
 	var clist IDList
 
@@ -130,7 +132,7 @@ func (o *GameObject) ActByTime(team *Team, t time.Time, spp *SpatialPartition) I
 	}()
 	envInfo := ActionFnEnvInfo{
 		frameTime: t,
-		team:      team,
+		world:     world,
 	}
 	// check expire
 	if !o.endTime.IsZero() && o.endTime.Before(t) {
@@ -201,7 +203,7 @@ func moveByTimeFn_default(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 }
 
 func moveByTimeFn_shield(m *GameObject, envInfo *ActionFnEnvInfo) bool {
-	mo := envInfo.team.findMainObj()
+	mo := envInfo.world.Teams[m.TeamID].findMainObj()
 	if mo == nil {
 		return false
 	}
@@ -216,7 +218,7 @@ func moveByTimeFn_shield(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 
 func moveByTimeFn_homming(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 	// how to other team obj pos? without panic
-	targetTeam := envInfo.team.PWorld.Teams[m.targetTeamID]
+	targetTeam := envInfo.world.Teams[m.targetTeamID]
 	if targetTeam == nil {
 		m.enabled = false
 		return false

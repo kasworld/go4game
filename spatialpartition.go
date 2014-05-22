@@ -19,7 +19,7 @@ func NewSPObj(o *GameObject) *SPObj {
 	}
 	return &SPObj{
 		ID:         o.ID,
-		TeamID:     o.PTeam.ID,
+		TeamID:     o.TeamID,
 		PosVector:  o.PosVector,
 		MoveVector: o.MoveVector,
 		ObjType:    o.ObjType,
@@ -120,11 +120,17 @@ func (p *SpatialPartition) makeRange2(c float64, r float64, min float64, max flo
 	}
 }
 
-func (p *SpatialPartition) IsContactTo(c Vector3D, ppos [3]int, plenrsqd float64) bool {
-	pMin := Vector3D{p.PartMins[ppos[0]][0], p.PartMins[ppos[1]][1], p.PartMins[ppos[2]][2]}
+func (p *SpatialPartition) IsContactTo(c Vector3D, x, y, z int, plenrsqd float64) bool {
+	pMin := Vector3D{p.PartMins[x][0], p.PartMins[y][1], p.PartMins[z][2]}
 	pCenter := pMin.Add(p.PartSize.Idiv(2))
 	return plenrsqd >= pCenter.Sqd(c)
 }
+
+// func (p *SpatialPartition) IsContactTo(c Vector3D, ppos [3]int, plenrsqd float64) bool {
+// 	pMin := Vector3D{p.PartMins[ppos[0]][0], p.PartMins[ppos[1]][1], p.PartMins[ppos[2]][2]}
+// 	pCenter := pMin.Add(p.PartSize.Idiv(2))
+// 	return plenrsqd >= pCenter.Sqd(c)
+// }
 
 // for collision check
 func (p *SpatialPartition) IsCollision(fn func(*SPObj) bool, pos Vector3D, r float64) bool {
@@ -143,7 +149,7 @@ func (p *SpatialPartition) IsCollision(fn func(*SPObj) bool, pos Vector3D, r flo
 				if len(p.Parts[i][j][k]) == 0 {
 					continue
 				}
-				if !p.IsContactTo(pos, [3]int{i, j, k}, plenrsqd) {
+				if !p.IsContactTo(pos, i, j, k, plenrsqd) {
 					//log.Printf("not contact skipping %v", pos)
 					continue
 				}
@@ -175,7 +181,7 @@ func (p *SpatialPartition) GetCollisionList(fn func(*SPObj) bool, pos Vector3D, 
 				if len(p.Parts[i][j][k]) == 0 {
 					continue
 				}
-				if !p.IsContactTo(pos, [3]int{i, j, k}, plenrsqd) {
+				if !p.IsContactTo(pos, i, j, k, plenrsqd) {
 					//log.Printf("not contact skipping %v", pos)
 					continue
 				}
@@ -194,7 +200,7 @@ func (p *SpatialPartition) makeRange3(n int) []int {
 	if n <= 1 {
 		return []int{0, 1, 2}
 	} else if n >= p.PartCount-2 {
-		return []int{p.PartCount - 1, p.PartCount - 2, p.PartCount - 3}
+		return []int{p.PartCount - 3, p.PartCount - 2, p.PartCount - 1}
 	} else {
 		return []int{n - 1, n, n + 1}
 	}
@@ -217,4 +223,23 @@ func (p *SpatialPartition) ApplyParts27Fn(fn func(SPObjList) bool, pos Vector3D)
 		}
 	}
 	return false
+}
+
+func (p *SpatialPartition) getRangeStart(n int) int {
+	if n <= 1 {
+		return 0
+	} else if n >= p.PartCount-2 {
+		return p.PartCount - 3
+	} else {
+		return n - 1
+	}
+}
+
+// for ai action
+func (p *SpatialPartition) getPartSlice27(pos Vector3D) [][][]SPObjList {
+	ppos := p.Pos2PartPos(pos)
+	x := p.getRangeStart(ppos[0])
+	y := p.getRangeStart(ppos[1])
+	z := p.getRangeStart(ppos[2])
+	return p.Parts[x : x+2][y : y+2][z : z+2]
 }

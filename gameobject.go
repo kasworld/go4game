@@ -10,17 +10,18 @@ import (
 )
 
 func (m GameObject) String() string {
-	return fmt.Sprintf("GameObject:%v Type:%v Owner:%v",
-		m.ID, m.ObjType, m.PTeam)
+	return fmt.Sprintf("GameObject:%v Type:%v Team%v",
+		m.ID, m.ObjType, m.TeamID)
 }
 
 type GameObject struct {
 	ID         int64
-	PTeam      *Team
+	TeamID     int64
 	PosVector  Vector3D
 	MoveVector Vector3D
 	ObjType    GameObjectType
 
+	colcount     int64
 	enabled      bool
 	startTime    time.Time
 	endTime      time.Time
@@ -35,10 +36,10 @@ type GameObject struct {
 	expireActionFn    GameObjectActFn
 }
 
-func NewGameObject(PTeam *Team) *GameObject {
+func NewGameObject(teamID int64) *GameObject {
 	o := GameObject{
 		ID:                <-IdGenCh,
-		PTeam:             PTeam,
+		TeamID:            teamID,
 		enabled:           true,
 		startTime:         time.Now(),
 		lastMoveTime:      time.Now(),
@@ -107,19 +108,20 @@ func (o *GameObject) MakeHommingBullet(mo *GameObject, targetteamid int64, targe
 	o.ClearY()
 }
 
-type ActionFnEnvInfo struct {
-	frameTime time.Time
-}
-
 func (o *GameObject) IsCollision(s *SPObj) bool {
-	o.PTeam.CollisionStat.Inc()
-	if (s.TeamID != o.PTeam.ID) && GameConst.IsInteract[o.ObjType][s.ObjType] && (s.PosVector.Sqd(o.PosVector) <= GameConst.ObjSqd[s.ObjType][o.ObjType]) {
+	o.colcount++
+	if (s.TeamID != o.TeamID) && GameConst.IsInteract[o.ObjType][s.ObjType] && (s.PosVector.Sqd(o.PosVector) <= GameConst.ObjSqd[s.ObjType][o.ObjType]) {
 		return true
 	}
 	return false
 }
 
-func (o *GameObject) ActByTime(t time.Time, spp *SpatialPartition) IDList {
+type ActionFnEnvInfo struct {
+	frameTime time.Time
+	team      *Team
+}
+
+func (o *GameObject) ActByTime(team *Team, t time.Time, spp *SpatialPartition) IDList {
 	o.ClearY()
 	var clist IDList
 
@@ -128,6 +130,7 @@ func (o *GameObject) ActByTime(t time.Time, spp *SpatialPartition) IDList {
 	}()
 	envInfo := ActionFnEnvInfo{
 		frameTime: t,
+		team:      team,
 	}
 	// check expire
 	if !o.endTime.IsZero() && o.endTime.Before(t) {
@@ -198,7 +201,7 @@ func moveByTimeFn_default(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 }
 
 func moveByTimeFn_shield(m *GameObject, envInfo *ActionFnEnvInfo) bool {
-	mo := m.PTeam.findMainObj()
+	mo := envInfo.team.findMainObj()
 	if mo == nil {
 		return false
 	}
@@ -212,7 +215,8 @@ func moveByTimeFn_shield(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 }
 
 func moveByTimeFn_homming(m *GameObject, envInfo *ActionFnEnvInfo) bool {
-	targetTeam := m.PTeam.PWorld.Teams[m.targetTeamID]
+	// how to other team obj pos? without panic
+	targetTeam := envInfo.team.PWorld.Teams[m.targetTeamID]
 	if targetTeam == nil {
 		m.enabled = false
 		return false

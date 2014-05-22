@@ -50,3 +50,6 @@ func (a *ActionStat) UpdateLap() {
 func (a *ActionStat) Inc() {
 	a.Total.Count++
 }
+func (a *ActionStat) Add(n int64) {
+	a.Total.Count += n
+}

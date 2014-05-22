@@ -190,7 +190,9 @@ func (t *Team) doFrameWork(ftime time.Time, spp *SpatialPartition, w *WorldDisp)
 func (t *Team) actByTime(ftime time.Time, spp *SpatialPartition) IDList {
 	clist := make(IDList, 0)
 	for _, v := range t.GameObjs {
-		clist = append(clist, v.ActByTime(ftime, spp)...)
+		v.colcount = 0
+		clist = append(clist, v.ActByTime(t, ftime, spp)...)
+		t.CollisionStat.Add(v.colcount)
 	}
 	for id, v := range t.GameObjs {
 		if v.enabled == false {
@@ -241,7 +243,7 @@ func (t *Team) makeMainObj() {
 }
 
 func (t *Team) addNewGameObject(ObjType GameObjectType, args interface{}) *GameObject {
-	o := NewGameObject(t)
+	o := NewGameObject(t.ID)
 	switch ObjType {
 	case GameObjMain:
 		o.MakeMainObj()

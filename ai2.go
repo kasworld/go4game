@@ -11,7 +11,6 @@ import (
 type AI2 struct {
 	me          *SPObj
 	spp         *SpatialPartition
-	worldBound  *HyperRect
 	ActionPoint int
 	Score       int
 	HomePos     Vector3D
@@ -24,7 +23,7 @@ func (a *AI2) prepareTarget(s SPObjList) bool {
 	for _, t := range s {
 		if a.me.TeamID != t.TeamID {
 			estdur, estpos, estangle := a.me.calcAims(t, GameConst.MoveLimit[t.ObjType])
-			if math.IsInf(estdur, 1) || !estpos.IsIn(a.worldBound) {
+			if math.IsInf(estdur, 1) || !estpos.IsIn(&a.spp.WorldCube) {
 				estpos = nil
 			}
 			lenRate := a.me.calcLenRate(t)
@@ -55,7 +54,6 @@ func (a *AI2) MakeAction(packet *GamePacket) *GamePacket {
 	if a.spp == nil || a.me == nil {
 		return &GamePacket{Cmd: ReqFrameInfo}
 	}
-	a.worldBound = &HyperRect{Min: a.spp.Min, Max: a.spp.Max}
 	a.targetlist = make(AimTargetList, 0)
 	a.mainobjlist = make(AimTargetList, 0)
 	a.spp.ApplyParts27Fn(a.prepareTarget, a.me.PosVector)

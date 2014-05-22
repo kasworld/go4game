@@ -37,7 +37,7 @@ func NewGameService() *GameService {
 	go g.listenLoop()
 	go g.wsServer()
 
-	log.Printf("New %v\n%#v", g, GameConst)
+	log.Printf("New %v\n%+v", g, GameConst)
 
 	// create default world
 	for i := 0; i < GameConst.StartWorldCount; i++ {

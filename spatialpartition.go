@@ -29,9 +29,8 @@ func NewSPObj(o *GameObject) *SPObj {
 type SPObjList []*SPObj
 
 type SpatialPartition struct {
-	Min  Vector3D
-	Max  Vector3D
-	Size Vector3D
+	WorldCube HyperRect
+	Size      Vector3D
 
 	PartCount int
 	PartSize  Vector3D
@@ -48,9 +47,8 @@ func (p *SpatialPartition) AddPartPos(pos [3]int, obj *SPObj) {
 
 func (w *World) MakeSpatialPartition() *SpatialPartition {
 	rtn := SpatialPartition{
-		Min:  GameConst.WorldMin,
-		Max:  GameConst.WorldMax,
-		Size: GameConst.WorldMax.Sub(GameConst.WorldMin),
+		WorldCube: GameConst.WorldCube,
+		Size:      GameConst.WorldCube.SizeVector(),
 	}
 	objcount := 0
 	for _, t := range w.Teams {
@@ -65,11 +63,11 @@ func (w *World) MakeSpatialPartition() *SpatialPartition {
 	rtn.PartSize = rtn.Size.Idiv(float64(rtn.PartCount))
 	rtn.PartLen = rtn.PartSize.Abs()
 	rtn.PartMins = make([]Vector3D, rtn.PartCount+1)
-	rtn.PartMins[0] = rtn.Min
+	rtn.PartMins[0] = rtn.WorldCube.Min
 	for i := 1; i < rtn.PartCount; i++ {
 		rtn.PartMins[i] = rtn.PartMins[i-1].Add(rtn.PartSize)
 	}
-	rtn.PartMins[rtn.PartCount] = rtn.Max
+	rtn.PartMins[rtn.PartCount] = rtn.WorldCube.Max
 
 	rtn.Parts = make([][][]SPObjList, rtn.PartCount)
 	for i := 0; i < rtn.PartCount; i++ {
@@ -91,7 +89,7 @@ func (w *World) MakeSpatialPartition() *SpatialPartition {
 }
 
 func (p *SpatialPartition) Pos2PartPos(pos Vector3D) [3]int {
-	nompos := pos.Sub(p.Min)
+	nompos := pos.Sub(p.WorldCube.Min)
 	rtn := [3]int{0, 0, 0}
 
 	for i, v := range nompos {

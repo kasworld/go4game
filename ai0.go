@@ -34,7 +34,6 @@ func (a *AINothing) MakeAction(packet *GamePacket) *GamePacket {
 type AIRandom struct {
 	me          *SPObj
 	spp         *SpatialPartition
-	worldBound  *HyperRect
 	ActionPoint int
 	Score       int
 	HomePos     Vector3D
@@ -50,7 +49,6 @@ func (a *AIRandom) MakeAction(packet *GamePacket) *GamePacket {
 	if a.spp == nil || a.me == nil {
 		return &GamePacket{Cmd: ReqFrameInfo}
 	}
-	a.worldBound = &HyperRect{Min: a.spp.Min, Max: a.spp.Max}
 
 	rtn := &GamePacket{
 		Cmd: ReqFrameInfo,
@@ -64,7 +62,7 @@ func (a *AIRandom) MakeAction(packet *GamePacket) *GamePacket {
 	}
 
 	if a.ActionPoint >= GameConst.AP[ActionSuperBullet] && rand.Float64() < 0.5 {
-		tmp := RandVector(a.spp.Min, a.spp.Max)
+		tmp := a.spp.WorldCube.RandVector()
 		rtn.ClientAct.SuperBulletMv = &tmp
 		a.ActionPoint -= GameConst.AP[ActionSuperBullet]
 	}
@@ -75,14 +73,14 @@ func (a *AIRandom) MakeAction(packet *GamePacket) *GamePacket {
 	}
 
 	if a.ActionPoint >= GameConst.AP[ActionBullet] && rand.Float64() < 0.5 {
-		tmp := RandVector(a.spp.Min, a.spp.Max)
+		tmp := a.spp.WorldCube.RandVector()
 		rtn.ClientAct.NormalBulletMv = &tmp
 		a.ActionPoint -= GameConst.AP[ActionBullet]
 	}
 
 	if a.ActionPoint >= GameConst.AP[ActionAccel] {
 		if rand.Float64() < 0.5 {
-			tmp := RandVector(a.spp.Min, a.spp.Max)
+			tmp := a.spp.WorldCube.RandVector()
 			rtn.ClientAct.Accel = &tmp
 			a.ActionPoint -= GameConst.AP[ActionAccel]
 		} else {
@@ -104,7 +102,6 @@ func (a *AIRandom) MakeAction(packet *GamePacket) *GamePacket {
 type AICloud struct {
 	me          *SPObj
 	spp         *SpatialPartition
-	worldBound  *HyperRect
 	ActionPoint int
 	Score       int
 	HomePos     Vector3D
@@ -120,7 +117,6 @@ func (a *AICloud) MakeAction(packet *GamePacket) *GamePacket {
 	if a.spp == nil || a.me == nil {
 		return &GamePacket{Cmd: ReqFrameInfo}
 	}
-	a.worldBound = &HyperRect{Min: a.spp.Min, Max: a.spp.Max}
 
 	rtn := &GamePacket{
 		Cmd: ReqFrameInfo,
@@ -140,7 +136,7 @@ func (a *AICloud) MakeAction(packet *GamePacket) *GamePacket {
 
 	if a.ActionPoint >= GameConst.AP[ActionAccel] {
 		if rand.Float64() < 0.5 {
-			tmp := RandVector(a.spp.Min, a.spp.Max)
+			tmp := a.spp.WorldCube.RandVector()
 			rtn.ClientAct.Accel = &tmp
 			a.ActionPoint -= GameConst.AP[ActionAccel]
 		} else {

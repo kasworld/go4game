@@ -14,7 +14,6 @@ import (
 type AI3 struct {
 	me              *SPObj
 	spp             *SpatialPartition
-	worldBound      HyperRect
 	ActionPoint     int
 	Score           int
 	HomePos         Vector3D
@@ -107,7 +106,7 @@ func (a *AI3) CalcAttackFactor(o *SPObj, bulletType GameObjectType) float64 {
 		return -1.0
 	}
 	_, estpos, estangle := a.calcAims(o, GameConst.MoveLimit[bulletType])
-	if estpos == nil || !estpos.IsIn(&a.worldBound) { // cannot contact
+	if estpos == nil || !estpos.IsIn(&a.spp.WorldCube) { // cannot contact
 		return -1.0
 	}
 	anglefactor := math.Pow(estangle/math.Pi, 2)
@@ -204,7 +203,6 @@ func (a *AI3) MakeAction(packet *GamePacket) *GamePacket {
 	if a.spp == nil || a.me == nil {
 		return &GamePacket{Cmd: ReqFrameInfo}
 	}
-	a.worldBound = HyperRect{Min: a.spp.Min, Max: a.spp.Max}
 	for i := ActionAccel; i < ActionEnd; i++ {
 		a.preparedTargets[i] = make(AI3AimTargetList, 0)
 	}

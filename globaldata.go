@@ -28,9 +28,7 @@ const (
 	ActionEnd
 )
 
-const WorldSize = 500
-
-var GameConst = struct {
+type GameConfig struct {
 	TcpListen            string
 	WsListen             string
 	ClearY               bool
@@ -40,34 +38,54 @@ var GameConst = struct {
 	MaxWsClientPerWorld  int
 	StartWorldCount      int
 	RemoveEmptyWorld     bool
-	WorldMax             Vector3D
-	WorldMin             Vector3D
-	APIncFrame           int
-	KillScore            int
-	ShieldCount          int
-	MaxObjectRadius      float64
+	// WorldMax             Vector3D
+	// WorldMin             Vector3D
+	WorldCube       HyperRect
+	APIncFrame      int
+	KillScore       int
+	ShieldCount     int
+	MaxObjectRadius float64
 
 	MoveLimit  [GameObjEnd]float64
 	Radius     [GameObjEnd]float64
 	ObjSqd     [GameObjEnd][GameObjEnd]float64
 	IsInteract [GameObjEnd][GameObjEnd]bool // harmed obj : can harm obj
 	AP         [ActionEnd]int
-}{
+}
+
+func ValidateConfig(config *GameConfig) {
+	for _, o := range config.Radius {
+		if o > config.MaxObjectRadius {
+			config.MaxObjectRadius = o
+		}
+	}
+	for o1 := GameObjMain; o1 < GameObjEnd; o1++ {
+		for o2 := GameObjMain; o2 < GameObjEnd; o2++ {
+			config.ObjSqd[o1][o2] = (config.Radius[o1] + config.Radius[o2]) * (config.Radius[o1] + config.Radius[o2])
+		}
+	}
+
+}
+
+const WorldSize = 500
+
+var defaultConfig = GameConfig{
 	TcpListen:            "0.0.0.0:6666",
 	WsListen:             "0.0.0.0:8080",
-	WorldMin:             Vector3D{-WorldSize, -WorldSize, -WorldSize},
-	WorldMax:             Vector3D{WorldSize, WorldSize, WorldSize},
 	FramePerSec:          60.0,
 	RemoveEmptyWorld:     false,
 	MaxTcpClientPerWorld: 32,
 	MaxWsClientPerWorld:  32,
 	StartWorldCount:      1,
-	NpcCountPerWorld:     32,
-	ClearY:               false,
+	NpcCountPerWorld:     8,
+	ClearY:               true,
 	APIncFrame:           10,
 	KillScore:            1,
 	ShieldCount:          8,
 	MaxObjectRadius:      1, // changed by init
+	WorldCube: HyperRect{
+		Vector3D{-WorldSize, -WorldSize, -WorldSize},
+		Vector3D{WorldSize, WorldSize, WorldSize}},
 
 	MoveLimit: [GameObjEnd]float64{
 		GameObjMain: 100, GameObjShield: 200, GameObjBullet: 300, GameObjHommingBullet: 200, GameObjSuperBullet: 600},
@@ -94,16 +112,53 @@ var GameConst = struct {
 	},
 }
 
+var profileConfig = GameConfig{
+	TcpListen:            "0.0.0.0:6666",
+	WsListen:             "0.0.0.0:8080",
+	FramePerSec:          60.0,
+	RemoveEmptyWorld:     false,
+	MaxTcpClientPerWorld: 32,
+	MaxWsClientPerWorld:  32,
+	StartWorldCount:      1,
+	NpcCountPerWorld:     1000,
+	ClearY:               false,
+	APIncFrame:           10,
+	KillScore:            1,
+	ShieldCount:          8,
+	MaxObjectRadius:      1, // changed by init
+	WorldCube: HyperRect{
+		Vector3D{-WorldSize, -WorldSize, -WorldSize},
+		Vector3D{WorldSize, WorldSize, WorldSize}},
+
+	MoveLimit: [GameObjEnd]float64{
+		GameObjMain: 100, GameObjShield: 200, GameObjBullet: 300, GameObjHommingBullet: 200, GameObjSuperBullet: 600},
+	Radius: [GameObjEnd]float64{
+		GameObjMain: 10, GameObjShield: 5, GameObjBullet: 5, GameObjHommingBullet: 7, GameObjSuperBullet: 15},
+	IsInteract: [GameObjEnd][GameObjEnd]bool{
+		GameObjMain: [GameObjEnd]bool{
+			GameObjMain: true, GameObjShield: true, GameObjBullet: true, GameObjHommingBullet: true, GameObjSuperBullet: true},
+		GameObjShield: [GameObjEnd]bool{
+			GameObjMain: true, GameObjShield: true, GameObjBullet: true, GameObjHommingBullet: true, GameObjSuperBullet: true},
+		GameObjBullet: [GameObjEnd]bool{
+			GameObjMain: true, GameObjShield: true, GameObjBullet: true, GameObjHommingBullet: true, GameObjSuperBullet: true},
+		GameObjHommingBullet: [GameObjEnd]bool{
+			GameObjMain: true, GameObjShield: true, GameObjBullet: false, GameObjHommingBullet: true, GameObjSuperBullet: true},
+		GameObjSuperBullet: [GameObjEnd]bool{
+			GameObjMain: true, GameObjShield: true, GameObjBullet: false, GameObjHommingBullet: true, GameObjSuperBullet: true},
+	},
+	AP: [ActionEnd]int{
+		ActionAccel:         1,
+		ActionBullet:        10,
+		ActionSuperBullet:   80,
+		ActionHommingBullet: 100,
+		ActionBurstBullet:   10,
+	},
+}
+
+var GameConst = defaultConfig
+
+//var GameConst = profileConfig
+
 func init() {
-	for _, o := range GameConst.Radius {
-		if o > GameConst.MaxObjectRadius {
-			GameConst.MaxObjectRadius = o
-		}
-	}
-	for o1 := GameObjMain; o1 < GameObjEnd; o1++ {
-		for o2 := GameObjMain; o2 < GameObjEnd; o2++ {
-			GameConst.ObjSqd[o1][o2] = (GameConst.Radius[o1] + GameConst.Radius[o2]) * (GameConst.Radius[o1] + GameConst.Radius[o2])
-		}
-	}
-	//log.Printf("%#v", GameConst)
+	ValidateConfig(&GameConst)
 }

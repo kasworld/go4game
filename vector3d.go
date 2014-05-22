@@ -186,6 +186,10 @@ func (h *HyperRect) DiagLen() float64 {
 	return h.Min.LenTo(h.Max)
 }
 
+func (h *HyperRect) SizeVector() Vector3D {
+	return h.Max.Sub(h.Min)
+}
+
 func (h *HyperRect) IsContact(c Vector3D, r float64) bool {
 	hc := h.Center()
 	hl := h.DiagLen()

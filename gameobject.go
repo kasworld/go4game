@@ -60,15 +60,15 @@ func (o *GameObject) ClearY() {
 }
 
 func (o *GameObject) MakeMainObj() {
-	o.PosVector = RandVector(GameConst.WorldMin, GameConst.WorldMax)
-	o.MoveVector = RandVector(GameConst.WorldMin, GameConst.WorldMax)
-	o.accelVector = RandVector(GameConst.WorldMin, GameConst.WorldMax)
+	o.PosVector = GameConst.WorldCube.RandVector()
+	o.MoveVector = GameConst.WorldCube.RandVector()
+	o.accelVector = GameConst.WorldCube.RandVector()
 	o.ObjType = GameObjMain
 	o.ClearY()
 }
 func (o *GameObject) MakeShield(mo *GameObject) {
-	o.MoveVector = RandVector(GameConst.WorldMin, GameConst.WorldMax)
-	o.accelVector = RandVector(GameConst.WorldMin, GameConst.WorldMax)
+	o.MoveVector = GameConst.WorldCube.RandVector()
+	o.accelVector = GameConst.WorldCube.RandVector()
 	o.endTime = o.startTime.Add(time.Second * 60)
 	o.moveByTimeFn = moveByTimeFn_shield
 	o.borderActionFn = borderActionFn_None
@@ -212,7 +212,12 @@ func moveByTimeFn_shield(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 }
 
 func moveByTimeFn_homming(m *GameObject, envInfo *ActionFnEnvInfo) bool {
-	targetobj := m.PTeam.PWorld.Teams[m.targetTeamID].GameObjs[m.targetObjID]
+	targetTeam := m.PTeam.PWorld.Teams[m.targetTeamID]
+	if targetTeam == nil {
+		m.enabled = false
+		return false
+	}
+	targetobj := targetTeam.GameObjs[m.targetObjID]
 	if targetobj == nil {
 		m.enabled = false
 		return false
@@ -223,15 +228,15 @@ func moveByTimeFn_homming(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 
 func borderActionFn_Bounce(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 	for i := range m.PosVector {
-		if m.PosVector[i] > GameConst.WorldMax[i] {
+		if m.PosVector[i] > GameConst.WorldCube.Max[i] {
 			m.accelVector[i] = -m.accelVector[i]
 			m.MoveVector[i] = -m.MoveVector[i]
-			m.PosVector[i] = GameConst.WorldMax[i]
+			m.PosVector[i] = GameConst.WorldCube.Max[i]
 		}
-		if m.PosVector[i] < GameConst.WorldMin[i] {
+		if m.PosVector[i] < GameConst.WorldCube.Min[i] {
 			m.accelVector[i] = -m.accelVector[i]
 			m.MoveVector[i] = -m.MoveVector[i]
-			m.PosVector[i] = GameConst.WorldMin[i]
+			m.PosVector[i] = GameConst.WorldCube.Min[i]
 		}
 	}
 	return true
@@ -239,11 +244,11 @@ func borderActionFn_Bounce(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 
 func borderActionFn_Wrap(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 	for i := range m.PosVector {
-		if m.PosVector[i] > GameConst.WorldMax[i] {
-			m.PosVector[i] = GameConst.WorldMin[i]
+		if m.PosVector[i] > GameConst.WorldCube.Max[i] {
+			m.PosVector[i] = GameConst.WorldCube.Min[i]
 		}
-		if m.PosVector[i] < GameConst.WorldMin[i] {
-			m.PosVector[i] = GameConst.WorldMax[i]
+		if m.PosVector[i] < GameConst.WorldCube.Min[i] {
+			m.PosVector[i] = GameConst.WorldCube.Max[i]
 		}
 	}
 	return true
@@ -251,7 +256,7 @@ func borderActionFn_Wrap(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 
 func borderActionFn_Disable(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 	for i := range m.PosVector {
-		if (m.PosVector[i] > GameConst.WorldMax[i]) || (m.PosVector[i] < GameConst.WorldMin[i]) {
+		if (m.PosVector[i] > GameConst.WorldCube.Max[i]) || (m.PosVector[i] < GameConst.WorldCube.Min[i]) {
 			m.enabled = false
 			return false
 		}

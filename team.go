@@ -52,7 +52,7 @@ func (t *Team) NewTeamInfo() *TeamInfo {
 		PacketStat: t.PacketStat.String(),
 		CollStat:   t.CollisionStat.String(),
 		Color:      t.Color,
-		FontColor:  0xffffff - t.Color,
+		FontColor:  0xffffff ^ t.Color,
 		Score:      t.Score,
 	}
 }
@@ -90,7 +90,7 @@ func NewTeam(w *World, conn interface{}) *Team {
 	default:
 		log.Printf("unknown type %#v", conn)
 	}
-	t.HomePos = RandVector(GameConst.WorldMin, GameConst.WorldMax).Idiv(2)
+	t.HomePos = GameConst.WorldCube.RandVector().Idiv(2)
 	if GameConst.ClearY {
 		t.HomePos[1] = 0
 	}
@@ -98,13 +98,13 @@ func NewTeam(w *World, conn interface{}) *Team {
 }
 
 func (t *Team) moveHomePos() {
-	t.HomePos = t.HomePos.Add(RandVector(GameConst.WorldMin, GameConst.WorldMax).Idiv(100))
+	t.HomePos = t.HomePos.Add(GameConst.WorldCube.RandVector().Idiv(100))
 	for i, v := range t.HomePos {
-		if v > GameConst.WorldMax[i] {
-			t.HomePos[i] = GameConst.WorldMax[i]
+		if v > GameConst.WorldCube.Max[i] {
+			t.HomePos[i] = GameConst.WorldCube.Max[i]
 		}
-		if v < GameConst.WorldMin[i] {
-			t.HomePos[i] = GameConst.WorldMin[i]
+		if v < GameConst.WorldCube.Min[i] {
+			t.HomePos[i] = GameConst.WorldCube.Min[i]
 		}
 	}
 	if GameConst.ClearY {
@@ -132,17 +132,14 @@ func (t *Team) processClientReq(ftime time.Time, w *WorldDisp, spp *SpatialParti
 	select {
 	case p, ok = <-t.ClientConnInfo.ReadCh:
 		if !ok { // read closed
-			//log.Printf("client quit %v", t)
 			return false
 		}
 	case <-time.After(time.Duration(1000/GameConst.FramePerSec) * time.Millisecond):
 	}
 	if p == nil {
-		//log.Printf("timeout team%v", t.ID)
 		return true
 	}
 	t.PacketStat.Inc()
-	// log.Printf("processClientReq client packet %v %v", t, p)
 	var rp GamePacket
 	switch p.Cmd {
 	case ReqWorldInfo:
@@ -167,9 +164,7 @@ func (t *Team) processClientReq(ftime time.Time, w *WorldDisp, spp *SpatialParti
 		log.Printf("unknown packet %#v", p)
 		return false
 	}
-	//log.Printf("client packet processed %v %v", t, rp.Cmd)
 	t.ClientConnInfo.WriteCh <- &rp
-	//log.Printf("end processClientReq %v", t)
 	return true
 }
 
@@ -181,41 +176,32 @@ func (t *Team) doFrameWork(ftime time.Time, spp *SpatialPartition, w *WorldDisp)
 	t.ActionPoint += ap
 
 	chRtn := make(chan IDList)
-	// log.Printf("doFrameWork %v", t)
 	go func() {
-		// log.Printf("in team.doFrameWork %v", t)
 		rtn := t.processClientReq(ftime, w, spp)
 		if !rtn {
-			//log.Printf("err close chRtn")
 			close(chRtn)
 			return
 		}
-		// log.Printf("mid team.doFrameWork %v", t)
 		chRtn <- t.actByTime(ftime, spp)
-		// log.Printf("out team.doFrameWork %v", t)
 	}()
 	return chRtn
 }
 
 func (t *Team) actByTime(ftime time.Time, spp *SpatialPartition) IDList {
-	// log.Printf("in team.actbytime  %v", t)
 	clist := make(IDList, 0)
 	for _, v := range t.GameObjs {
 		clist = append(clist, v.ActByTime(ftime, spp)...)
 	}
 	for id, v := range t.GameObjs {
 		if v.enabled == false {
-			//t.delGameObject(v)
 			delete(t.GameObjs, id)
 			if v.ObjType == GameObjMain {
 				t.makeMainObj()
 				t.Score -= GameConst.KillScore
-				//t.addNewGameObject(v.ObjType, nil)
 			}
 		}
 	}
 	t.moveHomePos()
-	// log.Printf("out team.actbytime  %v", t)
 	return clist
 }
 
@@ -240,7 +226,6 @@ func (t *Team) endTeam() {
 	if t.ClientConnInfo.WsConn != nil {
 		t.ClientConnInfo.WsConn.Close() // stop read loop
 	}
-	//log.Printf("team end %v", t)
 }
 
 func (t *Team) makeMainObj() {

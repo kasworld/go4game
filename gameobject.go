@@ -70,7 +70,6 @@ func (o *GameObject) MakeMainObj() {
 func (o *GameObject) MakeShield(mo *GameObject) {
 	o.MoveVector = GameConst.WorldCube.RandVector()
 	o.accelVector = GameConst.WorldCube.RandVector()
-	o.endTime = o.startTime.Add(time.Second * 60)
 	o.moveByTimeFn = moveByTimeFn_shield
 	o.borderActionFn = borderActionFn_None
 	o.PosVector = mo.PosVector
@@ -117,7 +116,7 @@ type ActionFnEnvInfo struct {
 	clist     IDList
 }
 
-func (e *ActionFnEnvInfo) IsCollision(o *GameObject, s *SPObj) bool {
+func (o *GameObject) IsCollision(s *SPObj) bool {
 	o.colcount++
 	if (s.TeamID != o.TeamID) && GameConst.IsInteract[o.ObjType][s.ObjType] && (s.PosVector.Sqd(o.PosVector) <= GameConst.ObjSqd[s.ObjType][o.ObjType]) {
 		return true
@@ -125,26 +124,24 @@ func (e *ActionFnEnvInfo) IsCollision(o *GameObject, s *SPObj) bool {
 	return false
 }
 
-func (e *ActionFnEnvInfo) doPartMainObj(x, y, z int) bool {
-	cp := e.spp.Parts[x][y][z]
-	if len(cp) == 0 || !e.spp.IsContactTo(e.o.PosVector, x, y, z, e.plenrsqd) {
+func (e *ActionFnEnvInfo) doPartMainObj(cp SPObjList, ppos [3]int) bool {
+	if len(cp) == 0 || !e.spp.IsContactTo(e.o.PosVector, ppos, e.plenrsqd) {
 		return false
 	}
 	for _, v := range cp {
-		if e.IsCollision(e.o, v) {
+		if e.o.IsCollision(v) {
 			e.clist = append(e.clist, v.TeamID)
 		}
 	}
 	return false
 }
 
-func (e *ActionFnEnvInfo) doPartOtherObj(x, y, z int) bool {
-	cp := e.spp.Parts[x][y][z]
-	if len(cp) == 0 || !e.spp.IsContactTo(e.o.PosVector, x, y, z, e.plenrsqd) {
+func (e *ActionFnEnvInfo) doPartOtherObj(cp SPObjList, ppos [3]int) bool {
+	if len(cp) == 0 || !e.spp.IsContactTo(e.o.PosVector, ppos, e.plenrsqd) {
 		return false
 	}
 	for _, v := range cp {
-		if e.IsCollision(e.o, v) {
+		if e.o.IsCollision(v) {
 			return true
 		}
 	}

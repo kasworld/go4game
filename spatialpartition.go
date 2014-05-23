@@ -110,10 +110,20 @@ func (p *SpatialPartition) GetPartCube(ppos [3]int) *HyperRect {
 	}
 }
 
-func (p *SpatialPartition) IsContactTo(c Vector3D, x, y, z int, plenrsqd float64) bool {
-	pMin := Vector3D{p.PartMins[x][0], p.PartMins[y][1], p.PartMins[z][2]}
-	pCenter := pMin.Add(p.PartSize.Idiv(2))
-	return plenrsqd >= pCenter.Sqd(c)
+func (p *SpatialPartition) IsContactTo(c Vector3D, ppos [3]int, plenrsqd float64) bool {
+	var sum float64
+	for i, v := range c {
+		d := p.PartMins[ppos[i]][i] + p.PartSize[i]/2 - v
+		sum += d * d
+	}
+	return plenrsqd >= sum
+	// return plenrsqd >= c.Sqd(Vector3D{
+	// 	p.PartMins[x][0] + p.PartSize[0]/2,
+	// 	p.PartMins[y][1] + p.PartSize[1]/2,
+	// 	p.PartMins[z][2] + p.PartSize[2]/2})
+	// pMin := Vector3D{p.PartMins[x][0], p.PartMins[y][1], p.PartMins[z][2]}
+	// pCenter := pMin.Add(p.PartSize.Idiv(2))
+	// return plenrsqd >= pCenter.Sqd(c)
 }
 
 func (p *SpatialPartition) getRangeStart(n int) int {
@@ -148,12 +158,12 @@ func (p *SpatialPartition) ApplyParts27Fn(fn func(SPObjList) bool, pos Vector3D)
 	return false
 }
 
-func (p *SpatialPartition) ApplyParts27Fn2(fn func(int, int, int) bool, pos Vector3D) bool {
+func (p *SpatialPartition) ApplyParts27Fn2(fn func(SPObjList, [3]int) bool, pos Vector3D) bool {
 	i, j, k := p.getPartStart27(pos)
 	for x := i; x < i+3; x++ {
 		for y := j; y < j+3; y++ {
 			for z := k; z < k+3; z++ {
-				if fn(x, y, z) {
+				if fn(p.Parts[x][y][z], [3]int{x, y, z}) {
 					return true
 				}
 			}

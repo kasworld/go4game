@@ -108,7 +108,16 @@ func (o *GameObject) MakeHommingBullet(mo *GameObject, targetteamid int64, targe
 	o.ClearY()
 }
 
-func (o *GameObject) IsCollision(s *SPObj) bool {
+type ActionFnEnvInfo struct {
+	frameTime time.Time
+	world     *World
+	spp       *SpatialPartition
+	plenrsqd  float64
+	o         *GameObject
+	clist     IDList
+}
+
+func (e *ActionFnEnvInfo) IsCollision(o *GameObject, s *SPObj) bool {
 	o.colcount++
 	if (s.TeamID != o.TeamID) && GameConst.IsInteract[o.ObjType][s.ObjType] && (s.PosVector.Sqd(o.PosVector) <= GameConst.ObjSqd[s.ObjType][o.ObjType]) {
 		return true
@@ -116,49 +125,70 @@ func (o *GameObject) IsCollision(s *SPObj) bool {
 	return false
 }
 
-type ActionFnEnvInfo struct {
-	frameTime time.Time
-	world     *World
+func (e *ActionFnEnvInfo) doPartMainObj(x, y, z int) bool {
+	cp := e.spp.Parts[x][y][z]
+	if len(cp) == 0 || !e.spp.IsContactTo(e.o.PosVector, x, y, z, e.plenrsqd) {
+		return false
+	}
+	for _, v := range cp {
+		if e.IsCollision(e.o, v) {
+			e.clist = append(e.clist, v.TeamID)
+		}
+	}
+	return false
+}
+
+func (e *ActionFnEnvInfo) doPartOtherObj(x, y, z int) bool {
+	cp := e.spp.Parts[x][y][z]
+	if len(cp) == 0 || !e.spp.IsContactTo(e.o.PosVector, x, y, z, e.plenrsqd) {
+		return false
+	}
+	for _, v := range cp {
+		if e.IsCollision(e.o, v) {
+			return true
+		}
+	}
+	return false
 }
 
 func (o *GameObject) ActByTime(world *World, t time.Time) IDList {
-	spp := world.spp
-
 	o.ClearY()
-	var clist IDList
 
 	defer func() {
 		o.lastMoveTime = t
 	}()
+
 	envInfo := ActionFnEnvInfo{
 		frameTime: t,
 		world:     world,
+		spp:       world.spp,
+		o:         o,
+		clist:     make(IDList, 0),
 	}
 	// check expire
 	if !o.endTime.IsZero() && o.endTime.Before(t) {
 		if o.expireActionFn != nil {
 			ok := o.expireActionFn(o, &envInfo)
 			if ok != true {
-				return clist
+				return envInfo.clist
 			}
 		}
 	}
-	// check if collision , disable
-	// modify own status only
-	var isCollsion bool
+
+	var isCollision bool
+	envInfo.plenrsqd = (envInfo.spp.PartLen/2 + GameConst.Radius[o.ObjType] + GameConst.MaxObjectRadius)
+	envInfo.plenrsqd *= envInfo.plenrsqd
 	if o.ObjType == GameObjMain {
-		clist = spp.GetCollisionList(o.IsCollision, o.PosVector, GameConst.MaxObjectRadius)
-		if len(clist) > 0 {
-			isCollsion = true
-		}
+		envInfo.spp.ApplyParts27Fn2(envInfo.doPartMainObj, o.PosVector)
 	} else {
-		isCollsion = spp.IsCollision(o.IsCollision, o.PosVector, GameConst.Radius[o.ObjType]+GameConst.MaxObjectRadius)
+		isCollision = envInfo.spp.ApplyParts27Fn2(envInfo.doPartOtherObj, o.PosVector)
 	}
-	if isCollsion {
+
+	if isCollision || len(envInfo.clist) > 0 {
 		if o.collisionActionFn != nil {
 			ok := o.collisionActionFn(o, &envInfo)
 			if ok != true {
-				return clist
+				return envInfo.clist
 			}
 		}
 	}
@@ -166,17 +196,17 @@ func (o *GameObject) ActByTime(world *World, t time.Time) IDList {
 		// change PosVector by movevector
 		ok := o.moveByTimeFn(o, &envInfo)
 		if ok != true {
-			return clist
+			return envInfo.clist
 		}
 	}
 	if o.borderActionFn != nil {
 		// check wall action ( wrap, bounce )
 		ok := o.borderActionFn(o, &envInfo)
 		if ok != true {
-			return clist
+			return envInfo.clist
 		}
 	}
-	return clist
+	return envInfo.clist
 }
 
 type GameObjectActFn func(m *GameObject, envInfo *ActionFnEnvInfo) bool

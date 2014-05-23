@@ -77,7 +77,7 @@ var defaultConfig = GameConfig{
 	MaxTcpClientPerWorld: 32,
 	MaxWsClientPerWorld:  32,
 	StartWorldCount:      1,
-	NpcCountPerWorld:     32,
+	NpcCountPerWorld:     8,
 	ClearY:               true,
 	APIncFrame:           10,
 	KillScore:            1,

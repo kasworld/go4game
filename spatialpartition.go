@@ -110,119 +110,10 @@ func (p *SpatialPartition) GetPartCube(ppos [3]int) *HyperRect {
 	}
 }
 
-func (p *SpatialPartition) makeRange2(c float64, r float64, min float64, max float64, n int) []int {
-	if n-1 >= 0 && c-r*2 <= min {
-		return []int{n, n - 1}
-	} else if n+1 < p.PartCount && c+r*2 >= max {
-		return []int{n, n + 1}
-	} else {
-		return []int{n}
-	}
-}
-
 func (p *SpatialPartition) IsContactTo(c Vector3D, x, y, z int, plenrsqd float64) bool {
 	pMin := Vector3D{p.PartMins[x][0], p.PartMins[y][1], p.PartMins[z][2]}
 	pCenter := pMin.Add(p.PartSize.Idiv(2))
 	return plenrsqd >= pCenter.Sqd(c)
-}
-
-// func (p *SpatialPartition) IsContactTo(c Vector3D, ppos [3]int, plenrsqd float64) bool {
-// 	pMin := Vector3D{p.PartMins[ppos[0]][0], p.PartMins[ppos[1]][1], p.PartMins[ppos[2]][2]}
-// 	pCenter := pMin.Add(p.PartSize.Idiv(2))
-// 	return plenrsqd >= pCenter.Sqd(c)
-// }
-
-// for collision check
-func (p *SpatialPartition) IsCollision(fn func(*SPObj) bool, pos Vector3D, r float64) bool {
-	ppos := p.Pos2PartPos(pos)
-	partcube := p.GetPartCube(ppos)
-
-	plenrsqd := (p.PartLen/2 + r) * (p.PartLen/2 + r)
-
-	xr := p.makeRange2(pos[0], r, partcube.Min[0], partcube.Max[0], ppos[0])
-	yr := p.makeRange2(pos[1], r, partcube.Min[1], partcube.Max[1], ppos[1])
-	zr := p.makeRange2(pos[2], r, partcube.Min[2], partcube.Max[2], ppos[2])
-	//log.Printf("%v %v %v ", xr, yr, zr)
-	for _, i := range xr {
-		for _, j := range yr {
-			for _, k := range zr {
-				if len(p.Parts[i][j][k]) == 0 {
-					continue
-				}
-				if !p.IsContactTo(pos, i, j, k, plenrsqd) {
-					//log.Printf("not contact skipping %v", pos)
-					continue
-				}
-				for _, s := range p.Parts[i][j][k] {
-					if fn(s) {
-						return true
-					}
-				}
-			}
-		}
-	}
-	return false
-}
-
-// for find who kill gameobjmain
-func (p *SpatialPartition) GetCollisionList(fn func(*SPObj) bool, pos Vector3D, r float64) IDList {
-	ppos := p.Pos2PartPos(pos)
-	partcube := p.GetPartCube(ppos)
-	plenrsqd := (p.PartLen/2 + r) * (p.PartLen/2 + r)
-	rtn := make(IDList, 0)
-
-	xr := p.makeRange2(pos[0], r, partcube.Min[0], partcube.Max[0], ppos[0])
-	yr := p.makeRange2(pos[1], r, partcube.Min[1], partcube.Max[1], ppos[1])
-	zr := p.makeRange2(pos[2], r, partcube.Min[2], partcube.Max[2], ppos[2])
-	//log.Printf("%v %v %v ", xr, yr, zr)
-	for _, i := range xr {
-		for _, j := range yr {
-			for _, k := range zr {
-				if len(p.Parts[i][j][k]) == 0 {
-					continue
-				}
-				if !p.IsContactTo(pos, i, j, k, plenrsqd) {
-					//log.Printf("not contact skipping %v", pos)
-					continue
-				}
-				for _, s := range p.Parts[i][j][k] {
-					if fn(s) {
-						rtn = append(rtn, s.TeamID)
-					}
-				}
-			}
-		}
-	}
-	return rtn
-}
-
-func (p *SpatialPartition) makeRange3(n int) []int {
-	if n <= 1 {
-		return []int{0, 1, 2}
-	} else if n >= p.PartCount-2 {
-		return []int{p.PartCount - 3, p.PartCount - 2, p.PartCount - 1}
-	} else {
-		return []int{n - 1, n, n + 1}
-	}
-}
-
-// for ai action
-func (p *SpatialPartition) ApplyParts27Fn(fn func(SPObjList) bool, pos Vector3D) bool {
-	ppos := p.Pos2PartPos(pos)
-	xr := p.makeRange3(ppos[0])
-	yr := p.makeRange3(ppos[1])
-	zr := p.makeRange3(ppos[2])
-	//log.Printf("%v %v %v ", xr, yr, zr)
-	for _, i := range xr {
-		for _, j := range yr {
-			for _, k := range zr {
-				if fn(p.Parts[i][j][k]) {
-					return true
-				}
-			}
-		}
-	}
-	return false
 }
 
 func (p *SpatialPartition) getRangeStart(n int) int {
@@ -235,11 +126,38 @@ func (p *SpatialPartition) getRangeStart(n int) int {
 	}
 }
 
-// for ai action
-func (p *SpatialPartition) getPartSlice27(pos Vector3D) [][][]SPObjList {
+func (p *SpatialPartition) getPartStart27(pos Vector3D) (x, y, z int) {
 	ppos := p.Pos2PartPos(pos)
-	x := p.getRangeStart(ppos[0])
-	y := p.getRangeStart(ppos[1])
-	z := p.getRangeStart(ppos[2])
-	return p.Parts[x : x+2][y : y+2][z : z+2]
+	x = p.getRangeStart(ppos[0])
+	y = p.getRangeStart(ppos[1])
+	z = p.getRangeStart(ppos[2])
+	return
+}
+
+func (p *SpatialPartition) ApplyParts27Fn(fn func(SPObjList) bool, pos Vector3D) bool {
+	i, j, k := p.getPartStart27(pos)
+	for x := i; x < i+3; x++ {
+		for y := j; y < j+3; y++ {
+			for z := k; z < k+3; z++ {
+				if fn(p.Parts[x][y][z]) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+func (p *SpatialPartition) ApplyParts27Fn2(fn func(int, int, int) bool, pos Vector3D) bool {
+	i, j, k := p.getPartStart27(pos)
+	for x := i; x < i+3; x++ {
+		for y := j; y < j+3; y++ {
+			for z := k; z < k+3; z++ {
+				if fn(x, y, z) {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }

@@ -171,3 +171,89 @@ func (p *SpatialPartition) ApplyParts27Fn2(fn func(SPObjList, [3]int) bool, pos 
 	}
 	return false
 }
+
+func (p *SpatialPartition) makeRange2(c float64, r float64, min float64, max float64, n int) []int {
+	if n-1 >= 0 && c-r <= min {
+		return []int{n, n - 1}
+	} else if n+1 < p.PartCount && c+r >= max {
+		return []int{n, n + 1}
+	} else {
+		return []int{n}
+	}
+}
+
+func (p *SpatialPartition) ApplyParts27Fn5(fn func(SPObjList, [3]int) bool, pos Vector3D, r float64) bool {
+	ppos := p.Pos2PartPos(pos)
+	partcube := p.GetPartCube(ppos)
+	xr := p.makeRange2(pos[0], r, partcube.Min[0], partcube.Max[0], ppos[0])
+	yr := p.makeRange2(pos[1], r, partcube.Min[1], partcube.Max[1], ppos[1])
+	zr := p.makeRange2(pos[2], r, partcube.Min[2], partcube.Max[2], ppos[2])
+
+	for _, x := range xr {
+		for _, y := range yr {
+			for _, z := range zr {
+				if fn(p.Parts[x][y][z], [3]int{x, y, z}) {
+					return true
+				}
+
+			}
+		}
+	}
+	return false
+}
+
+var p27 = [27][3]int{
+	{0, 0, 0}, {0, 0, 1}, {0, 0, -1},
+	{0, 1, 0}, {0, 1, 1}, {0, 1, -1},
+	{0, -1, 0}, {0, -1, 1}, {0, -1, -1},
+	{1, 0, 0}, {1, 0, 1}, {1, 0, -1},
+	{1, 1, 0}, {1, 1, 1}, {1, 1, -1},
+	{1, -1, 0}, {1, -1, 1}, {1, -1, -1},
+	{-1, 0, 0}, {-1, 0, 1}, {-1, 0, -1},
+	{-1, 1, 0}, {-1, 1, 1}, {-1, 1, -1},
+	{-1, -1, 0}, {-1, -1, 1}, {-1, -1, -1},
+}
+
+func (p *SpatialPartition) ApplyParts27Fn4(fn func(SPObjList, [3]int) bool, pos Vector3D) bool {
+	ppos := p.Pos2PartPos(pos)
+	for _, pi := range p27 {
+		x, y, z := ppos[0]+pi[0], ppos[1]+pi[1], ppos[2]+pi[2]
+		if x < 0 || x >= p.PartCount || y < 0 || y >= p.PartCount || z < 0 || z >= p.PartCount {
+			continue
+		}
+		if len(p.Parts[x][y][z]) == 0 {
+			continue
+		}
+		if fn(p.Parts[x][y][z], [3]int{x, y, z}) {
+			return true
+		}
+	}
+	return false
+}
+
+// soooo slow
+func (p *SpatialPartition) ApplyParts27Fn3(fn func(SPObjList, [3]int) bool, pos Vector3D) bool {
+	ppos := p.Pos2PartPos(pos)
+	for x := range [3]int{ppos[0], ppos[0] - 1, ppos[0] + 1} {
+		if x < 0 || x >= p.PartCount {
+			continue
+		}
+		for y := range [3]int{ppos[1], ppos[1] - 1, ppos[1] + 1} {
+			if y < 0 || y >= p.PartCount {
+				continue
+			}
+			for z := range [3]int{ppos[2], ppos[2] - 1, ppos[2] + 1} {
+				if z < 0 || z >= p.PartCount {
+					continue
+				}
+				if len(p.Parts[x][y][z]) == 0 {
+					continue
+				}
+				if fn(p.Parts[x][y][z], [3]int{x, y, z}) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}

@@ -176,9 +176,11 @@ func (o *GameObject) ActByTime(world *World, t time.Time) IDList {
 	envInfo.plenrsqd = (envInfo.spp.PartLen/2 + GameConst.Radius[o.ObjType] + GameConst.MaxObjectRadius)
 	envInfo.plenrsqd *= envInfo.plenrsqd
 	if o.ObjType == GameObjMain {
-		envInfo.spp.ApplyParts27Fn2(envInfo.doPartMainObj, o.PosVector)
+		envInfo.spp.ApplyParts27Fn5(envInfo.doPartMainObj, o.PosVector, GameConst.Radius[o.ObjType]+GameConst.MaxObjectRadius)
+		// envInfo.spp.ApplyParts27Fn4(envInfo.doPartMainObj, o.PosVector)
 	} else {
-		isCollision = envInfo.spp.ApplyParts27Fn2(envInfo.doPartOtherObj, o.PosVector)
+		isCollision = envInfo.spp.ApplyParts27Fn5(envInfo.doPartOtherObj, o.PosVector, GameConst.Radius[o.ObjType]+GameConst.MaxObjectRadius)
+		//isCollision = envInfo.spp.ApplyParts27Fn4(envInfo.doPartOtherObj, o.PosVector)
 	}
 
 	if isCollision || len(envInfo.clist) > 0 {

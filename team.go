@@ -71,7 +71,7 @@ func (s ByScore) Less(i, j int) bool {
 func NewTeam(w *World, conn interface{}) *Team {
 	t := Team{
 		ID:            <-IdGenCh,
-		GameObjs:      make(map[int64]*GameObject),
+		GameObjs:      make(map[int64]*GameObject, 10),
 		Color:         rand.Intn(0x1000000),
 		PacketStat:    *NewActionStat(),
 		CollisionStat: *NewActionStat(),

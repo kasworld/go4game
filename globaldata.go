@@ -156,9 +156,99 @@ var profileConfig = GameConfig{
 	},
 }
 
+var bigWorldConfig = GameConfig{
+	TcpListen:            "0.0.0.0:6666",
+	WsListen:             "0.0.0.0:8080",
+	FramePerSec:          60.0,
+	RemoveEmptyWorld:     false,
+	MaxTcpClientPerWorld: 32,
+	MaxWsClientPerWorld:  32,
+	TcpClientEncode:      "gob",
+	StartWorldCount:      1,
+	NpcCountPerWorld:     1000,
+	ClearY:               false,
+	APIncFrame:           10,
+	KillScore:            1,
+	ShieldCount:          8,
+	MaxObjectRadius:      1, // changed by init
+	WorldCube: HyperRect{
+		Vector3D{-WorldSize * 100, -WorldSize * 100, -WorldSize * 100},
+		Vector3D{WorldSize * 100, WorldSize * 100, WorldSize * 100}},
+
+	MoveLimit: [GameObjEnd]float64{
+		GameObjMain: 100, GameObjShield: 200, GameObjBullet: 300, GameObjHommingBullet: 200, GameObjSuperBullet: 600},
+	Radius: [GameObjEnd]float64{
+		GameObjMain: 10, GameObjShield: 5, GameObjBullet: 5, GameObjHommingBullet: 7, GameObjSuperBullet: 15},
+	IsInteract: [GameObjEnd][GameObjEnd]bool{
+		GameObjMain: [GameObjEnd]bool{
+			GameObjMain: true, GameObjShield: true, GameObjBullet: true, GameObjHommingBullet: true, GameObjSuperBullet: true},
+		GameObjShield: [GameObjEnd]bool{
+			GameObjMain: true, GameObjShield: true, GameObjBullet: true, GameObjHommingBullet: true, GameObjSuperBullet: true},
+		GameObjBullet: [GameObjEnd]bool{
+			GameObjMain: true, GameObjShield: true, GameObjBullet: true, GameObjHommingBullet: true, GameObjSuperBullet: true},
+		GameObjHommingBullet: [GameObjEnd]bool{
+			GameObjMain: true, GameObjShield: true, GameObjBullet: false, GameObjHommingBullet: true, GameObjSuperBullet: true},
+		GameObjSuperBullet: [GameObjEnd]bool{
+			GameObjMain: true, GameObjShield: true, GameObjBullet: false, GameObjHommingBullet: true, GameObjSuperBullet: true},
+	},
+	AP: [ActionEnd]int{
+		ActionAccel:         1,
+		ActionBullet:        10,
+		ActionSuperBullet:   80,
+		ActionHommingBullet: 100,
+		ActionBurstBullet:   10,
+	},
+}
+
+var profileConfigMultiWorld = GameConfig{
+	TcpListen:            "0.0.0.0:6666",
+	WsListen:             "0.0.0.0:8080",
+	FramePerSec:          60.0,
+	RemoveEmptyWorld:     false,
+	MaxTcpClientPerWorld: 32,
+	MaxWsClientPerWorld:  32,
+	TcpClientEncode:      "gob",
+	StartWorldCount:      32,
+	NpcCountPerWorld:     8,
+	ClearY:               false,
+	APIncFrame:           10,
+	KillScore:            1,
+	ShieldCount:          8,
+	MaxObjectRadius:      1, // changed by init
+	WorldCube: HyperRect{
+		Vector3D{-WorldSize, -WorldSize, -WorldSize},
+		Vector3D{WorldSize, WorldSize, WorldSize}},
+
+	MoveLimit: [GameObjEnd]float64{
+		GameObjMain: 100, GameObjShield: 200, GameObjBullet: 300, GameObjHommingBullet: 200, GameObjSuperBullet: 600},
+	Radius: [GameObjEnd]float64{
+		GameObjMain: 10, GameObjShield: 5, GameObjBullet: 5, GameObjHommingBullet: 7, GameObjSuperBullet: 15},
+	IsInteract: [GameObjEnd][GameObjEnd]bool{
+		GameObjMain: [GameObjEnd]bool{
+			GameObjMain: true, GameObjShield: true, GameObjBullet: true, GameObjHommingBullet: true, GameObjSuperBullet: true},
+		GameObjShield: [GameObjEnd]bool{
+			GameObjMain: true, GameObjShield: true, GameObjBullet: true, GameObjHommingBullet: true, GameObjSuperBullet: true},
+		GameObjBullet: [GameObjEnd]bool{
+			GameObjMain: true, GameObjShield: true, GameObjBullet: true, GameObjHommingBullet: true, GameObjSuperBullet: true},
+		GameObjHommingBullet: [GameObjEnd]bool{
+			GameObjMain: true, GameObjShield: true, GameObjBullet: false, GameObjHommingBullet: true, GameObjSuperBullet: true},
+		GameObjSuperBullet: [GameObjEnd]bool{
+			GameObjMain: true, GameObjShield: true, GameObjBullet: false, GameObjHommingBullet: true, GameObjSuperBullet: true},
+	},
+	AP: [ActionEnd]int{
+		ActionAccel:         1,
+		ActionBullet:        10,
+		ActionSuperBullet:   80,
+		ActionHommingBullet: 100,
+		ActionBurstBullet:   10,
+	},
+}
+
 var GameConst = defaultConfig
 
 //var GameConst = profileConfig
+//var GameConst = profileConfigMultiWorld
+//var GameConst = bigWorldConfig
 
 func init() {
 	ValidateConfig(&GameConst)

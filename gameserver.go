@@ -133,8 +133,8 @@ func (g *GameService) wsServer() {
 	}
 }
 
-var TopTemplate *template.Template
-var WorldTemplate *template.Template
+var TopHtmlTemplate *template.Template
+var WorldHtmlTemplate *template.Template
 
 func init() {
 	const tindex = `
@@ -155,7 +155,7 @@ func init() {
 		</body>
 		</html>
 		`
-	TopTemplate = template.Must(template.New("indexpage").Parse(tindex))
+	TopHtmlTemplate = template.Must(template.New("indexpage").Parse(tindex))
 
 	const tworld = `
 		<html>
@@ -193,7 +193,7 @@ func init() {
 		</body>
 		</html>
 		`
-	WorldTemplate = template.Must(template.New("indexpage").Parse(tworld))
+	WorldHtmlTemplate = template.Must(template.New("indexpage").Parse(tworld))
 }
 
 func (g *GameService) Stat(w http.ResponseWriter, r *http.Request) {
@@ -210,7 +210,7 @@ func (g *GameService) Stat(w http.ResponseWriter, r *http.Request) {
 		for id, w := range g.Worlds {
 			ws[id] = w.String()
 		}
-		TopTemplate.Execute(w, struct {
+		TopHtmlTemplate.Execute(w, struct {
 			Disp   string
 			Worlds map[int64]string
 		}{
@@ -219,7 +219,7 @@ func (g *GameService) Stat(w http.ResponseWriter, r *http.Request) {
 		})
 	} else {
 		wi := g.Worlds[worldid].makeWorldInfo()
-		WorldTemplate.Execute(w, wi)
+		WorldHtmlTemplate.Execute(w, wi)
 	}
 }
 

@@ -7,8 +7,9 @@ import (
 	//"math/rand"
 	//"net"
 	//"reflect"
-	//"html/template"
+	"bytes"
 	"sort"
+	"text/template"
 	"time"
 )
 
@@ -31,6 +32,17 @@ func (m World) String() string {
 	}
 }
 
+var WorldTextTemplate *template.Template
+
+func init() {
+	const tworld = `
+{{.Disp}}
+TeamColor TeamID ClientInfo ObjCount Score ActionPoint PacketStat CollStat {{range .Teams}}
+{{.FontColor | printf "%x"}} {{.ID}} {{.ClientInfo}} {{.Objs}} {{.Score}} {{.AP}} {{.PacketStat}} {{.CollStat}} {{end}}
+`
+	WorldTextTemplate = template.Must(template.New("indexpage").Parse(tworld))
+}
+
 type WorldInfo struct {
 	Disp  string
 	Teams []TeamInfo
@@ -46,6 +58,12 @@ func (m *World) makeWorldInfo() *WorldInfo {
 	}
 	sort.Sort(ByScore(rtn.Teams))
 	return rtn
+}
+
+func (wi WorldInfo) String() string {
+	var w bytes.Buffer
+	WorldTextTemplate.Execute(&w, wi)
+	return w.String()
 }
 
 func NewWorld(g *GameService) *World {
@@ -108,6 +126,8 @@ func (w *World) Do1Frame(ftime time.Time) bool {
 
 func (w *World) Loop() {
 	defer func() {
+		wi := w.makeWorldInfo()
+		fmt.Println(wi)
 		for id, t := range w.Teams {
 			t.endTeam()
 			delete(w.Teams, id)

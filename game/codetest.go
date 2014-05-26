@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
@@ -26,7 +27,7 @@ func permute(pos int3, up int3, down int3, ax int) {
 	}
 }
 
-func main() {
+func test_permute() {
 	permute(int3{0, 0, 0}, int3{1, 1, 1}, int3{-1, -1, -1}, 0)
 }
 
@@ -40,4 +41,29 @@ var p27 = [27][3]int{
 	{-1, 0, 0}, {-1, 0, 1}, {-1, 0, -1},
 	{-1, 1, 0}, {-1, 1, 1}, {-1, 1, -1},
 	{-1, -1, 0}, {-1, -1, 1}, {-1, -1, -1},
+}
+
+func main() {
+	var jsonBlob1 = []byte(`
+		{"Name": "Platypus"}
+	`)
+	var jsonBlob2 = []byte(`
+		{"Order": "Platypus2"}
+	`)
+	type Animal struct {
+		Name  string
+		Order string
+	}
+	var animals Animal
+	err := json.Unmarshal(jsonBlob1, &animals)
+	if err != nil {
+		fmt.Println("error1:", err)
+	}
+	fmt.Printf("1%+v\n", animals)
+
+	err = json.Unmarshal(jsonBlob2, &animals)
+	if err != nil {
+		fmt.Println("error2:", err)
+	}
+	fmt.Printf("2%+v\n", animals)
 }

@@ -138,30 +138,29 @@ func SaveConfig(config *GameConfig, filename string) bool {
 	return true
 }
 
-func LoadConfig(filename string) *GameConfig {
-
+func LoadConfig(config *GameConfig, filename string) bool {
 	fd, err := os.Open(filename)
 	if err != nil {
 		log.Printf("err in open %v", err)
-		return nil
+		return false
 	}
 	defer fd.Close()
 
 	dec := json.NewDecoder(fd)
-	var rtn GameConfig
-	err = dec.Decode(&rtn)
+	err = dec.Decode(config)
 	if err != nil {
 		log.Printf("err in decode %v ", err)
-		return nil
+		return false
 	}
-	ValidateConfig(&rtn)
-	return &rtn
+	ValidateConfig(config)
+	return true
 }
 
 func SaveLoad(config *GameConfig, filename string) {
 	ValidateConfig(config)
 	SaveConfig(config, filename)
-	log.Printf("%v", LoadConfig(filename))
+	LoadConfig(config, filename)
+	log.Printf("%v", config)
 }
 
 func init() {

@@ -18,9 +18,9 @@ func main() {
 		*rundur, *profilefilename, *config)
 
 	if *config != "" {
-		gameconfig := go4game.LoadConfig(*config)
-		if gameconfig != nil {
-			go4game.GameConst = *gameconfig
+		ok := go4game.LoadConfig(&go4game.GameConst, *config)
+		if !ok {
+			log.Fatal("config load fail")
 		}
 	}
 

@@ -12,8 +12,17 @@ import (
 func main() {
 	var rundur = flag.Int("rundur", 60*60*24*365, "run time sec")
 	var profilefilename = flag.String("pfilename", "", "profile filename")
+	var config = flag.String("config", "", "config filename")
 	flag.Parse()
-	log.Printf("rundur:%vs profile:%v", *rundur, *profilefilename)
+	log.Printf("rundur:%vs profile:%v config:%v",
+		*rundur, *profilefilename, *config)
+
+	if *config != "" {
+		gameconfig := go4game.LoadConfig(*config)
+		if gameconfig != nil {
+			go4game.GameConst = *gameconfig
+		}
+	}
 
 	if *profilefilename != "" {
 		f, err := os.Create(*profilefilename)

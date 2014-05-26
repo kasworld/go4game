@@ -4,6 +4,7 @@ import (
 	//"encoding/binary"
 	//"errors"
 	//"fmt"
+	"log"
 	"math/rand"
 	"runtime"
 	"time"
@@ -14,6 +15,8 @@ type IDList []int64
 var IdGenCh chan int64
 
 func init() {
+	log.SetFlags(log.Ltime | log.Lshortfile)
+	log.SetPrefix("go4game ")
 	rand.Seed(time.Now().Unix())
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	IdGenCh = make(chan int64)

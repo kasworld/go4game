@@ -10,6 +10,17 @@ import (
 	"time"
 )
 
+/*
+NewTeam
+StartTeam ( x )
+StopTeam ( x )
+DoFrame ( o )
+AddTeam ( to world )
+RemoveTeam ( from world )
+DelTeam
+EndTeam
+*/
+
 type Team struct {
 	ID          int64
 	Color       int
@@ -68,7 +79,7 @@ func (s ByScore) Less(i, j int) bool {
 	return s[i].Score > s[j].Score
 }
 
-func NewTeam(w *World, conn interface{}) *Team {
+func NewTeam(conn interface{}) *Team {
 	t := Team{
 		ID:            <-IdGenCh,
 		GameObjs:      make(map[int64]*GameObject, 10),

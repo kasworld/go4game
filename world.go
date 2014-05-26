@@ -6,8 +6,8 @@ import (
 	//"math"
 	//"math/rand"
 	//"net"
-	//"reflect"
 	"bytes"
+	//"reflect"
 	"sort"
 	"text/template"
 	"time"
@@ -69,23 +69,38 @@ func (wi WorldInfo) String() string {
 func NewWorld(g *GameService) *World {
 	w := World{
 		ID:       <-IdGenCh,
-		CmdCh:    make(chan Cmd, 10),
+		CmdCh:    make(chan Cmd, 1),
 		PService: g,
 		Teams:    make(map[int64]*Team),
 	}
-	for i := 0; i < GameConst.NpcCountPerWorld/4; i++ {
-		// w.addNewTeam(&AINothing{})
-		w.addNewTeam(&AICloud{})
-		w.addNewTeam(&AIRandom{})
-		w.addNewTeam(&AI2{})
-		w.addNewTeam(&AI3{})
-	}
-
 	return &w
 }
-func (w *World) addNewTeam(conn interface{}) {
-	t := NewTeam(w, conn)
+
+func (w *World) addAITeams(anames []string, n int) {
+	for i := 0; i < n; i++ {
+		thisai := anames[i%len(anames)]
+		switch thisai {
+		default:
+			log.Printf("unknown AI %v", thisai)
+		case "AINothing":
+			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(&AINothing{})}
+		case "AICloud":
+			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(&AICloud{})}
+		case "AIRandom":
+			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(&AIRandom{})}
+		case "AI2":
+			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(&AI2{})}
+		case "AI3":
+			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(&AI3{})}
+		}
+	}
+}
+
+func (w *World) addTeam(t *Team) {
 	w.Teams[t.ID] = t
+}
+func (w *World) removeTeam(id int64) {
+	delete(w.Teams, id)
 }
 
 func (w *World) updateEnv() {
@@ -144,8 +159,10 @@ loop:
 			switch cmd.Cmd {
 			case "quit":
 				break loop
-			case "newTeam":
-				w.addNewTeam(cmd.Args)
+			case "AddTeam": // from world
+				w.addTeam(cmd.Args.(*Team))
+			case "RemoveTeam": // from world
+				w.removeTeam(cmd.Args.(int64))
 			default:
 				log.Printf("unknown cmd %v\n", cmd)
 			}

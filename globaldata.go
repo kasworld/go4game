@@ -33,7 +33,8 @@ type GameConfig struct {
 	WsListen             string
 	ClearY               bool
 	FramePerSec          float64
-	NpcCountPerWorld     int
+	AICountPerWorld      int
+	AINames              []string
 	MaxTcpClientPerWorld int
 	MaxWsClientPerWorld  int
 	StartWorldCount      int
@@ -77,7 +78,8 @@ var defaultConfig = GameConfig{
 	MaxTcpClientPerWorld: 32,
 	MaxWsClientPerWorld:  32,
 	StartWorldCount:      1,
-	NpcCountPerWorld:     8,
+	AICountPerWorld:      8,
+	AINames:              []string{"AICloud", "AIRandom", "AI2", "AI3"},
 	ClearY:               true,
 	APIncFrame:           10,
 	KillScore:            1,
@@ -121,7 +123,8 @@ var profileConfig = GameConfig{
 	MaxWsClientPerWorld:  32,
 	TcpClientEncode:      "gob",
 	StartWorldCount:      1,
-	NpcCountPerWorld:     1000,
+	AICountPerWorld:      1000,
+	AINames:              []string{"AICloud", "AIRandom", "AI2", "AI3"},
 	ClearY:               false,
 	APIncFrame:           10,
 	KillScore:            1,
@@ -165,7 +168,8 @@ var bigWorldConfig = GameConfig{
 	MaxWsClientPerWorld:  32,
 	TcpClientEncode:      "gob",
 	StartWorldCount:      1,
-	NpcCountPerWorld:     1000,
+	AICountPerWorld:      1000,
+	AINames:              []string{"AICloud", "AIRandom", "AI2", "AI3"},
 	ClearY:               false,
 	APIncFrame:           10,
 	KillScore:            1,
@@ -209,7 +213,8 @@ var profileConfigMultiWorld = GameConfig{
 	MaxWsClientPerWorld:  32,
 	TcpClientEncode:      "gob",
 	StartWorldCount:      32,
-	NpcCountPerWorld:     8,
+	AICountPerWorld:      8,
+	AINames:              []string{"AICloud", "AIRandom", "AI2", "AI3"},
 	ClearY:               false,
 	APIncFrame:           10,
 	KillScore:            1,

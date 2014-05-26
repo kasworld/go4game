@@ -50,6 +50,8 @@ func (g *GameService) addNewWorld() *World {
 	w := NewWorld(g)
 	g.Worlds[w.ID] = w
 	go w.Loop()
+
+	w.addAITeams(GameConst.AINames, GameConst.AICountPerWorld)
 	return w
 }
 
@@ -75,16 +77,10 @@ loop:
 		select {
 		case conn := <-g.clientConnectionCh: // new team
 			w := g.findFreeWorld(GameConst.MaxTcpClientPerWorld, TCPClient)
-			w.CmdCh <- Cmd{
-				Cmd:  "newTeam",
-				Args: conn,
-			}
+			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(conn)}
 		case conn := <-g.wsClientConnectionCh: // new team
 			w := g.findFreeWorld(GameConst.MaxWsClientPerWorld, WebSockClient)
-			w.CmdCh <- Cmd{
-				Cmd:  "newTeam",
-				Args: conn,
-			}
+			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(conn)}
 		case cmd := <-g.CmdCh:
 			//log.Println(cmd)
 			switch cmd.Cmd {

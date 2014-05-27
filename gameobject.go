@@ -34,6 +34,7 @@ type GameObject struct {
 	borderActionFn    GameObjectActFn
 	collisionActionFn GameObjectActFn
 	expireActionFn    GameObjectActFn
+	clearYFn          GameObjectActFn
 }
 
 func NewGameObject(teamID int64) *GameObject {
@@ -47,17 +48,23 @@ func NewGameObject(teamID int64) *GameObject {
 		borderActionFn:    borderActionFn_Bounce,
 		collisionActionFn: collisionFn_default,
 		expireActionFn:    expireFn_default,
+		clearYFn:          ClearY_default,
 	}
 	return &o
 }
 
-func (o *GameObject) ClearY() {
+func ClearY_default(o *GameObject, envInfo *ActionFnEnvInfo) bool {
 	if !GameConst.ClearY {
-		return
+		return true
 	}
 	o.PosVector[1] = 0
 	o.MoveVector[1] = 0
 	o.accelVector[1] = 0
+	return true
+}
+
+func ClearY_none(m *GameObject, envInfo *ActionFnEnvInfo) bool {
+	return true
 }
 
 func (o *GameObject) MakeMainObj() *GameObject {
@@ -65,7 +72,7 @@ func (o *GameObject) MakeMainObj() *GameObject {
 	o.MoveVector = GameConst.WorldCube.RandVector()
 	o.accelVector = GameConst.WorldCube.RandVector()
 	o.ObjType = GameObjMain
-	o.ClearY()
+	o.clearYFn(o, nil)
 	return o
 }
 func (o *GameObject) MakeShield(mo *GameObject) *GameObject {
@@ -84,7 +91,7 @@ func (o *GameObject) MakeBullet(mo *GameObject, MoveVector Vector3D) *GameObject
 	o.borderActionFn = borderActionFn_Disable
 	o.accelVector = Vector3D{0, 0, 0}
 	o.ObjType = GameObjBullet
-	o.ClearY()
+	o.clearYFn(o, nil)
 	return o
 }
 func (o *GameObject) MakeSuperBullet(mo *GameObject, MoveVector Vector3D) *GameObject {
@@ -94,7 +101,7 @@ func (o *GameObject) MakeSuperBullet(mo *GameObject, MoveVector Vector3D) *GameO
 	o.borderActionFn = borderActionFn_Disable
 	o.accelVector = Vector3D{0, 0, 0}
 	o.ObjType = GameObjSuperBullet
-	o.ClearY()
+	o.clearYFn(o, nil)
 	return o
 }
 func (o *GameObject) MakeHommingBullet(mo *GameObject, targetteamid int64, targetid int64) *GameObject {
@@ -108,14 +115,14 @@ func (o *GameObject) MakeHommingBullet(mo *GameObject, targetteamid int64, targe
 	o.targetTeamID = targetteamid
 	o.moveByTimeFn = moveByTimeFn_homming
 	o.ObjType = GameObjHommingBullet
-	o.ClearY()
+	o.clearYFn(o, nil)
 	return o
 }
-func (o *GameObject) MakeClockObj() *GameObject {
+func (o *GameObject) MakeDecoObj() *GameObject {
 	o.moveByTimeFn = moveByTimeFn_clock
 	o.borderActionFn = borderActionFn_None
-	o.ObjType = GameObjClock
-	o.ClearY()
+	o.ObjType = GameObjDeco
+	o.clearYFn = ClearY_none
 	return o
 }
 func (o *GameObject) MakeMarkObj(pos Vector3D) *GameObject {
@@ -123,7 +130,7 @@ func (o *GameObject) MakeMarkObj(pos Vector3D) *GameObject {
 	o.moveByTimeFn = moveByTimeFn_none
 	o.borderActionFn = borderActionFn_None
 	o.ObjType = GameObjMark
-	o.ClearY()
+	o.clearYFn(o, nil)
 	return o
 }
 
@@ -133,7 +140,7 @@ func (o *GameObject) MakeHomeMarkObj() *GameObject {
 	o.accelVector = GameConst.WorldCube.RandVector()
 	o.moveByTimeFn = moveByTimeFn_home
 	o.ObjType = GameObjMark
-	o.ClearY()
+	o.clearYFn(o, nil)
 	return o
 }
 
@@ -179,7 +186,7 @@ func (e *ActionFnEnvInfo) doPartOtherObj(cp SPObjList, ppos [3]int) bool {
 }
 
 func (o *GameObject) ActByTime(world *World, t time.Time) IDList {
-	o.ClearY()
+	o.clearYFn(o, nil)
 
 	defer func() {
 		o.lastMoveTime = t

@@ -17,7 +17,7 @@ const (
 	GameObjBullet
 	GameObjHommingBullet
 	GameObjSuperBullet
-	GameObjClock
+	GameObjDeco
 	GameObjMark
 	GameObjEnd
 )
@@ -100,7 +100,7 @@ var defaultConfig = GameConfig{
 		GameObjBullet:        300,
 		GameObjHommingBullet: 200,
 		GameObjSuperBullet:   600,
-		GameObjClock:         600,
+		GameObjDeco:          600,
 		GameObjMark:          100},
 	Radius: [GameObjEnd]float64{
 		GameObjMain:          10,
@@ -108,7 +108,7 @@ var defaultConfig = GameConfig{
 		GameObjBullet:        5,
 		GameObjHommingBullet: 7,
 		GameObjSuperBullet:   15,
-		GameObjClock:         5,
+		GameObjDeco:          1,
 		GameObjMark:          1},
 	IsInteract: [GameObjEnd][GameObjEnd]bool{
 		GameObjMain: [GameObjEnd]bool{

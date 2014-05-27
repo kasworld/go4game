@@ -102,6 +102,7 @@ func NewTeam(conn interface{}) *Team {
 	o := t.addObject(NewGameObject(t.ID).MakeHomeMarkObj())
 	t.HomeObjID = o.ID
 
+	t.addDeco()
 	return &t
 }
 
@@ -109,7 +110,7 @@ func (t *Team) addDeco() {
 	avt := GameConst.WorldCube.RandVector().Idiv(10)
 	mvvt := GameConst.WorldCube.RandVector().Idiv(10)
 	for i := 0; i < 50; i++ {
-		o := NewGameObject(t.ID).MakeClockObj()
+		o := NewGameObject(t.ID).MakeDecoObj()
 
 		o.accelVector = avt //.NormalizedTo(float64(i * 10+1))
 		o.MoveVector = mvvt.NormalizedTo(float64(i*16 + 1))

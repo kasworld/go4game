@@ -88,6 +88,8 @@ func NewTeam(conn interface{}) *Team {
 		CollisionStat: *NewActionStat(),
 	}
 	switch conn.(type) {
+	default:
+		log.Printf("unknown type %#v", conn)
 	case net.Conn:
 		t.ClientConnInfo = *NewTcpConnInfo(conn.(net.Conn))
 		t.makeMainObj()
@@ -96,14 +98,27 @@ func NewTeam(conn interface{}) *Team {
 	case AIActor:
 		t.ClientConnInfo = *NewAIConnInfo(conn.(AIActor))
 		t.makeMainObj()
-	default:
-		log.Printf("unknown type %#v", conn)
+		for i := 0; i < 1; i++ {
+			o := NewGameObject(t.ID).MakeClockObj()
+			t.addObject(o)
+		}
 	}
 	t.HomePos = GameConst.WorldCube.RandVector().Idiv(2)
 	if GameConst.ClearY {
 		t.HomePos[1] = 0
 	}
+	o := NewGameObject(t.ID).MakeHomeMarkObj()
+	t.addObject(o)
+
 	return &t
+}
+
+func (t *Team) addObject(o *GameObject) {
+	t.GameObjs[o.ID] = o
+}
+
+func (t *Team) removeObject(id int64) {
+	delete(t.GameObjs, id)
 }
 
 func (t *Team) moveHomePos() {
@@ -177,7 +192,7 @@ func (t *Team) processClientReq(ftime time.Time, w *WorldDisp, spp *SpatialParti
 	return true
 }
 
-func (t *Team) doFrameWork(world *World, ftime time.Time) <-chan IDList {
+func (t *Team) Do1Frame(world *World, ftime time.Time) <-chan IDList {
 	spp := world.spp
 	w := world.worldSerial
 	ap := t.CalcAP(spp)
@@ -207,7 +222,7 @@ func (t *Team) actByTime(world *World, ftime time.Time) IDList {
 	}
 	for id, v := range t.GameObjs {
 		if v.enabled == false {
-			delete(t.GameObjs, id)
+			t.removeObject(id)
 			if v.ObjType == GameObjMain {
 				t.makeMainObj()
 				t.Score -= GameConst.KillScore
@@ -256,36 +271,32 @@ func (t *Team) makeMainObj() {
 func (t *Team) addNewGameObject(ObjType GameObjectType, args interface{}) *GameObject {
 	o := NewGameObject(t.ID)
 	switch ObjType {
+	default:
+		log.Printf("invalid GameObjectType %v", t)
+		return nil
 	case GameObjMain:
 		o.MakeMainObj()
 		t.MainObjID = o.ID
 	case GameObjShield:
-		mo := t.findMainObj()
-		if mo != nil {
+		if mo := t.findMainObj(); mo != nil {
 			o.MakeShield(mo)
 		}
 	case GameObjBullet:
-		mo := t.findMainObj()
-		if mo != nil {
+		if mo := t.findMainObj(); mo != nil {
 			o.MakeBullet(mo, args.(Vector3D))
 		}
 	case GameObjSuperBullet:
-		mo := t.findMainObj()
-		if mo != nil {
+		if mo := t.findMainObj(); mo != nil {
 			o.MakeSuperBullet(mo, args.(Vector3D))
 		}
 	case GameObjHommingBullet:
-		mo := t.findMainObj()
-		if mo != nil {
+		if mo := t.findMainObj(); mo != nil {
 			targetid := args.(IDList)[0]
 			targetteamid := args.(IDList)[1]
 			o.MakeHommingBullet(mo, targetteamid, targetid)
 		}
-	default:
-		log.Printf("invalid GameObjectType %v", t)
-		return nil
 	}
-	t.GameObjs[o.ID] = o
+	t.addObject(o)
 	return o
 }
 

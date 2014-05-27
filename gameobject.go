@@ -60,22 +60,24 @@ func (o *GameObject) ClearY() {
 	o.accelVector[1] = 0
 }
 
-func (o *GameObject) MakeMainObj() {
+func (o *GameObject) MakeMainObj() *GameObject {
 	o.PosVector = GameConst.WorldCube.RandVector()
 	o.MoveVector = GameConst.WorldCube.RandVector()
 	o.accelVector = GameConst.WorldCube.RandVector()
 	o.ObjType = GameObjMain
 	o.ClearY()
+	return o
 }
-func (o *GameObject) MakeShield(mo *GameObject) {
+func (o *GameObject) MakeShield(mo *GameObject) *GameObject {
 	o.MoveVector = GameConst.WorldCube.RandVector()
 	o.accelVector = GameConst.WorldCube.RandVector()
 	o.moveByTimeFn = moveByTimeFn_shield
 	o.borderActionFn = borderActionFn_None
 	o.PosVector = mo.PosVector
 	o.ObjType = GameObjShield
+	return o
 }
-func (o *GameObject) MakeBullet(mo *GameObject, MoveVector Vector3D) {
+func (o *GameObject) MakeBullet(mo *GameObject, MoveVector Vector3D) *GameObject {
 	o.endTime = o.startTime.Add(time.Second * 60)
 	o.PosVector = mo.PosVector
 	o.MoveVector = MoveVector
@@ -83,8 +85,9 @@ func (o *GameObject) MakeBullet(mo *GameObject, MoveVector Vector3D) {
 	o.accelVector = Vector3D{0, 0, 0}
 	o.ObjType = GameObjBullet
 	o.ClearY()
+	return o
 }
-func (o *GameObject) MakeSuperBullet(mo *GameObject, MoveVector Vector3D) {
+func (o *GameObject) MakeSuperBullet(mo *GameObject, MoveVector Vector3D) *GameObject {
 	o.endTime = o.startTime.Add(time.Second * 60)
 	o.PosVector = mo.PosVector
 	o.MoveVector = MoveVector
@@ -92,8 +95,9 @@ func (o *GameObject) MakeSuperBullet(mo *GameObject, MoveVector Vector3D) {
 	o.accelVector = Vector3D{0, 0, 0}
 	o.ObjType = GameObjSuperBullet
 	o.ClearY()
+	return o
 }
-func (o *GameObject) MakeHommingBullet(mo *GameObject, targetteamid int64, targetid int64) {
+func (o *GameObject) MakeHommingBullet(mo *GameObject, targetteamid int64, targetid int64) *GameObject {
 	o.endTime = o.startTime.Add(time.Second * 60)
 	o.PosVector = mo.PosVector
 	o.borderActionFn = borderActionFn_None
@@ -105,6 +109,33 @@ func (o *GameObject) MakeHommingBullet(mo *GameObject, targetteamid int64, targe
 	o.moveByTimeFn = moveByTimeFn_homming
 	o.ObjType = GameObjHommingBullet
 	o.ClearY()
+	return o
+}
+func (o *GameObject) MakeClockObj() *GameObject {
+	o.PosVector = GameConst.WorldCube.RandVector()
+	o.MoveVector = GameConst.WorldCube.RandVector()
+	o.accelVector = GameConst.WorldCube.RandVector()
+	o.moveByTimeFn = moveByTimeFn_clock
+	o.borderActionFn = borderActionFn_None
+	o.ObjType = GameObjClock
+	o.ClearY()
+	return o
+}
+func (o *GameObject) MakeMarkObj(pos Vector3D) *GameObject {
+	o.PosVector = pos
+	o.moveByTimeFn = moveByTimeFn_none
+	o.borderActionFn = borderActionFn_None
+	o.ObjType = GameObjMark
+	o.ClearY()
+	return o
+}
+
+func (o *GameObject) MakeHomeMarkObj() *GameObject {
+	o.moveByTimeFn = moveByTimeFn_home
+	o.borderActionFn = borderActionFn_None
+	o.ObjType = GameObjMark
+	o.ClearY()
+	return o
 }
 
 type ActionFnEnvInfo struct {
@@ -220,6 +251,15 @@ func collisionFn_default(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 	return false
 }
 
+func moveByTimeFn_none(m *GameObject, envInfo *ActionFnEnvInfo) bool {
+	return true
+}
+
+func moveByTimeFn_home(m *GameObject, envInfo *ActionFnEnvInfo) bool {
+	m.PosVector = envInfo.world.Teams[m.TeamID].HomePos
+	return true
+}
+
 func moveByTimeFn_default(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 	dur := float64(envInfo.frameTime.Sub(m.lastMoveTime)) / float64(time.Second)
 	//log.Printf("frame dur %v %v", m.lastMoveTime, dur)
@@ -242,6 +282,17 @@ func moveByTimeFn_shield(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 	//p := m.accelVector.NormalizedTo(20)
 	p := mo.MoveVector.Cross(m.MoveVector).NormalizedTo(20)
 	m.PosVector = mo.PosVector.Add(p.RotateAround(axis, dur+m.accelVector.Abs()))
+	return true
+}
+
+func moveByTimeFn_clock(m *GameObject, envInfo *ActionFnEnvInfo) bool {
+	mo := envInfo.world.Teams[m.TeamID].findMainObj()
+	if mo == nil {
+		return false
+	}
+	dur := float64(envInfo.frameTime.Sub(m.startTime)) / float64(time.Second)
+	p := m.MoveVector.Cross(m.accelVector)
+	m.PosVector = m.MoveVector.NormalizedTo(30).RotateAround(p, dur*5)
 	return true
 }
 

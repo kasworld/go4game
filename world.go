@@ -120,7 +120,7 @@ func (w *World) Do1Frame(ftime time.Time) bool {
 	w.updateEnv()
 
 	for _, t := range w.Teams {
-		t.chStep = t.doFrameWork(w, ftime)
+		t.chStep = t.Do1Frame(w, ftime)
 	}
 	for id, t := range w.Teams {
 		r, ok := <-t.chStep

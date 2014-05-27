@@ -4,6 +4,7 @@ import (
 	"log"
 	//"time"
 	"encoding/json"
+	"math"
 	"os"
 )
 
@@ -16,6 +17,8 @@ const (
 	GameObjBullet
 	GameObjHommingBullet
 	GameObjSuperBullet
+	GameObjClock
+	GameObjMark
 	GameObjEnd
 )
 
@@ -63,7 +66,7 @@ func ValidateConfig(config *GameConfig) {
 	}
 	for o1 := GameObjMain; o1 < GameObjEnd; o1++ {
 		for o2 := GameObjMain; o2 < GameObjEnd; o2++ {
-			config.ObjSqd[o1][o2] = (config.Radius[o1] + config.Radius[o2]) * (config.Radius[o1] + config.Radius[o2])
+			config.ObjSqd[o1][o2] = math.Pow(config.Radius[o1]+config.Radius[o2], 2)
 		}
 	}
 
@@ -85,27 +88,59 @@ var defaultConfig = GameConfig{
 	ClearY:               true,
 	APIncFrame:           10,
 	KillScore:            1,
-	ShieldCount:          8,
+	ShieldCount:          0,
 	MaxObjectRadius:      1, // changed by init
 	WorldCube: HyperRect{
 		Vector3D{-WorldSize, -WorldSize, -WorldSize},
 		Vector3D{WorldSize, WorldSize, WorldSize}},
 
 	MoveLimit: [GameObjEnd]float64{
-		GameObjMain: 100, GameObjShield: 200, GameObjBullet: 300, GameObjHommingBullet: 200, GameObjSuperBullet: 600},
+		GameObjMain:          100,
+		GameObjShield:        200,
+		GameObjBullet:        300,
+		GameObjHommingBullet: 200,
+		GameObjSuperBullet:   600,
+		GameObjClock:         600,
+		GameObjMark:          0},
 	Radius: [GameObjEnd]float64{
-		GameObjMain: 10, GameObjShield: 5, GameObjBullet: 5, GameObjHommingBullet: 7, GameObjSuperBullet: 15},
+		GameObjMain:          10,
+		GameObjShield:        5,
+		GameObjBullet:        5,
+		GameObjHommingBullet: 7,
+		GameObjSuperBullet:   15,
+		GameObjClock:         5,
+		GameObjMark:          1},
 	IsInteract: [GameObjEnd][GameObjEnd]bool{
 		GameObjMain: [GameObjEnd]bool{
-			GameObjMain: true, GameObjShield: true, GameObjBullet: true, GameObjHommingBullet: true, GameObjSuperBullet: true},
+			GameObjMain:          true,
+			GameObjShield:        true,
+			GameObjBullet:        true,
+			GameObjHommingBullet: true,
+			GameObjSuperBullet:   true},
 		GameObjShield: [GameObjEnd]bool{
-			GameObjMain: true, GameObjShield: true, GameObjBullet: true, GameObjHommingBullet: true, GameObjSuperBullet: true},
+			GameObjMain:          true,
+			GameObjShield:        true,
+			GameObjBullet:        true,
+			GameObjHommingBullet: true,
+			GameObjSuperBullet:   true},
 		GameObjBullet: [GameObjEnd]bool{
-			GameObjMain: true, GameObjShield: true, GameObjBullet: true, GameObjHommingBullet: true, GameObjSuperBullet: true},
+			GameObjMain:          true,
+			GameObjShield:        true,
+			GameObjBullet:        true,
+			GameObjHommingBullet: true,
+			GameObjSuperBullet:   true},
 		GameObjHommingBullet: [GameObjEnd]bool{
-			GameObjMain: true, GameObjShield: true, GameObjBullet: false, GameObjHommingBullet: true, GameObjSuperBullet: true},
+			GameObjMain:          true,
+			GameObjShield:        true,
+			GameObjBullet:        false,
+			GameObjHommingBullet: true,
+			GameObjSuperBullet:   true},
 		GameObjSuperBullet: [GameObjEnd]bool{
-			GameObjMain: true, GameObjShield: true, GameObjBullet: false, GameObjHommingBullet: true, GameObjSuperBullet: true},
+			GameObjMain:          true,
+			GameObjShield:        true,
+			GameObjBullet:        false,
+			GameObjHommingBullet: true,
+			GameObjSuperBullet:   true},
 	},
 	AP: [ActionEnd]int{
 		ActionAccel:         1,

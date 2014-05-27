@@ -37,5 +37,5 @@ func main() {
 	service.CmdCh <- go4game.Cmd{Cmd: "start"}
 	time.Sleep(time.Duration(*rundur) * time.Second)
 	service.CmdCh <- go4game.Cmd{Cmd: "quit"}
-	time.Sleep(2 * time.Second)
+	time.Sleep(1 * time.Second)
 }

@@ -112,9 +112,6 @@ func (o *GameObject) MakeHommingBullet(mo *GameObject, targetteamid int64, targe
 	return o
 }
 func (o *GameObject) MakeClockObj() *GameObject {
-	o.PosVector = GameConst.WorldCube.RandVector()
-	o.MoveVector = GameConst.WorldCube.RandVector()
-	o.accelVector = GameConst.WorldCube.RandVector()
 	o.moveByTimeFn = moveByTimeFn_clock
 	o.borderActionFn = borderActionFn_None
 	o.ObjType = GameObjClock
@@ -131,8 +128,10 @@ func (o *GameObject) MakeMarkObj(pos Vector3D) *GameObject {
 }
 
 func (o *GameObject) MakeHomeMarkObj() *GameObject {
+	o.PosVector = GameConst.WorldCube.RandVector().Idiv(2)
+	o.MoveVector = GameConst.WorldCube.RandVector()
+	o.accelVector = GameConst.WorldCube.RandVector()
 	o.moveByTimeFn = moveByTimeFn_home
-	o.borderActionFn = borderActionFn_None
 	o.ObjType = GameObjMark
 	o.ClearY()
 	return o
@@ -255,14 +254,19 @@ func moveByTimeFn_none(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 	return true
 }
 
-func moveByTimeFn_home(m *GameObject, envInfo *ActionFnEnvInfo) bool {
-	m.PosVector = envInfo.world.Teams[m.TeamID].HomePos
+func moveByTimeFn_default(m *GameObject, envInfo *ActionFnEnvInfo) bool {
+	dur := float64(envInfo.frameTime.Sub(m.lastMoveTime)) / float64(time.Second)
+	m.MoveVector = m.MoveVector.Add(m.accelVector.Imul(dur))
+	if m.MoveVector.Abs() > GameConst.MoveLimit[m.ObjType] {
+		m.MoveVector = m.MoveVector.NormalizedTo(GameConst.MoveLimit[m.ObjType])
+	}
+	m.PosVector = m.PosVector.Add(m.MoveVector.Imul(dur))
 	return true
 }
 
-func moveByTimeFn_default(m *GameObject, envInfo *ActionFnEnvInfo) bool {
+func moveByTimeFn_home(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 	dur := float64(envInfo.frameTime.Sub(m.lastMoveTime)) / float64(time.Second)
-	//log.Printf("frame dur %v %v", m.lastMoveTime, dur)
+	m.accelVector = GameConst.WorldCube.RandVector()
 	m.MoveVector = m.MoveVector.Add(m.accelVector.Imul(dur))
 	if m.MoveVector.Abs() > GameConst.MoveLimit[m.ObjType] {
 		m.MoveVector = m.MoveVector.NormalizedTo(GameConst.MoveLimit[m.ObjType])
@@ -278,7 +282,7 @@ func moveByTimeFn_shield(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 	}
 	dur := float64(envInfo.frameTime.Sub(m.startTime)) / float64(time.Second)
 	//axis := &Vector3D{0, math.Copysign(20, m.MoveVector[0]), 0}
-	axis := mo.MoveVector.NormalizedTo(20)
+	axis := mo.MoveVector // .NormalizedTo(20)
 	//p := m.accelVector.NormalizedTo(20)
 	p := mo.MoveVector.Cross(m.MoveVector).NormalizedTo(20)
 	m.PosVector = mo.PosVector.Add(p.RotateAround(axis, dur+m.accelVector.Abs()))
@@ -286,13 +290,10 @@ func moveByTimeFn_shield(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 }
 
 func moveByTimeFn_clock(m *GameObject, envInfo *ActionFnEnvInfo) bool {
-	mo := envInfo.world.Teams[m.TeamID].findMainObj()
-	if mo == nil {
-		return false
-	}
 	dur := float64(envInfo.frameTime.Sub(m.startTime)) / float64(time.Second)
 	p := m.MoveVector.Cross(m.accelVector)
-	m.PosVector = m.MoveVector.NormalizedTo(30).RotateAround(p, dur*5)
+	//m.PosVector = m.MoveVector.NormalizedTo(30).RotateAround(p, dur*5)
+	m.PosVector = m.MoveVector.RotateAround(p, dur)
 	return true
 }
 

@@ -88,7 +88,7 @@ var defaultConfig = GameConfig{
 	ClearY:               true,
 	APIncFrame:           10,
 	KillScore:            1,
-	ShieldCount:          0,
+	ShieldCount:          8,
 	MaxObjectRadius:      1, // changed by init
 	WorldCube: HyperRect{
 		Vector3D{-WorldSize, -WorldSize, -WorldSize},
@@ -101,7 +101,7 @@ var defaultConfig = GameConfig{
 		GameObjHommingBullet: 200,
 		GameObjSuperBullet:   600,
 		GameObjClock:         600,
-		GameObjMark:          0},
+		GameObjMark:          100},
 	Radius: [GameObjEnd]float64{
 		GameObjMain:          10,
 		GameObjShield:        5,

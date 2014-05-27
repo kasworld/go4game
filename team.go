@@ -26,8 +26,8 @@ type Team struct {
 	Color       int
 	ActionPoint int
 	Score       int
-	HomePos     Vector3D
 	MainObjID   int64
+	HomeObjID   int64
 
 	PacketStat     ActionStat
 	CollisionStat  ActionStat
@@ -98,46 +98,39 @@ func NewTeam(conn interface{}) *Team {
 	case AIActor:
 		t.ClientConnInfo = *NewAIConnInfo(conn.(AIActor))
 		t.makeMainObj()
-		for i := 0; i < 1; i++ {
-			o := NewGameObject(t.ID).MakeClockObj()
-			t.addObject(o)
-		}
 	}
-	t.HomePos = GameConst.WorldCube.RandVector().Idiv(2)
-	if GameConst.ClearY {
-		t.HomePos[1] = 0
-	}
-	o := NewGameObject(t.ID).MakeHomeMarkObj()
-	t.addObject(o)
+	o := t.addObject(NewGameObject(t.ID).MakeHomeMarkObj())
+	t.HomeObjID = o.ID
 
 	return &t
 }
 
-func (t *Team) addObject(o *GameObject) {
+func (t *Team) addDeco() {
+	avt := GameConst.WorldCube.RandVector().Idiv(10)
+	mvvt := GameConst.WorldCube.RandVector().Idiv(10)
+	for i := 0; i < 50; i++ {
+		o := NewGameObject(t.ID).MakeClockObj()
+
+		o.accelVector = avt //.NormalizedTo(float64(i * 10+1))
+		o.MoveVector = mvvt.NormalizedTo(float64(i*16 + 1))
+		t.addObject(o)
+	}
+}
+
+func (t *Team) addObject(o *GameObject) *GameObject {
 	t.GameObjs[o.ID] = o
+	return o
 }
 
 func (t *Team) removeObject(id int64) {
 	delete(t.GameObjs, id)
 }
 
-func (t *Team) moveHomePos() {
-	t.HomePos = t.HomePos.Add(GameConst.WorldCube.RandVector().Idiv(100))
-	for i, v := range t.HomePos {
-		if v > GameConst.WorldCube.Max[i] {
-			t.HomePos[i] = GameConst.WorldCube.Max[i]
-		}
-		if v < GameConst.WorldCube.Min[i] {
-			t.HomePos[i] = GameConst.WorldCube.Min[i]
-		}
-	}
-	if GameConst.ClearY {
-		t.HomePos[1] = 0
-	}
-}
-
 func (t *Team) findMainObj() *GameObject {
 	return t.GameObjs[t.MainObjID]
+}
+func (t *Team) findHomeObj() *GameObject {
+	return t.GameObjs[t.HomeObjID]
 }
 
 func (t *Team) countObjByType(got GameObjectType) int {
@@ -181,7 +174,7 @@ func (t *Team) processClientReq(ftime time.Time, w *WorldDisp, spp *SpatialParti
 				SPObj:       NewSPObj(t.findMainObj()),
 				ActionPoint: t.ActionPoint,
 				Score:       t.Score,
-				HomePos:     t.HomePos,
+				HomePos:     t.findHomeObj().PosVector,
 			},
 		}
 	default:
@@ -229,7 +222,6 @@ func (t *Team) actByTime(world *World, ftime time.Time) IDList {
 			}
 		}
 	}
-	t.moveHomePos()
 	return clist
 }
 
@@ -239,7 +231,8 @@ func (t *Team) CalcAP(spp *SpatialPartition) int {
 	if o == nil {
 		return 0
 	}
-	lenToHomepos := o.PosVector.LenTo(t.HomePos)
+	homepos := t.findHomeObj().PosVector
+	lenToHomepos := o.PosVector.LenTo(homepos)
 	lmax := spp.Size.Abs()
 	rtn := int((lmax - lenToHomepos) / lmax * float64(GameConst.APIncFrame))
 	//log.Printf("ap:%v", rtn)
@@ -261,43 +254,35 @@ func (t *Team) makeMainObj() {
 		log.Printf("main obj exist %v", t)
 		return
 	}
-	t.addNewGameObject(GameObjMain, nil)
+	mo := t.addObject(NewGameObject(t.ID).MakeMainObj())
+	t.MainObjID = mo.ID
+
 	shieldcount := t.countObjByType(GameObjShield)
 	for i := shieldcount; i < GameConst.ShieldCount; i++ {
-		t.addNewGameObject(GameObjShield, nil)
+		t.addObject(NewGameObject(t.ID).MakeShield(mo))
 	}
 }
 
-func (t *Team) addNewGameObject(ObjType GameObjectType, args interface{}) *GameObject {
+func (t *Team) fireBullet(ObjType GameObjectType, args interface{}) *GameObject {
+	mo := t.findMainObj()
+	if mo == nil {
+		return nil
+	}
 	o := NewGameObject(t.ID)
 	switch ObjType {
 	default:
 		log.Printf("invalid GameObjectType %v", t)
 		return nil
-	case GameObjMain:
-		o.MakeMainObj()
-		t.MainObjID = o.ID
-	case GameObjShield:
-		if mo := t.findMainObj(); mo != nil {
-			o.MakeShield(mo)
-		}
 	case GameObjBullet:
-		if mo := t.findMainObj(); mo != nil {
-			o.MakeBullet(mo, args.(Vector3D))
-		}
+		o.MakeBullet(mo, args.(Vector3D))
 	case GameObjSuperBullet:
-		if mo := t.findMainObj(); mo != nil {
-			o.MakeSuperBullet(mo, args.(Vector3D))
-		}
+		o.MakeSuperBullet(mo, args.(Vector3D))
 	case GameObjHommingBullet:
-		if mo := t.findMainObj(); mo != nil {
-			targetid := args.(IDList)[0]
-			targetteamid := args.(IDList)[1]
-			o.MakeHommingBullet(mo, targetteamid, targetid)
-		}
+		targetid := args.(IDList)[0]
+		targetteamid := args.(IDList)[1]
+		o.MakeHommingBullet(mo, targetteamid, targetid)
 	}
-	t.addObject(o)
-	return o
+	return t.addObject(o)
 }
 
 func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) int {
@@ -322,7 +307,7 @@ func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) int {
 	}
 	if act.NormalBulletMv != nil {
 		if t.ActionPoint >= GameConst.AP[ActionBullet] {
-			t.addNewGameObject(GameObjBullet, *act.NormalBulletMv)
+			t.fireBullet(GameObjBullet, *act.NormalBulletMv)
 			t.ActionPoint -= GameConst.AP[ActionBullet]
 			rtn++
 		} else {
@@ -333,7 +318,7 @@ func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) int {
 	if act.BurstShot > 0 {
 		if t.ActionPoint >= act.BurstShot*GameConst.AP[ActionBurstBullet] {
 			for i := 0; i < act.BurstShot; i++ {
-				t.addNewGameObject(GameObjBullet, RandVector3D(-300, 300))
+				t.fireBullet(GameObjBullet, RandVector3D(-300, 300))
 			}
 			t.ActionPoint -= GameConst.AP[ActionBurstBullet] * act.BurstShot
 			rtn++
@@ -344,7 +329,7 @@ func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) int {
 	}
 	if act.HommingTargetID != nil {
 		if t.ActionPoint >= GameConst.AP[ActionHommingBullet] {
-			t.addNewGameObject(GameObjHommingBullet, act.HommingTargetID)
+			t.fireBullet(GameObjHommingBullet, act.HommingTargetID)
 			t.ActionPoint -= GameConst.AP[ActionHommingBullet]
 			rtn++
 		} else {
@@ -354,7 +339,7 @@ func (t *Team) applyClientAction(ftime time.Time, act *ClientActionPacket) int {
 	}
 	if act.SuperBulletMv != nil {
 		if t.ActionPoint >= GameConst.AP[ActionSuperBullet] {
-			t.addNewGameObject(GameObjSuperBullet, *act.SuperBulletMv)
+			t.fireBullet(GameObjSuperBullet, *act.SuperBulletMv)
 			t.ActionPoint -= GameConst.AP[ActionSuperBullet]
 			rtn++
 		} else {

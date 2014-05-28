@@ -10,17 +10,6 @@ import (
 	"time"
 )
 
-/*
-NewTeam
-StartTeam ( x )
-StopTeam ( x )
-DoFrame ( o )
-AddTeam ( to world )
-RemoveTeam ( from world )
-DelTeam
-EndTeam
-*/
-
 type Team struct {
 	ID          int64
 	Color       int
@@ -39,44 +28,6 @@ type Team struct {
 func (m Team) String() string {
 	return fmt.Sprintf("Team%v %v Objs:%v Score:%v AP:%v, PacketStat:%v, Coll:%v",
 		m.ID, m.ClientConnInfo, len(m.GameObjs), m.Score, m.ActionPoint, m.PacketStat, m.CollisionStat)
-}
-
-type TeamInfo struct {
-	ID         int64
-	ClientInfo string
-	Objs       int
-	AP         int
-	PacketStat string
-	CollStat   string
-	Color      int
-	FontColor  int
-	Score      int
-}
-
-func (t *Team) NewTeamInfo() *TeamInfo {
-	return &TeamInfo{
-		ID:         t.ID,
-		ClientInfo: t.ClientConnInfo.String(),
-		Objs:       len(t.GameObjs),
-		AP:         t.ActionPoint,
-		PacketStat: t.PacketStat.String(),
-		CollStat:   t.CollisionStat.String(),
-		Color:      t.Color,
-		FontColor:  0xffffff ^ t.Color,
-		Score:      t.Score,
-	}
-}
-
-type ByScore []TeamInfo
-
-func (s ByScore) Len() int {
-	return len(s)
-}
-func (s ByScore) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-func (s ByScore) Less(i, j int) bool {
-	return s[i].Score > s[j].Score
 }
 
 func NewTeam(conn interface{}) *Team {
@@ -102,7 +53,7 @@ func NewTeam(conn interface{}) *Team {
 	o := t.addObject(NewGameObject(t.ID).MakeHomeMarkObj())
 	t.HomeObjID = o.ID
 
-	t.addDeco()
+	//t.addDeco()
 	return &t
 }
 

@@ -80,7 +80,7 @@ var defaultConfig = GameConfig{
 	FramePerSec:          60.0,
 	RemoveEmptyWorld:     false,
 	TcpClientEncode:      "gob",
-	MaxTcpClientPerWorld: 32,
+	MaxTcpClientPerWorld: 8,
 	MaxWsClientPerWorld:  32,
 	StartWorldCount:      1,
 	AICountPerWorld:      8,

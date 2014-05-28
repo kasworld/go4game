@@ -6,10 +6,10 @@ import (
 	//"math"
 	//"math/rand"
 	//"net"
-	"bytes"
+	//"bytes"
 	//"reflect"
-	"sort"
-	"text/template"
+	//"sort"
+	//"text/template"
 	"time"
 )
 
@@ -32,40 +32,6 @@ func (m World) String() string {
 	}
 }
 
-var WorldTextTemplate *template.Template
-
-func init() {
-	const tworld = `
-{{.Disp}}
-TeamColor TeamID ClientInfo ObjCount Score ActionPoint PacketStat CollStat {{range .Teams}}
-{{.FontColor | printf "%x"}} {{.ID}} {{.ClientInfo}} {{.Objs}} {{.Score}} {{.AP}} {{.PacketStat}} {{.CollStat}} {{end}}
-`
-	WorldTextTemplate = template.Must(template.New("indexpage").Parse(tworld))
-}
-
-type WorldInfo struct {
-	Disp  string
-	Teams []TeamInfo
-}
-
-func (m *World) makeWorldInfo() *WorldInfo {
-	rtn := &WorldInfo{
-		Disp:  m.String(),
-		Teams: make([]TeamInfo, 0, len(m.Teams)),
-	}
-	for _, t := range m.Teams {
-		rtn.Teams = append(rtn.Teams, *t.NewTeamInfo())
-	}
-	sort.Sort(ByScore(rtn.Teams))
-	return rtn
-}
-
-func (wi WorldInfo) String() string {
-	var w bytes.Buffer
-	WorldTextTemplate.Execute(&w, wi)
-	return w.String()
-}
-
 func NewWorld(g *GameService) *World {
 	w := World{
 		ID:       <-IdGenCh,
@@ -79,19 +45,25 @@ func NewWorld(g *GameService) *World {
 func (w *World) addAITeams(anames []string, n int) {
 	for i := 0; i < n; i++ {
 		thisai := anames[i%len(anames)]
+		rsp := make(chan bool)
 		switch thisai {
 		default:
 			log.Printf("unknown AI %v", thisai)
 		case "AINothing":
-			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(&AINothing{})}
+			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(&AINothing{}), Rsp: rsp}
+			<-rsp
 		case "AICloud":
-			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(&AICloud{})}
+			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(&AICloud{}), Rsp: rsp}
+			<-rsp
 		case "AIRandom":
-			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(&AIRandom{})}
+			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(&AIRandom{}), Rsp: rsp}
+			<-rsp
 		case "AI2":
-			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(&AI2{})}
+			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(&AI2{}), Rsp: rsp}
+			<-rsp
 		case "AI3":
-			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(&AI3{})}
+			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(&AI3{}), Rsp: rsp}
+			<-rsp
 		}
 	}
 }
@@ -125,8 +97,8 @@ func (w *World) Do1Frame(ftime time.Time) bool {
 	for id, t := range w.Teams {
 		r, ok := <-t.chStep
 		if !ok {
+			w.removeTeam(id)
 			t.endTeam()
-			delete(w.Teams, id)
 			if GameConst.RemoveEmptyWorld && w.teamCount(AIClient) == len(w.Teams) {
 				return false
 			}
@@ -144,8 +116,8 @@ func (w *World) Loop() {
 		wi := w.makeWorldInfo()
 		fmt.Println(wi)
 		for id, t := range w.Teams {
+			w.removeTeam(id)
 			t.endTeam()
-			delete(w.Teams, id)
 		}
 		w.PService.CmdCh <- Cmd{Cmd: "delWorld", Args: w}
 	}()
@@ -156,13 +128,16 @@ loop:
 	for {
 		select {
 		case cmd := <-w.CmdCh:
+			//log.Printf("world%v recv cmd %v", w.ID, cmd)
 			switch cmd.Cmd {
 			case "quit":
 				break loop
 			case "AddTeam": // from world
 				w.addTeam(cmd.Args.(*Team))
+				cmd.Rsp <- true
 			case "RemoveTeam": // from world
 				w.removeTeam(cmd.Args.(int64))
+				cmd.Rsp <- true
 			default:
 				log.Printf("unknown cmd %v\n", cmd)
 			}

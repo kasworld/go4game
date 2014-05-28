@@ -3,12 +3,11 @@ package go4game
 import (
 	"fmt"
 	"github.com/gorilla/websocket"
-	"html/template"
 	"log"
 	"net"
-	"net/http"
+	// "net/http"
 	"runtime"
-	"strconv"
+	// "strconv"
 	"time"
 )
 
@@ -50,7 +49,6 @@ func (g *GameService) addNewWorld() *World {
 	w := NewWorld(g)
 	g.Worlds[w.ID] = w
 	go w.Loop()
-
 	w.addAITeams(GameConst.AINames, GameConst.AICountPerWorld)
 	return w
 }
@@ -68,6 +66,65 @@ func (g *GameService) findFreeWorld(teamCount int, ct ClientType) *World {
 	return g.addNewWorld()
 }
 
+func (g *GameService) MoveTeam(w1id, w2id int64, tid int64) bool {
+	if w1id == w2id {
+		return false
+	}
+	w1 := g.Worlds[w1id]
+	w2 := g.Worlds[w2id]
+	if w1 == nil || w2 == nil {
+		return false
+	}
+	t := w1.Teams[tid]
+	if t == nil {
+		return false
+	}
+	//log.Printf("remove team%v from world%v ", tid, w1id)
+	rsp := make(chan bool)
+	w1.CmdCh <- Cmd{Cmd: "RemoveTeam", Args: tid, Rsp: rsp}
+	<-rsp
+	//log.Printf("add team%v to world%v", tid, w2id)
+	w2.CmdCh <- Cmd{Cmd: "AddTeam", Args: t, Rsp: rsp}
+	<-rsp
+	//log.Printf("end team%v from world%v to world%v", tid, w1id, w2id)
+	return true
+}
+
+func (g *GameService) MoveTeamRandom() {
+	var w1id, w2id, tid int64
+	for len(g.Worlds) < 2 {
+		g.addNewWorld()
+	}
+	for id, _ := range g.Worlds {
+		if w1id == 0 {
+			w1id = id
+		} else {
+			w2id = id
+			break
+		}
+	}
+	if len(g.Worlds[w1id].Teams) > len(g.Worlds[w2id].Teams) {
+		for i, t := range g.Worlds[w1id].Teams {
+			if t.ClientConnInfo.clientType != AIClient {
+				tid = i
+				g.MoveTeam(w1id, w2id, tid)
+				break
+			}
+		}
+	} else {
+		for i, t := range g.Worlds[w2id].Teams {
+			if t.ClientConnInfo.clientType != AIClient {
+				tid = i
+				g.MoveTeam(w2id, w1id, tid)
+				break
+			}
+		}
+	}
+	if tid == 0 {
+		log.Printf("not found %v %v %v", w1id, w2id, tid)
+	}
+}
+
 func (g *GameService) Loop() {
 	<-g.CmdCh
 	timer1secCh := time.Tick(1 * time.Second)
@@ -77,10 +134,14 @@ loop:
 		select {
 		case conn := <-g.clientConnectionCh: // new team
 			w := g.findFreeWorld(GameConst.MaxTcpClientPerWorld, TCPClient)
-			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(conn)}
+			rsp := make(chan bool)
+			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(conn), Rsp: rsp}
+			<-rsp
 		case conn := <-g.wsClientConnectionCh: // new team
 			w := g.findFreeWorld(GameConst.MaxWsClientPerWorld, WebSockClient)
-			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(conn)}
+			rsp := make(chan bool)
+			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(conn), Rsp: rsp}
+			<-rsp
 		case cmd := <-g.CmdCh:
 			//log.Println(cmd)
 			switch cmd.Cmd {
@@ -97,6 +158,7 @@ loop:
 		case <-timer60Ch:
 			// do frame action
 		case <-timer1secCh:
+			g.MoveTeamRandom()
 		}
 	}
 	log.Printf("quit %v", g)
@@ -116,125 +178,4 @@ func (g *GameService) listenLoop() {
 		}
 		g.clientConnectionCh <- conn
 	}
-}
-
-// web socket server
-func (g *GameService) wsServer() {
-	http.HandleFunc("/ws", g.wsServe)
-	http.HandleFunc("/", g.Stat)
-	http.Handle("/www/", http.StripPrefix("/www/", http.FileServer(http.Dir("./www"))))
-	err := http.ListenAndServe(GameConst.WsListen, nil)
-	if err != nil {
-		log.Println("ListenAndServe: ", err)
-	}
-}
-
-var TopHtmlTemplate *template.Template
-var WorldHtmlTemplate *template.Template
-
-func init() {
-	const tindex = `
-		<html>
-		<head>
-		<title>go4game stat</title>
-		<meta http-equiv="refresh" content="1">
-		</head>
-		<body>
-		<a href='www/client3d.html' target="_blank">Open 3d client</a>
-		</br>
-		{{.Disp}}
-		</br>
-		{{range $id, $s := .Worlds}}
-		<a href='?worldid={{$id}}' target="_blank">{{$s}}</a>
-		</br>
-		{{end}}
-		</body>
-		</html>
-		`
-	TopHtmlTemplate = template.Must(template.New("indexpage").Parse(tindex))
-
-	const tworld = `
-		<html>
-		<head>
-		<title>go4game stat</title>
-		<meta http-equiv="refresh" content="1">
-		</head>
-		<body>
-		<a href='www/client3d.html' target="_blank">Open 3d client</a>
-		</br>
-		{{.Disp}}
-		</br>
-		<table>
-		<tr >
-			<td>TeamID</td>
-			<td>ClientInfo</td>
-			<td>ObjCount</td>
-			<td>Score</td>
-			<td>ActionPoint</td>
-			<td>PacketStat</td>
-			<td>CollStat</td>
-		</tr>
-		{{range .Teams}}
-		<tr bgcolor="#{{.Color | printf "%x"}}">
-			<td><font color="#{{.FontColor | printf "%x"}}">{{.ID}}</font></td>
-			<td><font color="#{{.FontColor | printf "%x"}}">{{.ClientInfo}}</font></td>
-			<td><font color="#{{.FontColor | printf "%x"}}">{{.Objs}}</font></td>
-			<td><font color="#{{.FontColor | printf "%x"}}">{{.Score}}</font></td>
-			<td><font color="#{{.FontColor | printf "%x"}}">{{.AP}}</font></td>
-			<td><font color="#{{.FontColor | printf "%x"}}">{{.PacketStat}}</font></td>
-			<td><font color="#{{.FontColor | printf "%x"}}">{{.CollStat}}</font></td>
-		</tr>
-		{{end}}
-		</table>
-		</body>
-		</html>
-		`
-	WorldHtmlTemplate = template.Must(template.New("indexpage").Parse(tworld))
-}
-
-func (g *GameService) Stat(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseForm()
-	if err != nil {
-		http.Error(w, "parse error", 405)
-	}
-	wid := r.Form.Get("worldid")
-	worldid, err := strconv.ParseInt(wid, 0, 64)
-	//log.Printf("worldid %v, %v", worldid, err)
-
-	if err != nil {
-		ws := make(map[int64]string, len(g.Worlds))
-		for id, w := range g.Worlds {
-			ws[id] = w.String()
-		}
-		TopHtmlTemplate.Execute(w, struct {
-			Disp   string
-			Worlds map[int64]string
-		}{
-			Disp:   g.String(),
-			Worlds: ws,
-		})
-	} else {
-		wi := g.Worlds[worldid].makeWorldInfo()
-		WorldHtmlTemplate.Execute(w, wi)
-	}
-}
-
-func (g *GameService) wsServe(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "Method not allowed", 405)
-		return
-	}
-	var upgrader = websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
-	}
-
-	ws, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		if _, ok := err.(websocket.HandshakeError); !ok {
-			log.Println(err)
-		}
-		return
-	}
-	g.wsClientConnectionCh <- ws
 }

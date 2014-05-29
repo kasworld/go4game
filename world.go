@@ -45,7 +45,7 @@ func NewWorld(g *GameService) *World {
 func (w *World) addAITeams(anames []string, n int) {
 	for i := 0; i < n; i++ {
 		thisai := anames[i%len(anames)]
-		rsp := make(chan bool)
+		rsp := make(chan interface{})
 		switch thisai {
 		default:
 			log.Printf("unknown AI %v", thisai)

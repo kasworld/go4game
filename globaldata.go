@@ -80,9 +80,9 @@ var defaultConfig = GameConfig{
 	FramePerSec:          60.0,
 	RemoveEmptyWorld:     false,
 	TcpClientEncode:      "gob",
-	MaxTcpClientPerWorld: 8,
+	MaxTcpClientPerWorld: 32,
 	MaxWsClientPerWorld:  32,
-	StartWorldCount:      1,
+	StartWorldCount:      8,
 	AICountPerWorld:      8,
 	AINames:              []string{"AICloud", "AIRandom", "AI2", "AI3"},
 	ClearY:               true,
@@ -108,8 +108,8 @@ var defaultConfig = GameConfig{
 		GameObjBullet:        5,
 		GameObjHommingBullet: 7,
 		GameObjSuperBullet:   15,
-		GameObjDeco:          1,
-		GameObjMark:          1},
+		GameObjDeco:          3,
+		GameObjMark:          3},
 	IsInteract: [GameObjEnd][GameObjEnd]bool{
 		GameObjMain: [GameObjEnd]bool{
 			GameObjMain:          true,

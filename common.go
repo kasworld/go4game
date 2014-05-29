@@ -41,7 +41,7 @@ func (t *Team) asyncTemplate() <-chan bool {
 type Cmd struct {
 	Cmd  string
 	Args interface{}
-	Rsp  chan<- bool
+	Rsp  chan<- interface{}
 }
 
 type ActionPoint struct {

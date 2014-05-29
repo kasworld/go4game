@@ -80,7 +80,7 @@ func (g *GameService) MoveTeam(w1id, w2id int64, tid int64) bool {
 		return false
 	}
 	//log.Printf("remove team%v from world%v ", tid, w1id)
-	rsp := make(chan bool)
+	rsp := make(chan interface{})
 	w1.CmdCh <- Cmd{Cmd: "RemoveTeam", Args: tid, Rsp: rsp}
 	<-rsp
 	//log.Printf("add team%v to world%v", tid, w2id)
@@ -134,12 +134,12 @@ loop:
 		select {
 		case conn := <-g.clientConnectionCh: // new team
 			w := g.findFreeWorld(GameConst.MaxTcpClientPerWorld, TCPClient)
-			rsp := make(chan bool)
+			rsp := make(chan interface{})
 			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(conn), Rsp: rsp}
 			<-rsp
 		case conn := <-g.wsClientConnectionCh: // new team
 			w := g.findFreeWorld(GameConst.MaxWsClientPerWorld, WebSockClient)
-			rsp := make(chan bool)
+			rsp := make(chan interface{})
 			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(conn), Rsp: rsp}
 			<-rsp
 		case cmd := <-g.CmdCh:
@@ -158,7 +158,7 @@ loop:
 		case <-timer60Ch:
 			// do frame action
 		case <-timer1secCh:
-			g.MoveTeamRandom()
+			//g.MoveTeamRandom()
 		}
 	}
 	log.Printf("quit %v", g)

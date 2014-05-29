@@ -59,3 +59,5 @@ http://kasw.blogspot.kr/2014/04/go4game.html
 http://kasw.blogspot.kr/2014/05/go4game-ai.html
 
 http://kasw.blogspot.kr/2014/05/go4game.html
+
+http://kasw.blogspot.kr/2014/05/go4game_29.html

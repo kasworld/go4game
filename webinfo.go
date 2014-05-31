@@ -58,12 +58,14 @@ func (s ByScore) Less(i, j int) bool {
 var WorldTextTemplate *ttemplate.Template
 
 type WorldInfo struct {
+	ID    int64
 	Disp  string
 	Teams []TeamInfo
 }
 
 func (m *World) makeWorldInfo() *WorldInfo {
 	rtn := &WorldInfo{
+		ID:    m.ID,
 		Disp:  m.String(),
 		Teams: make([]TeamInfo, 0, len(m.Teams)),
 	}
@@ -118,7 +120,7 @@ TeamColor TeamID ClientInfo ObjCount Score ActionPoint PacketStat CollStat {{ran
         <meta http-equiv="refresh" content="1">
         </head>
         <body>
-        <a href='www/client3d.html' target="_blank">Open 3d client</a>
+        <a href='www/client3d.html?worldid={{.ID}}' target="_blank">Open 3d client</a>
         </br>
         {{.Disp}}
         </br>

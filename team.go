@@ -10,17 +10,6 @@ import (
 	"time"
 )
 
-// type TeamStatus int
-
-// const (
-// 	NotInited TeamStatus = iota
-// 	Inited
-// 	InWorld
-// 	OutWorld
-// 	ConnClosed
-// 	Ended
-// )
-
 type Team struct {
 	ID          int64
 	Color       int
@@ -28,7 +17,6 @@ type Team struct {
 	Score       int
 	MainObjID   int64
 	HomeObjID   int64
-	//Status      bool
 
 	PacketStat     ActionStat
 	CollisionStat  ActionStat
@@ -65,8 +53,7 @@ func NewTeam(conn interface{}) *Team {
 	o := t.addObject(NewGameObject(t.ID).MakeHomeMarkObj())
 	t.HomeObjID = o.ID
 
-	//t.addDeco()
-
+	t.addDeco()
 	return &t
 }
 

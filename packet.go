@@ -66,8 +66,10 @@ type PacketType int
 
 const (
 	_ PacketType = iota
+	// for ai
 	ReqFrameInfo
 	RspFrameInfo
+	// for observer
 	ReqWorldInfo
 	RspWorldInfo
 	// ReqAIAct

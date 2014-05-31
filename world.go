@@ -111,6 +111,10 @@ func (w *World) updateEnv() {
 	w.worldSerial = <-chwsrl
 }
 
+func (w *World) isEmpty() bool {
+	return GameConst.RemoveEmptyWorld && w.teamCount(AIClient) == len(w.Teams)
+}
+
 func (w *World) Do1Frame(ftime time.Time) bool {
 	w.updateEnv()
 	for _, t := range w.Teams {
@@ -135,7 +139,7 @@ func (w *World) Do1Frame(ftime time.Time) bool {
 	for id, _ := range quitedTidList {
 		w.Teams[id].endTeam()
 		w.removeTeam(id)
-		if GameConst.RemoveEmptyWorld && w.teamCount(AIClient) == len(w.Teams) {
+		if w.isEmpty() {
 			return false
 		}
 	}
@@ -143,8 +147,6 @@ func (w *World) Do1Frame(ftime time.Time) bool {
 		if quitedTidList[id] { // pass quited team
 			continue
 		}
-		//
-		// w.PService.CmdCh <- Cmd{Cmd: "moveTeam", Args: [...]int64{w.ID, id}}
 		nw := w.PService.nextWorld(w.ID)
 		if nw == nil {
 			break
@@ -152,11 +154,7 @@ func (w *World) Do1Frame(ftime time.Time) bool {
 		//log.Printf("move team%v from world%v to world%v", id, w.ID, nw.ID)
 		t := w.Teams[id]
 		w.removeTeam(id)
-		//nw.addTeam(t)
-		// rsp := make(chan interface{})
-		//nw.CmdCh <- Cmd{Cmd: "AddTeam", Args: t, Rsp: rsp}
 		nw.CmdCh <- Cmd{Cmd: "AddTeam", Args: t}
-		// <-rsp
 	}
 	return true
 }

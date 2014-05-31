@@ -78,7 +78,7 @@ var defaultConfig = GameConfig{
 	TcpListen:            "0.0.0.0:6666",
 	WsListen:             "0.0.0.0:8080",
 	FramePerSec:          60.0,
-	RemoveEmptyWorld:     false,
+	RemoveEmptyWorld:     true,
 	TcpClientEncode:      "gob",
 	MaxTcpClientPerWorld: 8,
 	MaxWsClientPerWorld:  8,

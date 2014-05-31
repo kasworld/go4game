@@ -1,13 +1,15 @@
 package go4game
 
 import (
+	// "net/http"
+	// "strconv"
 	"fmt"
 	"github.com/gorilla/websocket"
 	"log"
+	//"math/rand"
 	"net"
-	// "net/http"
 	"runtime"
-	// "strconv"
+	"sort"
 	"time"
 )
 
@@ -45,6 +47,15 @@ func NewGameService() *GameService {
 	return &g
 }
 
+func (g *GameService) worldIDList() IDList {
+	rtn := make(IDList, 0, len(g.Worlds))
+	for id, _ := range g.Worlds {
+		rtn = append(rtn, id)
+	}
+	sort.Sort(rtn)
+	return rtn
+}
+
 func (g *GameService) addNewWorld() *World {
 	w := NewWorld(g)
 	g.Worlds[w.ID] = w
@@ -66,62 +77,56 @@ func (g *GameService) findFreeWorld(teamCount int, ct ClientType) *World {
 	return g.addNewWorld()
 }
 
-func (g *GameService) MoveTeam(w1id, w2id int64, tid int64) bool {
-	if w1id == w2id {
-		return false
-	}
-	w1 := g.Worlds[w1id]
-	w2 := g.Worlds[w2id]
-	if w1 == nil || w2 == nil {
-		return false
-	}
-	t := w1.Teams[tid]
-	if t == nil {
-		return false
-	}
-	//log.Printf("remove team%v from world%v ", tid, w1id)
-	rsp := make(chan interface{})
-	w1.CmdCh <- Cmd{Cmd: "RemoveTeam", Args: tid, Rsp: rsp}
-	<-rsp
-	//log.Printf("add team%v to world%v", tid, w2id)
-	w2.CmdCh <- Cmd{Cmd: "AddTeam", Args: t, Rsp: rsp}
-	<-rsp
-	//log.Printf("end team%v from world%v to world%v", tid, w1id, w2id)
-	return true
-}
+// func (g *GameService) MoveTeam(w1id, w2id int64, tid int64) bool {
+// 	if w1id == w2id {
+// 		return false
+// 	}
+// 	w1 := g.Worlds[w1id]
+// 	w2 := g.Worlds[w2id]
+// 	if w1 == nil || w2 == nil {
+// 		return false
+// 	}
+// 	t := w1.Teams[tid]
+// 	if t == nil {
+// 		return false
+// 	}
+// 	//log.Printf("remove team%v from world%v ", tid, w1id)
+// 	rsp := make(chan interface{})
+// 	w1.CmdCh <- Cmd{Cmd: "RemoveTeam", Args: tid, Rsp: rsp}
+// 	<-rsp
+// 	//log.Printf("add team%v to world%v", tid, w2id)
+// 	w2.CmdCh <- Cmd{Cmd: "AddTeam", Args: t, Rsp: rsp}
+// 	<-rsp
+// 	//log.Printf("end team%v from world%v to world%v", tid, w1id, w2id)
+// 	return true
+// }
 
-func (g *GameService) MoveTeamRandom() {
-	var w1id, w2id, tid int64
+// func (g *GameService) MoveToRandomWorld(wid int64, tid int64) {
+// 	for len(g.Worlds) < 2 {
+// 		g.addNewWorld()
+// 	}
+// 	worldids := g.worldIDList()
+// 	pos := worldids.findIndex(wid)
+// 	if pos < len(worldids) && worldids[pos] == wid { // find and normal
+// 		wid2 := worldids[(pos+1)%len(worldids)]
+// 		go g.MoveTeam(wid, wid2, tid)
+// 	} else {
+// 		log.Printf("invalid worldid %v", wid)
+// 	}
+// }
+
+func (g *GameService) nextWorld(wid int64) *World {
 	for len(g.Worlds) < 2 {
-		g.addNewWorld()
+		return nil
 	}
-	for id, _ := range g.Worlds {
-		if w1id == 0 {
-			w1id = id
-		} else {
-			w2id = id
-			break
-		}
-	}
-	if len(g.Worlds[w1id].Teams) > len(g.Worlds[w2id].Teams) {
-		for i, t := range g.Worlds[w1id].Teams {
-			if t.ClientConnInfo.clientType != AIClient {
-				tid = i
-				g.MoveTeam(w1id, w2id, tid)
-				break
-			}
-		}
+	worldids := g.worldIDList()
+	pos := worldids.findIndex(wid)
+	if pos < len(worldids) && worldids[pos] == wid { // find and normal
+		wid2 := worldids[(pos+1)%len(worldids)]
+		return g.Worlds[wid2]
 	} else {
-		for i, t := range g.Worlds[w2id].Teams {
-			if t.ClientConnInfo.clientType != AIClient {
-				tid = i
-				g.MoveTeam(w2id, w1id, tid)
-				break
-			}
-		}
-	}
-	if tid == 0 {
-		log.Printf("not found %v %v %v", w1id, w2id, tid)
+		log.Printf("invalid worldid %v", wid)
+		return nil
 	}
 }
 
@@ -152,13 +157,15 @@ loop:
 				break loop
 			case "delWorld":
 				g.delWorld(cmd.Args.(*World))
+			// case "moveTeam":
+			// 	ids := cmd.Args.([2]int64)
+			// 	g.MoveToRandomWorld(ids[0], ids[1])
 			default:
 				log.Printf("unknown cmd %v", cmd)
 			}
 		case <-timer60Ch:
 			// do frame action
 		case <-timer1secCh:
-			//g.MoveTeamRandom()
 		}
 	}
 	log.Printf("quit %v", g)

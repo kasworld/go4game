@@ -40,7 +40,7 @@ func repeatReq(connectTo string, rundur time.Duration) {
 	} else {
 		log.Fatal("unknown tcp client encode %v", GameConst.TcpClientEncode)
 	}
-
+	//log.Printf("client connected %v", conn)
 clientloop:
 	for {
 		select {

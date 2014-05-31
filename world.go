@@ -1,8 +1,6 @@
 package go4game
 
 import (
-	"fmt"
-	"log"
 	//"math"
 	//"math/rand"
 	//"net"
@@ -10,6 +8,8 @@ import (
 	//"reflect"
 	//"sort"
 	//"text/template"
+	"fmt"
+	"log"
 	"time"
 )
 
@@ -33,9 +33,10 @@ func (m World) String() string {
 }
 
 func NewWorld(g *GameService) *World {
+	maxclientCount := GameConst.MaxTcpClientPerWorld + GameConst.MaxWsClientPerWorld + GameConst.AICountPerWorld
 	w := World{
 		ID:       <-IdGenCh,
-		CmdCh:    make(chan Cmd, 1),
+		CmdCh:    make(chan Cmd, maxclientCount),
 		PService: g,
 		Teams:    make(map[int64]*Team),
 	}
@@ -69,13 +70,35 @@ func (w *World) addAITeams(anames []string, n int) {
 }
 
 func (w *World) addTeam(t *Team) {
-	w.Teams[t.ID] = t
+	if w == nil {
+		log.Printf("warning add team%v to nil world", t.ID)
+		return
+	}
+	if w.Teams[t.ID] != nil {
+		log.Printf("cannot add world%v team%v exist ", w.ID, t.ID)
+	} else {
+		//log.Printf("add team%v to world%v", t.ID, w.ID)
+		w.Teams[t.ID] = t
+	}
 }
 func (w *World) removeTeam(id int64) {
-	delete(w.Teams, id)
+	if w == nil {
+		log.Printf("warning remove team%v from nil world", id)
+		return
+	}
+	if w.Teams[id] == nil {
+		log.Printf("cannot remove world%v team%v not exist", w.ID, id)
+	} else {
+		//log.Printf("remove team%v from world%v", id, w.ID)
+		delete(w.Teams, id)
+	}
 }
 
 func (w *World) updateEnv() {
+	if w == nil {
+		log.Printf("warning updateEnv nil world")
+		return
+	}
 	chspp := make(chan *SpatialPartition)
 	go func() {
 		chspp <- w.MakeSpatialPartition()
@@ -90,23 +113,50 @@ func (w *World) updateEnv() {
 
 func (w *World) Do1Frame(ftime time.Time) bool {
 	w.updateEnv()
-
 	for _, t := range w.Teams {
 		t.chStep = t.Do1Frame(w, ftime)
 	}
-	for id, t := range w.Teams {
-		r, ok := <-t.chStep
+	killedTidList := make(map[int64]bool, 0)
+	quitedTidList := make(map[int64]bool, 0)
+	for _, t := range w.Teams {
+		clist, ok := <-t.chStep
 		if !ok {
-			w.removeTeam(id)
-			t.endTeam()
-			if GameConst.RemoveEmptyWorld && w.teamCount(AIClient) == len(w.Teams) {
-				return false
-			}
+			quitedTidList[t.ID] = true
 		} else {
-			for _, tid := range r {
+			for _, tid := range clist {
 				w.Teams[tid].Score += GameConst.KillScore
 			}
+			if len(clist) > 0 { // main obj explode
+				t.makeMainObj()
+				killedTidList[t.ID] = true
+			}
 		}
+	}
+	for id, _ := range quitedTidList {
+		w.Teams[id].endTeam()
+		w.removeTeam(id)
+		if GameConst.RemoveEmptyWorld && w.teamCount(AIClient) == len(w.Teams) {
+			return false
+		}
+	}
+	for id, _ := range killedTidList {
+		if quitedTidList[id] { // pass quited team
+			continue
+		}
+		//
+		// w.PService.CmdCh <- Cmd{Cmd: "moveTeam", Args: [...]int64{w.ID, id}}
+		nw := w.PService.nextWorld(w.ID)
+		if nw == nil {
+			break
+		}
+		//log.Printf("move team%v from world%v to world%v", id, w.ID, nw.ID)
+		t := w.Teams[id]
+		w.removeTeam(id)
+		//nw.addTeam(t)
+		// rsp := make(chan interface{})
+		//nw.CmdCh <- Cmd{Cmd: "AddTeam", Args: t, Rsp: rsp}
+		nw.CmdCh <- Cmd{Cmd: "AddTeam", Args: t}
+		// <-rsp
 	}
 	return true
 }
@@ -134,10 +184,14 @@ loop:
 				break loop
 			case "AddTeam": // from world
 				w.addTeam(cmd.Args.(*Team))
-				cmd.Rsp <- true
+				if cmd.Rsp != nil {
+					cmd.Rsp <- true
+				}
 			case "RemoveTeam": // from world
 				w.removeTeam(cmd.Args.(int64))
-				cmd.Rsp <- true
+				if cmd.Rsp != nil {
+					cmd.Rsp <- true
+				}
 			default:
 				log.Printf("unknown cmd %v\n", cmd)
 			}

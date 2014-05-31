@@ -10,6 +10,17 @@ import (
 	"time"
 )
 
+// type TeamStatus int
+
+// const (
+// 	NotInited TeamStatus = iota
+// 	Inited
+// 	InWorld
+// 	OutWorld
+// 	ConnClosed
+// 	Ended
+// )
+
 type Team struct {
 	ID          int64
 	Color       int
@@ -17,6 +28,7 @@ type Team struct {
 	Score       int
 	MainObjID   int64
 	HomeObjID   int64
+	//Status      bool
 
 	PacketStat     ActionStat
 	CollisionStat  ActionStat
@@ -53,7 +65,8 @@ func NewTeam(conn interface{}) *Team {
 	o := t.addObject(NewGameObject(t.ID).MakeHomeMarkObj())
 	t.HomeObjID = o.ID
 
-	t.addDeco()
+	//t.addDeco()
+
 	return &t
 }
 
@@ -169,7 +182,7 @@ func (t *Team) actByTime(world *World, ftime time.Time) IDList {
 		if v.enabled == false {
 			t.removeObject(id)
 			if v.ObjType == GameObjMain {
-				t.makeMainObj()
+				//t.makeMainObj()
 				t.Score -= GameConst.KillScore
 			}
 		}
@@ -192,6 +205,12 @@ func (t *Team) CalcAP(spp *SpatialPartition) int {
 }
 
 func (t *Team) endTeam() {
+	if t == nil {
+		log.Printf("warning end nil team")
+		return
+	}
+	//t.Status = false
+	//log.Printf("end team %v", t.ID)
 	close(t.ClientConnInfo.WriteCh) // stop writeloop
 	if t.ClientConnInfo.Conn != nil {
 		t.ClientConnInfo.Conn.Close() // stop read loop

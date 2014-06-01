@@ -14,7 +14,7 @@ import (
 )
 
 type AIActor interface {
-	MakeAction(*GamePacket) *GamePacket
+	MakeAction(*RspGamePacket) *ReqGamePacket
 }
 type MakeAI func() AIActor
 
@@ -29,8 +29,8 @@ const (
 )
 
 type ConnInfo struct {
-	ReadCh     chan *GamePacket
-	WriteCh    chan *GamePacket
+	ReadCh     chan *ReqGamePacket
+	WriteCh    chan *RspGamePacket
 	clientType ClientType
 	Conn       net.Conn
 	WsConn     *websocket.Conn
@@ -47,8 +47,8 @@ func (c ConnInfo) String() string {
 
 func NewAIConnInfo(aiconn AIActor) *ConnInfo {
 	c := ConnInfo{
-		ReadCh:     make(chan *GamePacket, 1),
-		WriteCh:    make(chan *GamePacket, 1),
+		ReadCh:     make(chan *ReqGamePacket, 1),
+		WriteCh:    make(chan *RspGamePacket, 1),
 		AiConn:     aiconn,
 		clientType: AIClient,
 	}
@@ -60,7 +60,7 @@ func (c *ConnInfo) aiLoop() {
 	defer func() {
 		close(c.ReadCh)
 	}()
-	c.ReadCh <- &GamePacket{Cmd: ReqFrameInfo}
+	c.ReadCh <- &ReqGamePacket{Cmd: ReqFrameInfo}
 loop:
 	for packet := range c.WriteCh { // get rsp from server
 		switch packet.Cmd {
@@ -83,8 +83,8 @@ type IEncoder interface {
 func NewTcpConnInfo(conn net.Conn) *ConnInfo {
 	c := ConnInfo{
 		Conn:       conn,
-		ReadCh:     make(chan *GamePacket, 1),
-		WriteCh:    make(chan *GamePacket, 1),
+		ReadCh:     make(chan *ReqGamePacket, 1),
+		WriteCh:    make(chan *RspGamePacket, 1),
 		clientType: TCPClient,
 	}
 	go c.tcpReadLoop()
@@ -107,7 +107,7 @@ func (c *ConnInfo) tcpReadLoop() {
 	}
 
 	for {
-		var v GamePacket
+		var v ReqGamePacket
 		err := dec.Decode(&v)
 		if err != nil {
 			break
@@ -147,8 +147,8 @@ const (
 func NewWsConnInfo(conn *websocket.Conn) *ConnInfo {
 	c := ConnInfo{
 		WsConn:     conn,
-		ReadCh:     make(chan *GamePacket, 1),
-		WriteCh:    make(chan *GamePacket, 1),
+		ReadCh:     make(chan *ReqGamePacket, 1),
+		WriteCh:    make(chan *RspGamePacket, 1),
 		clientType: WebSockClient,
 	}
 	go c.wsReadLoop()
@@ -168,7 +168,7 @@ func (c *ConnInfo) wsReadLoop() {
 		return nil
 	})
 	for {
-		var v GamePacket
+		var v ReqGamePacket
 		err := c.WsConn.ReadJSON(&v)
 		if err != nil {
 			break

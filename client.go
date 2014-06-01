@@ -48,7 +48,7 @@ clientloop:
 			// sp := GamePacket{
 			// 	Cmd: ReqWorldInfo,
 			// }
-			sp := GamePacket{
+			sp := ReqGamePacket{
 				Cmd: ReqFrameInfo,
 			}
 			err := enc.Encode(&sp)
@@ -58,7 +58,7 @@ clientloop:
 				break clientloop
 			}
 			//log.Printf("%v\n", plen)
-			var rp GamePacket
+			var rp RspGamePacket
 			err = dec.Decode(&rp)
 			if err != nil {
 				log.Printf("%v", err)

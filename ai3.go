@@ -191,7 +191,7 @@ func (a *AI3) sortActTargets(act ClientActionType) bool {
 	return false
 }
 
-func (a *AI3) MakeAction(packet *GamePacket) *GamePacket {
+func (a *AI3) MakeAction(packet *RspGamePacket) *ReqGamePacket {
 	if a.lastTargets[0] == nil {
 		//log.Printf("init historydata ")
 		for act := ActionAccel; act < ActionEnd; act++ {
@@ -205,7 +205,7 @@ func (a *AI3) MakeAction(packet *GamePacket) *GamePacket {
 	a.HomePos = packet.TeamInfo.HomePos
 
 	if a.spp == nil || a.me == nil {
-		return &GamePacket{Cmd: ReqFrameInfo}
+		return &ReqGamePacket{Cmd: ReqFrameInfo}
 	}
 	for i := ActionAccel; i < ActionEnd; i++ {
 		a.preparedTargets[i] = make(AI3AimTargetList, 0)
@@ -213,7 +213,7 @@ func (a *AI3) MakeAction(packet *GamePacket) *GamePacket {
 	a.spp.ApplyParts27Fn(a.prepareTarget, a.me.PosVector)
 
 	a.delOldTagets()
-	rtn := &GamePacket{
+	rtn := &ReqGamePacket{
 		Cmd: ReqFrameInfo,
 		ClientAct: &ClientActionPacket{
 			Accel:           nil,

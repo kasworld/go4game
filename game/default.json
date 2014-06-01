@@ -10,10 +10,10 @@
         "AI2",
         "AI3"
     ],
-    "MaxTcpClientPerWorld": 32,
-    "MaxWsClientPerWorld": 32,
-    "StartWorldCount": 1,
-    "RemoveEmptyWorld": false,
+    "MaxTcpClientPerWorld": 8,
+    "MaxWsClientPerWorld": 8,
+    "StartWorldCount": 8,
+    "RemoveEmptyWorld": true,
     "TcpClientEncode": "gob",
     "WorldCube": {
         "Min": [
@@ -37,7 +37,9 @@
         200,
         300,
         200,
-        600
+        600,
+        600,
+        100
     ],
     "Radius": [
         0,
@@ -45,10 +47,14 @@
         5,
         5,
         7,
-        15
+        15,
+        3,
+        3
     ],
     "ObjSqd": [
         [
+            0,
+            0,
             0,
             0,
             0,
@@ -62,7 +68,9 @@
             225,
             225,
             289,
-            625
+            625,
+            169,
+            169
         ],
         [
             0,
@@ -70,7 +78,9 @@
             100,
             100,
             144,
-            400
+            400,
+            64,
+            64
         ],
         [
             0,
@@ -78,7 +88,9 @@
             100,
             100,
             144,
-            400
+            400,
+            64,
+            64
         ],
         [
             0,
@@ -86,7 +98,9 @@
             144,
             144,
             196,
-            484
+            484,
+            100,
+            100
         ],
         [
             0,
@@ -94,11 +108,35 @@
             400,
             400,
             484,
-            900
+            900,
+            324,
+            324
+        ],
+        [
+            0,
+            169,
+            64,
+            64,
+            100,
+            324,
+            36,
+            36
+        ],
+        [
+            0,
+            169,
+            64,
+            64,
+            100,
+            324,
+            36,
+            36
         ]
     ],
     "IsInteract": [
         [
+            false,
+            false,
             false,
             false,
             false,
@@ -112,7 +150,9 @@
             true,
             true,
             true,
-            true
+            true,
+            false,
+            false
         ],
         [
             false,
@@ -120,7 +160,9 @@
             true,
             true,
             true,
-            true
+            true,
+            false,
+            false
         ],
         [
             false,
@@ -128,7 +170,9 @@
             true,
             true,
             true,
-            true
+            true,
+            false,
+            false
         ],
         [
             false,
@@ -136,7 +180,9 @@
             true,
             false,
             true,
-            true
+            true,
+            false,
+            false
         ],
         [
             false,
@@ -144,7 +190,29 @@
             true,
             false,
             true,
-            true
+            true,
+            false,
+            false
+        ],
+        [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+        ],
+        [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
         ]
     ],
     "AP": [

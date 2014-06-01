@@ -48,7 +48,7 @@ func (a *AI2) prepareTarget(s SPObjList) bool {
 	}
 	return false
 }
-func (a *AI2) MakeAction(packet *GamePacket) *GamePacket {
+func (a *AI2) MakeAction(packet *RspGamePacket) *ReqGamePacket {
 	a.spp = packet.Spp
 	a.me = packet.TeamInfo.SPObj
 	a.ActionPoint = packet.TeamInfo.ActionPoint
@@ -56,14 +56,14 @@ func (a *AI2) MakeAction(packet *GamePacket) *GamePacket {
 	a.HomePos = packet.TeamInfo.HomePos
 
 	if a.spp == nil || a.me == nil {
-		return &GamePacket{Cmd: ReqFrameInfo}
+		return &ReqGamePacket{Cmd: ReqFrameInfo}
 	}
 	a.targetlist = make(AimTargetList, 0)
 	a.mainobjlist = make(AimTargetList, 0)
 	a.spp.ApplyParts27Fn(a.prepareTarget, a.me.PosVector)
 
 	if len(a.targetlist) == 0 {
-		return &GamePacket{Cmd: ReqFrameInfo}
+		return &ReqGamePacket{Cmd: ReqFrameInfo}
 	}
 
 	// for return packet
@@ -135,7 +135,7 @@ func (a *AI2) MakeAction(packet *GamePacket) *GamePacket {
 		a.ActionPoint -= GameConst.AP[ActionBurstBullet] * burstCount
 	}
 
-	return &GamePacket{
+	return &ReqGamePacket{
 		Cmd: ReqFrameInfo,
 		ClientAct: &ClientActionPacket{
 			Accel:           accvt,

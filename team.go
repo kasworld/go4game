@@ -104,7 +104,7 @@ func (t *Team) countObjByType(got GameObjectType) int {
 }
 
 func (t *Team) processClientReq(ftime time.Time, w *WorldDisp, spp *SpatialPartition) bool {
-	var p *GamePacket
+	var p *ReqGamePacket
 	var ok bool
 	select {
 	case p, ok = <-t.ClientConnInfo.ReadCh:
@@ -117,17 +117,17 @@ func (t *Team) processClientReq(ftime time.Time, w *WorldDisp, spp *SpatialParti
 		return true
 	}
 	t.PacketStat.Inc()
-	var rp GamePacket
+	var rp RspGamePacket
 	switch p.Cmd {
 	case ReqWorldInfo:
-		rp = GamePacket{
+		rp = RspGamePacket{
 			Cmd:       RspWorldInfo,
 			WorldInfo: w,
 			TeamInfo:  &TeamInfoPacket{SPObj: NewSPObj(t.findMainObj())},
 		}
 	case ReqFrameInfo:
 		t.applyClientAction(ftime, p.ClientAct)
-		rp = GamePacket{
+		rp = RspGamePacket{
 			Cmd: RspFrameInfo,
 			Spp: spp,
 			TeamInfo: &TeamInfoPacket{

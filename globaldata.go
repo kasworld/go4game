@@ -200,9 +200,5 @@ func SaveLoad(config *GameConfig, filename string) {
 
 func init() {
 	ValidateConfig(&GameConst)
-
-	// SaveLoad(&defaultConfig, "default.json")
-	// SaveLoad(&profileConfig, "profile.json")
-	// SaveLoad(&profileConfigMultiWorld, "multiworld.json")
-	// SaveLoad(&bigWorldConfig, "bigworld.json")
+	SaveLoad(&defaultConfig, "default.json")
 }

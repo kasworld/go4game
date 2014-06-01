@@ -16,13 +16,13 @@ func NewAINothing() AIActor {
 	return &AINothing{}
 }
 
-func (a *AINothing) MakeAction(packet *GamePacket) *GamePacket {
+func (a *AINothing) MakeAction(packet *RspGamePacket) *ReqGamePacket {
 	var bulletMoveVector *Vector3D = nil
 	var accvt *Vector3D = nil
 	var burstCount int = 0
 	var hommingTargetID IDList // objid, teamid
 	var superBulletMv *Vector3D = nil
-	return &GamePacket{
+	return &ReqGamePacket{
 		Cmd: ReqFrameInfo,
 		ClientAct: &ClientActionPacket{
 			Accel:           accvt,
@@ -47,7 +47,7 @@ func NewAIRandom() AIActor {
 	return &AIRandom{}
 }
 
-func (a *AIRandom) MakeAction(packet *GamePacket) *GamePacket {
+func (a *AIRandom) MakeAction(packet *RspGamePacket) *ReqGamePacket {
 	a.spp = packet.Spp
 	a.me = packet.TeamInfo.SPObj
 	a.ActionPoint = packet.TeamInfo.ActionPoint
@@ -55,10 +55,10 @@ func (a *AIRandom) MakeAction(packet *GamePacket) *GamePacket {
 	a.HomePos = packet.TeamInfo.HomePos
 
 	if a.spp == nil || a.me == nil {
-		return &GamePacket{Cmd: ReqFrameInfo}
+		return &ReqGamePacket{Cmd: ReqFrameInfo}
 	}
 
-	rtn := &GamePacket{
+	rtn := &ReqGamePacket{
 		Cmd: ReqFrameInfo,
 		ClientAct: &ClientActionPacket{
 			Accel:           nil,
@@ -119,7 +119,7 @@ func NewAICloud() AIActor {
 	return &AICloud{}
 }
 
-func (a *AICloud) MakeAction(packet *GamePacket) *GamePacket {
+func (a *AICloud) MakeAction(packet *RspGamePacket) *ReqGamePacket {
 	a.spp = packet.Spp
 	a.me = packet.TeamInfo.SPObj
 	a.ActionPoint = packet.TeamInfo.ActionPoint
@@ -127,10 +127,10 @@ func (a *AICloud) MakeAction(packet *GamePacket) *GamePacket {
 	a.HomePos = packet.TeamInfo.HomePos
 
 	if a.spp == nil || a.me == nil {
-		return &GamePacket{Cmd: ReqFrameInfo}
+		return &ReqGamePacket{Cmd: ReqFrameInfo}
 	}
 
-	rtn := &GamePacket{
+	rtn := &ReqGamePacket{
 		Cmd: ReqFrameInfo,
 		ClientAct: &ClientActionPacket{
 			Accel:           nil,

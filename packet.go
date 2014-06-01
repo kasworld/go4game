@@ -76,19 +76,28 @@ const (
 	// RspAIAct
 )
 
-type GamePacket struct {
+type RspGamePacket struct {
 	Cmd       PacketType
 	TeamInfo  *TeamInfoPacket
 	WorldInfo *WorldDisp
-	ClientAct *ClientActionPacket
 	Spp       *SpatialPartition
 }
 
-func (gp GamePacket) String() string {
-	return fmt.Sprintf("GamePacket Cmd:%v TeamInfo:%v WorldInfo:%v ClientAct:%v",
+func (gp RspGamePacket) String() string {
+	return fmt.Sprintf("RspGamePacket Cmd:%v TeamInfo:%v WorldInfo:%v",
 		gp.Cmd,
 		gp.TeamInfo,
-		gp.WorldInfo,
+		gp.WorldInfo)
+}
+
+type ReqGamePacket struct {
+	Cmd       PacketType
+	ClientAct *ClientActionPacket
+}
+
+func (gp ReqGamePacket) String() string {
+	return fmt.Sprintf("ReqGamePacket Cmd:%v ClientAct:%v",
+		gp.Cmd,
 		gp.ClientAct)
 }
 

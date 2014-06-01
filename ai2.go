@@ -19,6 +19,10 @@ type AI2 struct {
 	mainobjlist AimTargetList
 }
 
+func NewAI2() AIActor {
+	return &AI2{}
+}
+
 func (a *AI2) prepareTarget(s SPObjList) bool {
 	for _, t := range s {
 		if a.me.TeamID != t.TeamID {

@@ -16,6 +16,7 @@ import (
 type AIActor interface {
 	MakeAction(*GamePacket) *GamePacket
 }
+type MakeAI func() AIActor
 
 // client conn type
 type ClientType int

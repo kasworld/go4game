@@ -21,6 +21,10 @@ type AI3 struct {
 	lastTargets     [ActionEnd]map[int64]time.Time
 }
 
+func NewAI3() AIActor {
+	return &AI3{}
+}
+
 func (a *AI3) delOldTagets() {
 	var act ClientActionType
 

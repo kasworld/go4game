@@ -12,6 +12,10 @@ import (
 type AINothing struct {
 }
 
+func NewAINothing() AIActor {
+	return &AINothing{}
+}
+
 func (a *AINothing) MakeAction(packet *GamePacket) *GamePacket {
 	var bulletMoveVector *Vector3D = nil
 	var accvt *Vector3D = nil
@@ -37,6 +41,10 @@ type AIRandom struct {
 	ActionPoint int
 	Score       int
 	HomePos     Vector3D
+}
+
+func NewAIRandom() AIActor {
+	return &AIRandom{}
 }
 
 func (a *AIRandom) MakeAction(packet *GamePacket) *GamePacket {
@@ -105,6 +113,10 @@ type AICloud struct {
 	ActionPoint int
 	Score       int
 	HomePos     Vector3D
+}
+
+func NewAICloud() AIActor {
+	return &AICloud{}
 }
 
 func (a *AICloud) MakeAction(packet *GamePacket) *GamePacket {

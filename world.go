@@ -44,28 +44,23 @@ func NewWorld(g *GameService) *World {
 }
 
 func (w *World) addAITeams(anames []string, n int) {
+	NewAI := map[string]MakeAI{
+		"AINothing": NewAINothing,
+		"AICloud":   NewAICloud,
+		"AIRandom":  NewAIRandom,
+		"AI2":       NewAI2,
+		"AI3":       NewAI3,
+	}
 	for i := 0; i < n; i++ {
 		thisai := anames[i%len(anames)]
 		rsp := make(chan interface{})
-		switch thisai {
-		default:
+		fn := NewAI[thisai]
+		if fn == nil {
 			log.Printf("unknown AI %v", thisai)
-		case "AINothing":
-			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(&AINothing{}), Rsp: rsp}
-			<-rsp
-		case "AICloud":
-			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(&AICloud{}), Rsp: rsp}
-			<-rsp
-		case "AIRandom":
-			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(&AIRandom{}), Rsp: rsp}
-			<-rsp
-		case "AI2":
-			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(&AI2{}), Rsp: rsp}
-			<-rsp
-		case "AI3":
-			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(&AI3{}), Rsp: rsp}
-			<-rsp
+			continue
 		}
+		w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(fn()), Rsp: rsp}
+		<-rsp
 	}
 }
 

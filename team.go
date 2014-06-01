@@ -53,15 +53,23 @@ func NewTeam(conn interface{}) *Team {
 	o := t.addObject(NewGameObject(t.ID).MakeHomeMarkObj())
 	t.HomeObjID = o.ID
 
-	t.addDeco()
+	t.addRevolutionDeco()
 	return &t
 }
 
-func (t *Team) addDeco() {
+func (o *GameObject) MakeRevolutionDecoObj() *GameObject {
+	o.moveByTimeFn = moveByTimeFn_clock
+	o.borderActionFn = borderActionFn_None
+	o.ObjType = GameObjDeco
+	o.clearYFn = ClearY_none
+	return o
+}
+
+func (t *Team) addRevolutionDeco() {
 	avt := GameConst.WorldCube.RandVector().Idiv(10)
 	mvvt := GameConst.WorldCube.RandVector().Idiv(10)
 	for i := 0; i < 50; i++ {
-		o := NewGameObject(t.ID).MakeDecoObj()
+		o := NewGameObject(t.ID).MakeRevolutionDecoObj()
 
 		o.accelVector = avt //.NormalizedTo(float64(i * 10+1))
 		o.MoveVector = mvvt.NormalizedTo(float64(i*16 + 1))

@@ -68,16 +68,41 @@ func (ot *Octree) Insert(o *SPObj) bool {
 	}
 }
 
-func (ot *Octree) QueryByLen(center Vector3D, r float64, fn func(SPObjList) bool) bool {
-	if !ot.BoundCube.IsContact(center, r) {
+func (ot *Octree) QueryByLen(fn CheckSPObjListFn, center Vector3D, r float64) bool {
+	return ot.QueryByHyperRect(fn, NewHyperRectByCR(center, r))
+
+	// if !ot.BoundCube.IsContact(center, r) {
+	// 	return false
+	// }
+	// quit := fn(ot.DataList)
+	// if quit {
+	// 	return true
+	// }
+	// if ot.Children[0] == nil {
+	// 	return false
+	// }
+	// for _, o := range ot.Children {
+	// 	quit := o.QueryByLen(fn, center, r)
+	// 	if quit {
+	// 		return true
+	// 	}
+	// }
+	// return false
+}
+
+func (ot *Octree) QueryByHyperRect(fn CheckSPObjListFn, hr *HyperRect) bool {
+	if !ot.BoundCube.IsOverlap(hr) {
 		return false
 	}
 	quit := fn(ot.DataList)
 	if quit {
 		return true
 	}
+	if ot.Children[0] == nil {
+		return false
+	}
 	for _, o := range ot.Children {
-		quit := o.QueryByLen(center, r, fn)
+		quit := o.QueryByHyperRect(fn, hr)
 		if quit {
 			return true
 		}

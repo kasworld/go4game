@@ -28,6 +28,8 @@ func NewSPObj(o *GameObject) *SPObj {
 
 type SPObjList []*SPObj
 
+type CheckSPObjListFn func(SPObjList) bool
+
 type SpatialPartition struct {
 	WorldCube HyperRect
 	Size      Vector3D
@@ -110,22 +112,6 @@ func (p *SpatialPartition) GetPartCube(ppos [3]int) *HyperRect {
 	}
 }
 
-func (p *SpatialPartition) IsContactTo(c Vector3D, ppos [3]int, plenrsqd float64) bool {
-	var sum float64
-	for i, v := range c {
-		d := p.PartMins[ppos[i]][i] + p.PartSize[i]/2 - v
-		sum += d * d
-	}
-	return plenrsqd >= sum
-	// return plenrsqd >= c.Sqd(Vector3D{
-	// 	p.PartMins[x][0] + p.PartSize[0]/2,
-	// 	p.PartMins[y][1] + p.PartSize[1]/2,
-	// 	p.PartMins[z][2] + p.PartSize[2]/2})
-	// pMin := Vector3D{p.PartMins[x][0], p.PartMins[y][1], p.PartMins[z][2]}
-	// pCenter := pMin.Add(p.PartSize.Idiv(2))
-	// return plenrsqd >= pCenter.Sqd(c)
-}
-
 func (p *SpatialPartition) getRangeStart(n int) int {
 	if n <= 1 {
 		return 0
@@ -144,26 +130,12 @@ func (p *SpatialPartition) getPartStart27(pos Vector3D) (x, y, z int) {
 	return
 }
 
-func (p *SpatialPartition) ApplyParts27Fn(fn func(SPObjList) bool, pos Vector3D) bool {
+func (p *SpatialPartition) ApplyParts27Fn(fn CheckSPObjListFn, pos Vector3D) bool {
 	i, j, k := p.getPartStart27(pos)
 	for x := i; x < i+3; x++ {
 		for y := j; y < j+3; y++ {
 			for z := k; z < k+3; z++ {
 				if fn(p.Parts[x][y][z]) {
-					return true
-				}
-			}
-		}
-	}
-	return false
-}
-
-func (p *SpatialPartition) ApplyParts27Fn2(fn func(SPObjList, [3]int) bool, pos Vector3D) bool {
-	i, j, k := p.getPartStart27(pos)
-	for x := i; x < i+3; x++ {
-		for y := j; y < j+3; y++ {
-			for z := k; z < k+3; z++ {
-				if fn(p.Parts[x][y][z], [3]int{x, y, z}) {
 					return true
 				}
 			}
@@ -182,7 +154,7 @@ func (p *SpatialPartition) makeRange2(c float64, r float64, min float64, max flo
 	}
 }
 
-func (p *SpatialPartition) ApplyParts27Fn5(fn func(SPObjList, [3]int) bool, pos Vector3D, r float64) bool {
+func (p *SpatialPartition) QueryByLen(fn CheckSPObjListFn, pos Vector3D, r float64) bool {
 	ppos := p.Pos2PartPos(pos)
 	partcube := p.GetPartCube(ppos)
 	xr := p.makeRange2(pos[0], r, partcube.Min[0], partcube.Max[0], ppos[0])
@@ -192,66 +164,15 @@ func (p *SpatialPartition) ApplyParts27Fn5(fn func(SPObjList, [3]int) bool, pos 
 	for _, x := range xr {
 		for _, y := range yr {
 			for _, z := range zr {
-				if fn(p.Parts[x][y][z], [3]int{x, y, z}) {
+				cp := p.Parts[x][y][z]
+				cpcube := p.GetPartCube([3]int{x, y, z})
+				if len(cp) == 0 || !cpcube.IsContact(pos, r) {
+					continue
+				}
+				if fn(cp) {
 					return true
 				}
 
-			}
-		}
-	}
-	return false
-}
-
-var p27 = [27][3]int{
-	{0, 0, 0}, {0, 0, 1}, {0, 0, -1},
-	{0, 1, 0}, {0, 1, 1}, {0, 1, -1},
-	{0, -1, 0}, {0, -1, 1}, {0, -1, -1},
-	{1, 0, 0}, {1, 0, 1}, {1, 0, -1},
-	{1, 1, 0}, {1, 1, 1}, {1, 1, -1},
-	{1, -1, 0}, {1, -1, 1}, {1, -1, -1},
-	{-1, 0, 0}, {-1, 0, 1}, {-1, 0, -1},
-	{-1, 1, 0}, {-1, 1, 1}, {-1, 1, -1},
-	{-1, -1, 0}, {-1, -1, 1}, {-1, -1, -1},
-}
-
-func (p *SpatialPartition) ApplyParts27Fn4(fn func(SPObjList, [3]int) bool, pos Vector3D) bool {
-	ppos := p.Pos2PartPos(pos)
-	for _, pi := range p27 {
-		x, y, z := ppos[0]+pi[0], ppos[1]+pi[1], ppos[2]+pi[2]
-		if x < 0 || x >= p.PartCount || y < 0 || y >= p.PartCount || z < 0 || z >= p.PartCount {
-			continue
-		}
-		if len(p.Parts[x][y][z]) == 0 {
-			continue
-		}
-		if fn(p.Parts[x][y][z], [3]int{x, y, z}) {
-			return true
-		}
-	}
-	return false
-}
-
-// soooo slow
-func (p *SpatialPartition) ApplyParts27Fn3(fn func(SPObjList, [3]int) bool, pos Vector3D) bool {
-	ppos := p.Pos2PartPos(pos)
-	for x := range [3]int{ppos[0], ppos[0] - 1, ppos[0] + 1} {
-		if x < 0 || x >= p.PartCount {
-			continue
-		}
-		for y := range [3]int{ppos[1], ppos[1] - 1, ppos[1] + 1} {
-			if y < 0 || y >= p.PartCount {
-				continue
-			}
-			for z := range [3]int{ppos[2], ppos[2] - 1, ppos[2] + 1} {
-				if z < 0 || z >= p.PartCount {
-					continue
-				}
-				if len(p.Parts[x][y][z]) == 0 {
-					continue
-				}
-				if fn(p.Parts[x][y][z], [3]int{x, y, z}) {
-					return true
-				}
 			}
 		}
 	}

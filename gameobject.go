@@ -141,7 +141,6 @@ type ActionFnEnvInfo struct {
 	frameTime time.Time
 	world     *World
 	spp       *SpatialPartition
-	plenrsqd  float64
 	o         *GameObject
 	clist     IDList
 }
@@ -154,10 +153,7 @@ func (o *GameObject) IsCollision(s *SPObj) bool {
 	return false
 }
 
-func (e *ActionFnEnvInfo) doPartMainObj(cp SPObjList, ppos [3]int) bool {
-	if len(cp) == 0 || !e.spp.IsContactTo(e.o.PosVector, ppos, e.plenrsqd) {
-		return false
-	}
+func (e *ActionFnEnvInfo) doPartMainObj(cp SPObjList) bool {
 	for _, v := range cp {
 		if e.o.IsCollision(v) {
 			e.clist = append(e.clist, v.TeamID)
@@ -166,10 +162,7 @@ func (e *ActionFnEnvInfo) doPartMainObj(cp SPObjList, ppos [3]int) bool {
 	return false
 }
 
-func (e *ActionFnEnvInfo) doPartOtherObj(cp SPObjList, ppos [3]int) bool {
-	if len(cp) == 0 || !e.spp.IsContactTo(e.o.PosVector, ppos, e.plenrsqd) {
-		return false
-	}
+func (e *ActionFnEnvInfo) doPartOtherObj(cp SPObjList) bool {
 	for _, v := range cp {
 		if e.o.IsCollision(v) {
 			return true
@@ -188,7 +181,6 @@ func (o *GameObject) ActByTime(world *World, t time.Time) IDList {
 	envInfo := ActionFnEnvInfo{
 		frameTime: t,
 		world:     world,
-		spp:       world.spp,
 		o:         o,
 		clist:     make(IDList, 0),
 	}
@@ -203,14 +195,13 @@ func (o *GameObject) ActByTime(world *World, t time.Time) IDList {
 	}
 
 	var isCollision bool
-	envInfo.plenrsqd = (envInfo.spp.PartLen/2 + GameConst.Radius[o.ObjType] + GameConst.MaxObjectRadius)
-	envInfo.plenrsqd *= envInfo.plenrsqd
+	r := GameConst.Radius[o.ObjType] + GameConst.MaxObjectRadius
 	if o.ObjType == GameObjMain {
-		envInfo.spp.ApplyParts27Fn5(envInfo.doPartMainObj, o.PosVector, GameConst.Radius[o.ObjType]+GameConst.MaxObjectRadius)
-		// envInfo.spp.ApplyParts27Fn4(envInfo.doPartMainObj, o.PosVector)
+		// envInfo.world.spp.QueryByLen(envInfo.doPartMainObj, o.PosVector, r)
+		envInfo.world.octree.QueryByLen(envInfo.doPartMainObj, o.PosVector, r)
 	} else {
-		isCollision = envInfo.spp.ApplyParts27Fn5(envInfo.doPartOtherObj, o.PosVector, GameConst.Radius[o.ObjType]+GameConst.MaxObjectRadius)
-		//isCollision = envInfo.spp.ApplyParts27Fn4(envInfo.doPartOtherObj, o.PosVector)
+		// isCollision = envInfo.world.spp.QueryByLen(envInfo.doPartOtherObj, o.PosVector, r)
+		isCollision = envInfo.world.octree.QueryByLen(envInfo.doPartOtherObj, o.PosVector, r)
 	}
 
 	if isCollision || len(envInfo.clist) > 0 {

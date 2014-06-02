@@ -23,7 +23,7 @@ func (a *AINothing) MakeAction(packet *RspGamePacket) *ReqGamePacket {
 	var hommingTargetID IDList // objid, teamid
 	var superBulletMv *Vector3D = nil
 	return &ReqGamePacket{
-		Cmd: ReqFrameInfo,
+		Cmd: ReqNearInfo,
 		ClientAct: &ClientActionPacket{
 			Accel:           accvt,
 			NormalBulletMv:  bulletMoveVector,
@@ -37,7 +37,6 @@ func (a *AINothing) MakeAction(packet *RspGamePacket) *ReqGamePacket {
 // AIRandom ----------------------------------------------------------------
 type AIRandom struct {
 	me          *SPObj
-	spp         *SpatialPartition
 	ActionPoint int
 	Score       int
 	HomePos     Vector3D
@@ -48,18 +47,17 @@ func NewAIRandom() AIActor {
 }
 
 func (a *AIRandom) MakeAction(packet *RspGamePacket) *ReqGamePacket {
-	a.spp = packet.Spp
 	a.me = packet.TeamInfo.SPObj
 	a.ActionPoint = packet.TeamInfo.ActionPoint
 	a.Score = packet.TeamInfo.Score
 	a.HomePos = packet.TeamInfo.HomePos
 
-	if a.spp == nil || a.me == nil {
-		return &ReqGamePacket{Cmd: ReqFrameInfo}
+	if a.me == nil {
+		return &ReqGamePacket{Cmd: ReqNearInfo}
 	}
 
 	rtn := &ReqGamePacket{
-		Cmd: ReqFrameInfo,
+		Cmd: ReqNearInfo,
 		ClientAct: &ClientActionPacket{
 			Accel:           nil,
 			NormalBulletMv:  nil,
@@ -70,7 +68,7 @@ func (a *AIRandom) MakeAction(packet *RspGamePacket) *ReqGamePacket {
 	}
 
 	if a.ActionPoint >= GameConst.AP[ActionSuperBullet] && rand.Float64() < 0.5 {
-		tmp := a.spp.WorldCube.RandVector()
+		tmp := GameConst.WorldCube.RandVector()
 		rtn.ClientAct.SuperBulletMv = &tmp
 		a.ActionPoint -= GameConst.AP[ActionSuperBullet]
 	}
@@ -81,14 +79,14 @@ func (a *AIRandom) MakeAction(packet *RspGamePacket) *ReqGamePacket {
 	}
 
 	if a.ActionPoint >= GameConst.AP[ActionBullet] && rand.Float64() < 0.5 {
-		tmp := a.spp.WorldCube.RandVector()
+		tmp := GameConst.WorldCube.RandVector()
 		rtn.ClientAct.NormalBulletMv = &tmp
 		a.ActionPoint -= GameConst.AP[ActionBullet]
 	}
 
 	if a.ActionPoint >= GameConst.AP[ActionAccel] {
 		if rand.Float64() < 0.5 {
-			tmp := a.spp.WorldCube.RandVector()
+			tmp := GameConst.WorldCube.RandVector()
 			rtn.ClientAct.Accel = &tmp
 			a.ActionPoint -= GameConst.AP[ActionAccel]
 		} else {
@@ -109,7 +107,6 @@ func (a *AIRandom) MakeAction(packet *RspGamePacket) *ReqGamePacket {
 // AICloud ----------------------------------------------------------------
 type AICloud struct {
 	me          *SPObj
-	spp         *SpatialPartition
 	ActionPoint int
 	Score       int
 	HomePos     Vector3D
@@ -120,18 +117,17 @@ func NewAICloud() AIActor {
 }
 
 func (a *AICloud) MakeAction(packet *RspGamePacket) *ReqGamePacket {
-	a.spp = packet.Spp
 	a.me = packet.TeamInfo.SPObj
 	a.ActionPoint = packet.TeamInfo.ActionPoint
 	a.Score = packet.TeamInfo.Score
 	a.HomePos = packet.TeamInfo.HomePos
 
-	if a.spp == nil || a.me == nil {
-		return &ReqGamePacket{Cmd: ReqFrameInfo}
+	if a.me == nil {
+		return &ReqGamePacket{Cmd: ReqNearInfo}
 	}
 
 	rtn := &ReqGamePacket{
-		Cmd: ReqFrameInfo,
+		Cmd: ReqNearInfo,
 		ClientAct: &ClientActionPacket{
 			Accel:           nil,
 			NormalBulletMv:  nil,
@@ -148,7 +144,7 @@ func (a *AICloud) MakeAction(packet *RspGamePacket) *ReqGamePacket {
 
 	if a.ActionPoint >= GameConst.AP[ActionAccel] {
 		if rand.Float64() < 0.5 {
-			tmp := a.spp.WorldCube.RandVector()
+			tmp := GameConst.WorldCube.RandVector()
 			rtn.ClientAct.Accel = &tmp
 			a.ActionPoint -= GameConst.AP[ActionAccel]
 		} else {

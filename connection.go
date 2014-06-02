@@ -60,11 +60,11 @@ func (c *ConnInfo) aiLoop() {
 	defer func() {
 		close(c.ReadCh)
 	}()
-	c.ReadCh <- &ReqGamePacket{Cmd: ReqFrameInfo}
+	c.ReadCh <- &ReqGamePacket{Cmd: ReqNearInfo}
 loop:
 	for packet := range c.WriteCh { // get rsp from server
 		switch packet.Cmd {
-		case RspFrameInfo:
+		case RspNearInfo:
 			c.ReadCh <- c.AiConn.MakeAction(packet)
 		default:
 			log.Printf("unknown packet %v", packet.Cmd)

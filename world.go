@@ -14,24 +14,16 @@ import (
 )
 
 type World struct {
-	ID       int64
-	CmdCh    chan Cmd
-	PService *GameService
-	Teams    map[int64]*Team
-
-	spp         *SpatialPartition
+	ID          int64
+	CmdCh       chan Cmd
+	PService    *GameService
+	Teams       map[int64]*Team
 	worldSerial *WorldDisp
 	octree      *Octree
 }
 
 func (m World) String() string {
-	if m.spp != nil {
-		return fmt.Sprintf("World%v Teams:%v spp:%v objs:%v",
-			m.ID, len(m.Teams), m.spp.PartCount, m.spp.ObjectCount)
-	} else {
-		return fmt.Sprintf("World%v Teams:%v spp:%v",
-			m.ID, len(m.Teams), nil)
-	}
+	return fmt.Sprintf("World%v Teams:%v ", m.ID, len(m.Teams))
 }
 
 func NewWorld(g *GameService) *World {
@@ -97,11 +89,6 @@ func (w *World) updateEnv() {
 		return
 	}
 
-	chspp := make(chan *SpatialPartition)
-	go func() {
-		chspp <- MakeSpatialPartition(w)
-	}()
-
 	chwsrl := make(chan *WorldDisp)
 	go func() {
 		chwsrl <- NewWorldDisp(w)
@@ -112,7 +99,6 @@ func (w *World) updateEnv() {
 		choctree <- MakeOctree(w)
 	}()
 
-	w.spp = <-chspp
 	w.worldSerial = <-chwsrl
 	w.octree = <-choctree
 }

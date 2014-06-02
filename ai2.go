@@ -10,7 +10,6 @@ import (
 
 type AI2 struct {
 	me          *SPObj
-	spp         *SpatialPartition
 	ActionPoint int
 	Score       int
 	HomePos     Vector3D
@@ -27,7 +26,7 @@ func (a *AI2) prepareTarget(s SPObjList) bool {
 	for _, t := range s {
 		if a.me.TeamID != t.TeamID {
 			estdur, estpos, estangle := a.me.calcAims(t, GameConst.MoveLimit[t.ObjType])
-			if math.IsInf(estdur, 1) || !estpos.IsIn(&a.spp.WorldCube) {
+			if math.IsInf(estdur, 1) || !estpos.IsIn(&GameConst.WorldCube) {
 				estpos = nil
 			}
 			lenRate := a.me.calcLenRate(t)
@@ -49,21 +48,20 @@ func (a *AI2) prepareTarget(s SPObjList) bool {
 	return false
 }
 func (a *AI2) MakeAction(packet *RspGamePacket) *ReqGamePacket {
-	a.spp = packet.Spp
 	a.me = packet.TeamInfo.SPObj
 	a.ActionPoint = packet.TeamInfo.ActionPoint
 	a.Score = packet.TeamInfo.Score
 	a.HomePos = packet.TeamInfo.HomePos
 
-	if a.spp == nil || a.me == nil {
-		return &ReqGamePacket{Cmd: ReqFrameInfo}
+	if a.me == nil {
+		return &ReqGamePacket{Cmd: ReqNearInfo}
 	}
 	a.targetlist = make(AimTargetList, 0)
 	a.mainobjlist = make(AimTargetList, 0)
-	a.spp.ApplyParts27Fn(a.prepareTarget, a.me.PosVector)
+	a.prepareTarget(packet.NearObjs)
 
 	if len(a.targetlist) == 0 {
-		return &ReqGamePacket{Cmd: ReqFrameInfo}
+		return &ReqGamePacket{Cmd: ReqNearInfo}
 	}
 
 	// for return packet
@@ -136,7 +134,7 @@ func (a *AI2) MakeAction(packet *RspGamePacket) *ReqGamePacket {
 	}
 
 	return &ReqGamePacket{
-		Cmd: ReqFrameInfo,
+		Cmd: ReqNearInfo,
 		ClientAct: &ClientActionPacket{
 			Accel:           accvt,
 			NormalBulletMv:  bulletMoveVector,

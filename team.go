@@ -103,7 +103,24 @@ func (t *Team) countObjByType(got GameObjectType) int {
 	return rtn
 }
 
-func (t *Team) processClientReq(ftime time.Time, w *WorldDisp, spp *SpatialPartition) bool {
+func (sl *SPObjList) gather(o *SPObj) bool {
+	*sl = append(*sl, o)
+	return false
+}
+
+func (ot *Octree) makeNearObjs(t *Team) SPObjList {
+	mainobj := t.findMainObj()
+	if mainobj == nil {
+		return nil
+	}
+	hr := NewHyperRectByCR(mainobj.PosVector, GameConst.MaxObjectRadius*4)
+	rtn := make(SPObjList, 0)
+	ot.QueryByHyperRect((&rtn).gather, hr)
+	//log.Printf("nears %v", len(rtn))
+	return rtn
+}
+
+func (t *Team) processClientReq(ftime time.Time, w *WorldDisp, octree *Octree) bool {
 	var p *ReqGamePacket
 	var ok bool
 	select {
@@ -125,11 +142,11 @@ func (t *Team) processClientReq(ftime time.Time, w *WorldDisp, spp *SpatialParti
 			WorldInfo: w,
 			TeamInfo:  &TeamInfoPacket{SPObj: NewSPObj(t.findMainObj())},
 		}
-	case ReqFrameInfo:
+	case ReqNearInfo:
 		t.applyClientAction(ftime, p.ClientAct)
 		rp = RspGamePacket{
-			Cmd: RspFrameInfo,
-			Spp: spp,
+			Cmd:      RspNearInfo,
+			NearObjs: octree.makeNearObjs(t),
 			TeamInfo: &TeamInfoPacket{
 				SPObj:       NewSPObj(t.findMainObj()),
 				ActionPoint: t.ActionPoint,
@@ -146,9 +163,7 @@ func (t *Team) processClientReq(ftime time.Time, w *WorldDisp, spp *SpatialParti
 }
 
 func (t *Team) Do1Frame(world *World, ftime time.Time) <-chan IDList {
-	spp := world.spp
-	w := world.worldSerial
-	ap := t.CalcAP(spp)
+	ap := t.CalcAP()
 	if ap < 0 {
 		log.Printf("invalid ap team%v %v", t.ID, ap)
 	}
@@ -156,7 +171,7 @@ func (t *Team) Do1Frame(world *World, ftime time.Time) <-chan IDList {
 
 	chRtn := make(chan IDList)
 	go func() {
-		rtn := t.processClientReq(ftime, w, spp)
+		rtn := t.processClientReq(ftime, world.worldSerial, world.octree)
 		if !rtn {
 			close(chRtn)
 			return
@@ -186,14 +201,14 @@ func (t *Team) actByTime(world *World, ftime time.Time) IDList {
 }
 
 // 0(outer max) ~ GameConst.APIncFrame( 0,0,0)
-func (t *Team) CalcAP(spp *SpatialPartition) int {
+func (t *Team) CalcAP() int {
 	o := t.findMainObj()
 	if o == nil {
 		return 0
 	}
 	homepos := t.findHomeObj().PosVector
 	lenToHomepos := o.PosVector.LenTo(homepos)
-	lmax := spp.Size.Abs()
+	lmax := GameConst.WorldCube.DiagLen()
 	rtn := int((lmax - lenToHomepos) / lmax * float64(GameConst.APIncFrame))
 	//log.Printf("ap:%v", rtn)
 	return rtn

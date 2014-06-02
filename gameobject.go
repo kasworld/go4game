@@ -153,20 +153,16 @@ func (o *GameObject) IsCollision(s *SPObj) bool {
 	return false
 }
 
-func (e *ActionFnEnvInfo) doPartMainObj(cp SPObjList) bool {
-	for _, v := range cp {
-		if e.o.IsCollision(v) {
-			e.clist = append(e.clist, v.TeamID)
-		}
+func (e *ActionFnEnvInfo) doPartMainObj(v *SPObj) bool {
+	if e.o.IsCollision(v) {
+		e.clist = append(e.clist, v.TeamID)
 	}
 	return false
 }
 
-func (e *ActionFnEnvInfo) doPartOtherObj(cp SPObjList) bool {
-	for _, v := range cp {
-		if e.o.IsCollision(v) {
-			return true
-		}
+func (e *ActionFnEnvInfo) doPartOtherObj(v *SPObj) bool {
+	if e.o.IsCollision(v) {
+		return true
 	}
 	return false
 }
@@ -195,13 +191,11 @@ func (o *GameObject) ActByTime(world *World, t time.Time) IDList {
 	}
 
 	var isCollision bool
-	r := GameConst.Radius[o.ObjType] + GameConst.MaxObjectRadius
+	hr := NewHyperRectByCR(o.PosVector, GameConst.Radius[o.ObjType]+GameConst.MaxObjectRadius)
 	if o.ObjType == GameObjMain {
-		// envInfo.world.spp.QueryByLen(envInfo.doPartMainObj, o.PosVector, r)
-		envInfo.world.octree.QueryByLen(envInfo.doPartMainObj, o.PosVector, r)
+		envInfo.world.octree.QueryByHyperRect(envInfo.doPartMainObj, hr)
 	} else {
-		// isCollision = envInfo.world.spp.QueryByLen(envInfo.doPartOtherObj, o.PosVector, r)
-		isCollision = envInfo.world.octree.QueryByLen(envInfo.doPartOtherObj, o.PosVector, r)
+		isCollision = envInfo.world.octree.QueryByHyperRect(envInfo.doPartOtherObj, hr)
 	}
 
 	if isCollision || len(envInfo.clist) > 0 {

@@ -9,6 +9,29 @@ const (
 	MaxOctreeData = 8
 )
 
+type SPObj struct {
+	ID         int64
+	TeamID     int64
+	PosVector  Vector3D
+	MoveVector Vector3D
+	ObjType    GameObjectType
+}
+
+func NewSPObj(o *GameObject) *SPObj {
+	if o == nil {
+		return nil
+	}
+	return &SPObj{
+		ID:         o.ID,
+		TeamID:     o.TeamID,
+		PosVector:  o.PosVector,
+		MoveVector: o.MoveVector,
+		ObjType:    o.ObjType,
+	}
+}
+
+type SPObjList []*SPObj
+
 type Octree struct {
 	BoundCube HyperRect
 	Center    Vector3D
@@ -68,35 +91,17 @@ func (ot *Octree) Insert(o *SPObj) bool {
 	}
 }
 
-func (ot *Octree) QueryByLen(fn CheckSPObjListFn, center Vector3D, r float64) bool {
-	return ot.QueryByHyperRect(fn, NewHyperRectByCR(center, r))
-
-	// if !ot.BoundCube.IsContact(center, r) {
-	// 	return false
-	// }
-	// quit := fn(ot.DataList)
-	// if quit {
-	// 	return true
-	// }
-	// if ot.Children[0] == nil {
-	// 	return false
-	// }
-	// for _, o := range ot.Children {
-	// 	quit := o.QueryByLen(fn, center, r)
-	// 	if quit {
-	// 		return true
-	// 	}
-	// }
-	// return false
-}
-
-func (ot *Octree) QueryByHyperRect(fn CheckSPObjListFn, hr *HyperRect) bool {
+func (ot *Octree) QueryByHyperRect(fn func(*SPObj) bool, hr *HyperRect) bool {
 	if !ot.BoundCube.IsOverlap(hr) {
 		return false
 	}
-	quit := fn(ot.DataList)
-	if quit {
-		return true
+	for _, o := range ot.DataList {
+		if !o.PosVector.IsIn(hr) {
+			continue
+		}
+		if fn(o) {
+			return true
+		}
 	}
 	if ot.Children[0] == nil {
 		return false

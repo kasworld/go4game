@@ -49,7 +49,7 @@ clientloop:
 			// 	Cmd: ReqWorldInfo,
 			// }
 			sp := ReqGamePacket{
-				Cmd: ReqFrameInfo,
+				Cmd: ReqNearInfo,
 			}
 			err := enc.Encode(&sp)
 			if err != nil {
@@ -64,7 +64,7 @@ clientloop:
 				log.Printf("%v", err)
 			}
 			switch rp.Cmd {
-			case RspFrameInfo:
+			case RspNearInfo:
 				//s, _ := json.MarshalIndent(rp.WorldInfo, "", "  ")
 				//log.Printf("%v", string(s))
 			case RspWorldInfo:

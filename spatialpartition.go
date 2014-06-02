@@ -5,29 +5,6 @@ import (
 	"math"
 )
 
-type SPObj struct {
-	ID         int64
-	TeamID     int64
-	PosVector  Vector3D
-	MoveVector Vector3D
-	ObjType    GameObjectType
-}
-
-func NewSPObj(o *GameObject) *SPObj {
-	if o == nil {
-		return nil
-	}
-	return &SPObj{
-		ID:         o.ID,
-		TeamID:     o.TeamID,
-		PosVector:  o.PosVector,
-		MoveVector: o.MoveVector,
-		ObjType:    o.ObjType,
-	}
-}
-
-type SPObjList []*SPObj
-
 type CheckSPObjListFn func(SPObjList) bool
 
 type SpatialPartition struct {

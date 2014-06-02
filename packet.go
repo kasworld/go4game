@@ -67,20 +67,18 @@ type PacketType int
 const (
 	_ PacketType = iota
 	// for ai
-	ReqFrameInfo
-	RspFrameInfo
+	ReqNearInfo
+	RspNearInfo
 	// for observer
 	ReqWorldInfo
 	RspWorldInfo
-	// ReqAIAct
-	// RspAIAct
 )
 
 type RspGamePacket struct {
 	Cmd       PacketType
 	TeamInfo  *TeamInfoPacket
 	WorldInfo *WorldDisp
-	Spp       *SpatialPartition
+	NearObjs  SPObjList
 }
 
 func (gp RspGamePacket) String() string {

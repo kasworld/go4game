@@ -13,7 +13,6 @@ import (
 
 type AI3 struct {
 	me              *SPObj
-	spp             *SpatialPartition
 	ActionPoint     int
 	Score           int
 	HomePos         Vector3D
@@ -110,7 +109,7 @@ func (a *AI3) CalcAttackFactor(o *SPObj, bulletType GameObjectType) float64 {
 		return -1.0
 	}
 	_, estpos, estangle := a.calcAims(o, GameConst.MoveLimit[bulletType])
-	if estpos == nil || !estpos.IsIn(&a.spp.WorldCube) { // cannot contact
+	if estpos == nil || !estpos.IsIn(&GameConst.WorldCube) { // cannot contact
 		return -1.0
 	}
 	anglefactor := math.Pow(estangle/math.Pi, 2)
@@ -198,23 +197,22 @@ func (a *AI3) MakeAction(packet *RspGamePacket) *ReqGamePacket {
 			a.lastTargets[act] = make(map[int64]time.Time)
 		}
 	}
-	a.spp = packet.Spp
 	a.me = packet.TeamInfo.SPObj
 	a.ActionPoint = packet.TeamInfo.ActionPoint
 	a.Score = packet.TeamInfo.Score
 	a.HomePos = packet.TeamInfo.HomePos
 
-	if a.spp == nil || a.me == nil {
-		return &ReqGamePacket{Cmd: ReqFrameInfo}
+	if a.me == nil {
+		return &ReqGamePacket{Cmd: ReqNearInfo}
 	}
 	for i := ActionAccel; i < ActionEnd; i++ {
 		a.preparedTargets[i] = make(AI3AimTargetList, 0)
 	}
-	a.spp.ApplyParts27Fn(a.prepareTarget, a.me.PosVector)
+	a.prepareTarget(packet.NearObjs)
 
 	a.delOldTagets()
 	rtn := &ReqGamePacket{
-		Cmd: ReqFrameInfo,
+		Cmd: ReqNearInfo,
 		ClientAct: &ClientActionPacket{
 			Accel:           nil,
 			NormalBulletMv:  nil,

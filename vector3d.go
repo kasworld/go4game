@@ -174,29 +174,51 @@ func RandVector(st, end Vector3D) Vector3D {
 	}
 }
 
+func (center Vector3D) To8Direct(v2 Vector3D) int {
+	rtn := 0
+	for i := 0; i < 3; i++ {
+		if center[i] > v2[i] {
+			rtn += 1 << uint(i)
+		}
+	}
+	return rtn
+}
+
+func (h HyperRect) MakeCubeBy8Driect(center Vector3D, direct8 int) *HyperRect {
+	rtn := Vector3D{}
+	for i := 0; i < 3; i++ {
+		if direct8&(1<<uint(i)) != 0 {
+			rtn[i] = h.Min[i]
+		} else {
+			rtn[i] = h.Max[i]
+		}
+	}
+	return NewHyperRect(center, rtn)
+}
+
 type HyperRect struct {
 	Min, Max Vector3D
 }
 
-func (h *HyperRect) Center() Vector3D {
+func (h HyperRect) Center() Vector3D {
 	return h.Min.Add(h.Max).Idiv(2)
 }
 
-func (h *HyperRect) DiagLen() float64 {
+func (h HyperRect) DiagLen() float64 {
 	return h.Min.LenTo(h.Max)
 }
 
-func (h *HyperRect) SizeVector() Vector3D {
+func (h HyperRect) SizeVector() Vector3D {
 	return h.Max.Sub(h.Min)
 }
 
-func (h *HyperRect) IsContact(c Vector3D, r float64) bool {
+func (h HyperRect) IsContact(c Vector3D, r float64) bool {
 	hc := h.Center()
 	hl := h.DiagLen()
 	return hl/2+r >= hc.LenTo(c)
 }
 
-func (h *HyperRect) RandVector() Vector3D {
+func (h HyperRect) RandVector() Vector3D {
 	return Vector3D{
 		rand.Float64()*(h.Max[0]-h.Min[0]) + h.Min[0],
 		rand.Float64()*(h.Max[1]-h.Min[1]) + h.Min[1],

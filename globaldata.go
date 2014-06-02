@@ -82,10 +82,10 @@ var defaultConfig = GameConfig{
 	TcpClientEncode:      "gob",
 	MaxTcpClientPerWorld: 8,
 	MaxWsClientPerWorld:  8,
-	StartWorldCount:      8,
-	AICountPerWorld:      8,
+	StartWorldCount:      1,
+	AICountPerWorld:      1000,
 	AINames:              []string{"AICloud", "AIRandom", "AI2", "AI3"},
-	ClearY:               true,
+	ClearY:               false,
 	APIncFrame:           10,
 	KillScore:            1,
 	ShieldCount:          8,
@@ -200,5 +200,5 @@ func SaveLoad(config *GameConfig, filename string) {
 
 func init() {
 	ValidateConfig(&GameConst)
-	SaveLoad(&defaultConfig, "default.json")
+	//SaveLoad(&defaultConfig, "default.json")
 }

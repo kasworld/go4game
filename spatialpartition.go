@@ -45,7 +45,7 @@ func (p *SpatialPartition) AddPartPos(pos [3]int, obj *SPObj) {
 	p.Parts[pos[0]][pos[1]][pos[2]] = append(p.Parts[pos[0]][pos[1]][pos[2]], obj)
 }
 
-func (w *World) MakeSpatialPartition() *SpatialPartition {
+func MakeSpatialPartition(w *World) *SpatialPartition {
 	rtn := SpatialPartition{
 		WorldCube: GameConst.WorldCube,
 		Size:      GameConst.WorldCube.SizeVector(),

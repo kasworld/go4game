@@ -14,12 +14,14 @@ import (
 )
 
 type World struct {
-	ID          int64
-	CmdCh       chan Cmd
-	PService    *GameService
-	Teams       map[int64]*Team
+	ID       int64
+	CmdCh    chan Cmd
+	PService *GameService
+	Teams    map[int64]*Team
+
 	spp         *SpatialPartition
 	worldSerial *WorldDisp
+	octree      *Octree
 }
 
 func (m World) String() string {
@@ -94,16 +96,25 @@ func (w *World) updateEnv() {
 		log.Printf("warning updateEnv nil world")
 		return
 	}
+
 	chspp := make(chan *SpatialPartition)
 	go func() {
-		chspp <- w.MakeSpatialPartition()
+		chspp <- MakeSpatialPartition(w)
 	}()
+
 	chwsrl := make(chan *WorldDisp)
 	go func() {
 		chwsrl <- NewWorldDisp(w)
 	}()
+
+	choctree := make(chan *Octree)
+	go func() {
+		choctree <- MakeOctree(w)
+	}()
+
 	w.spp = <-chspp
 	w.worldSerial = <-chwsrl
+	w.octree = <-choctree
 }
 
 func (w *World) isEmpty() bool {

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/kasworld/go4game"
 )
 
 type int3 [3]int
@@ -43,7 +44,7 @@ var p27 = [27][3]int{
 	{-1, -1, 0}, {-1, -1, 1}, {-1, -1, -1},
 }
 
-func main() {
+func testjson() {
 	var jsonBlob1 = []byte(`
 		{"Name": "Platypus"}
 	`)
@@ -66,4 +67,18 @@ func main() {
 		fmt.Println("error2:", err)
 	}
 	fmt.Printf("2%+v\n", animals)
+}
+
+func main() {
+	v1 := go4game.Vector3D{0, 0, 0}
+	v2 := go4game.Vector3D{1, -1, 1}
+	d8 := v1.To8Direct(v2)
+	fmt.Printf("%v %v %v\n", v1, v2, d8)
+	hr := go4game.HyperRect{
+		go4game.Vector3D{-10, -10, -10},
+		go4game.Vector3D{10, 10, 10},
+	}
+	nhr := hr.MakeCubeBy8Driect(v1, d8)
+	fmt.Printf("%v %v %v isin %v\n", hr, nhr, d8, v2.IsIn(nhr))
+
 }

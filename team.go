@@ -53,7 +53,7 @@ func NewTeam(conn interface{}) *Team {
 	o := t.addObject(NewGameObject(t.ID).MakeHomeMarkObj())
 	t.HomeObjID = o.ID
 
-	t.addRevolutionDeco()
+	//t.addRevolutionDeco()
 	return &t
 }
 

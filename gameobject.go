@@ -140,7 +140,6 @@ func (o *GameObject) MakeHomeMarkObj() *GameObject {
 type ActionFnEnvInfo struct {
 	frameTime time.Time
 	world     *World
-	spp       *SpatialPartition
 	o         *GameObject
 	clist     IDList
 }

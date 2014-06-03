@@ -25,7 +25,8 @@ type World struct {
 }
 
 func (m World) String() string {
-	return fmt.Sprintf("World%v Teams:%v ViewRange %v", m.ID, len(m.Teams), m.clientViewRange.DiagLen())
+	return fmt.Sprintf("World%v Teams:%v ViewRange %v",
+		m.ID, len(m.Teams), m.clientViewRange.DiagLen())
 }
 
 func NewWorld(g *GameService) *World {
@@ -91,17 +92,15 @@ func (w *World) decideClientViewRange() *HyperRect {
 		ocount += len(t.GameObjs)
 	}
 	n := math.Pow(float64(ocount), 1.0/3.0)
-	if n < 3 {
-		n = 3
+	if n < 2 {
+		n = 2
 	}
 	hs := GameConst.WorldCube.SizeVector().Imul(1.0 / n / 2)
 	hr := HyperRect{
 		Min: hs.Neg(),
 		Max: hs,
 	}
-	//log.Printf("client view range %v", hr)
 	return &hr
-	//return NewHyperRectByCR(Vector3D{}, GameConst.MaxObjectRadius*4)
 }
 
 func (w *World) updateEnv() {

@@ -16,7 +16,7 @@ type ActionStat struct {
 }
 
 func IntDurToStr(count int64, dur time.Duration) string {
-	return fmt.Sprintf("[%v/%5.1f/s]", count, float64(count)/dur.Seconds())
+	return fmt.Sprintf("%v/%5.1f/s", count, float64(count)/dur.Seconds())
 }
 
 func (a ActionStat) String() string {
@@ -25,7 +25,7 @@ func (a ActionStat) String() string {
 	lastlap := a.Laps[len(a.Laps)-1]
 	lapcount, lapdur := a.Total.Count-lastlap.Count, time.Now().Sub(lastlap.Time)
 	//a.Total.Sub(a.Laps[len(a.Laps)-1])
-	return fmt.Sprintf("(total:%v lap:%v)",
+	return fmt.Sprintf("total:%v lap:%v",
 		IntDurToStr(a.Total.Count, dur),
 		IntDurToStr(lapcount, lapdur))
 }

@@ -17,17 +17,18 @@ type Team struct {
 	Score       int
 	MainObjID   int64
 	HomeObjID   int64
+	GameObjs    map[int64]*GameObject
 
 	PacketStat     ActionStat
 	CollisionStat  ActionStat
-	GameObjs       map[int64]*GameObject
+	NearStat       ActionStat
 	ClientConnInfo ConnInfo
 	chStep         <-chan IDList
 }
 
 func (m Team) String() string {
-	return fmt.Sprintf("Team%v %v Objs:%v Score:%v AP:%v, PacketStat:%v, Coll:%v",
-		m.ID, m.ClientConnInfo, len(m.GameObjs), m.Score, m.ActionPoint, m.PacketStat, m.CollisionStat)
+	return fmt.Sprintf("Team%v %v Objs:%v Score:%v AP:%v, PacketStat:%v, Coll:%v, Near:%v",
+		m.ID, m.ClientConnInfo, len(m.GameObjs), m.Score, m.ActionPoint, m.PacketStat, m.CollisionStat, m.NearStat)
 }
 
 func NewTeam(conn interface{}) *Team {
@@ -37,6 +38,7 @@ func NewTeam(conn interface{}) *Team {
 		Color:         rand.Intn(0x1000000),
 		PacketStat:    *NewActionStat(),
 		CollisionStat: *NewActionStat(),
+		NearStat:      *NewActionStat(),
 	}
 	switch conn.(type) {
 	default:
@@ -126,6 +128,7 @@ func (ot *Octree) makeNearObjs(t *Team, hr *HyperRect) SPObjList {
 	}
 	ot.QueryByHyperRect(rtn.gather, hr.Move(mainobj.PosVector))
 	//log.Printf("nears %v", len(rtn.sl))
+	t.NearStat.Add(int64(len(rtn.sl)))
 	return rtn.sl
 }
 

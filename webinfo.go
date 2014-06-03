@@ -24,6 +24,7 @@ type TeamInfo struct {
 	AP         int
 	PacketStat string
 	CollStat   string
+	NearStat   string
 	Color      int
 	FontColor  int
 	Score      int
@@ -37,6 +38,7 @@ func (t *Team) NewTeamInfo() *TeamInfo {
 		AP:         t.ActionPoint,
 		PacketStat: t.PacketStat.String(),
 		CollStat:   t.CollisionStat.String(),
+		NearStat:   t.NearStat.String(),
 		Color:      t.Color,
 		FontColor:  0xffffff ^ t.Color,
 		Score:      t.Score,
@@ -126,13 +128,14 @@ TeamColor TeamID ClientInfo ObjCount Score ActionPoint PacketStat CollStat {{ran
         </br>
         <table>
         <tr >
-            <td>TeamID</td>
+            <td>Team</td>
             <td>ClientInfo</td>
             <td>ObjCount</td>
             <td>Score</td>
-            <td>ActionPoint</td>
+            <td>AP</td>
             <td>PacketStat</td>
             <td>CollStat</td>
+            <td>NearStat</td>
         </tr>
         {{range .Teams}}
         <tr bgcolor="#{{.Color | printf "%x"}}">
@@ -143,6 +146,7 @@ TeamColor TeamID ClientInfo ObjCount Score ActionPoint PacketStat CollStat {{ran
             <td><font color="#{{.FontColor | printf "%x"}}">{{.AP}}</font></td>
             <td><font color="#{{.FontColor | printf "%x"}}">{{.PacketStat}}</font></td>
             <td><font color="#{{.FontColor | printf "%x"}}">{{.CollStat}}</font></td>
+            <td><font color="#{{.FontColor | printf "%x"}}">{{.NearStat}}</font></td>
         </tr>
         {{end}}
         </table>

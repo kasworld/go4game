@@ -119,9 +119,6 @@ loop:
 				break loop
 			case "delWorld":
 				g.delWorld(cmd.Args.(*World))
-			// case "moveTeam":
-			// 	ids := cmd.Args.([2]int64)
-			// 	g.MoveToRandomWorld(ids[0], ids[1])
 			default:
 				log.Printf("unknown cmd %v", cmd)
 			}

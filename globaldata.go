@@ -71,7 +71,6 @@ func ValidateConfig(config *GameConfig) {
 			config.ObjSqd[o1][o2] = math.Pow(config.Radius[o1]+config.Radius[o2], 2)
 		}
 	}
-
 }
 
 const WorldSize = 500
@@ -82,11 +81,11 @@ var defaultConfig = GameConfig{
 	FramePerSec:          60.0,
 	RemoveEmptyWorld:     false,
 	TcpClientEncode:      "gob",
-	MaxTcpClientPerWorld: 8,
-	MaxWsClientPerWorld:  8,
+	MaxTcpClientPerWorld: 32,
+	MaxWsClientPerWorld:  32,
 	StartWorldCount:      1,
-	AICountPerWorld:      32,
-	ClearY:               false,
+	AICountPerWorld:      8,
+	ClearY:               true,
 	AINames:              []string{"AICloud", "AIRandom", "AI2", "AI3"},
 	APIncFrame:           10,
 	KillScore:            1,

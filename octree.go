@@ -1,8 +1,8 @@
 package go4game
 
 import (
-//"log"
-//"math"
+	"log"
+	//"math"
 )
 
 const (
@@ -33,13 +33,13 @@ func NewSPObj(o *GameObject) *SPObj {
 type SPObjList []*SPObj
 
 type Octree struct {
-	BoundCube HyperRect
+	BoundCube *HyperRect
 	Center    Vector3D
 	DataList  SPObjList
 	Children  [8]*Octree
 }
 
-func NewOctree(cube HyperRect) *Octree {
+func NewOctree(cube *HyperRect) *Octree {
 	rtn := Octree{
 		BoundCube: cube,
 		DataList:  make(SPObjList, 0, MaxOctreeData),
@@ -51,7 +51,7 @@ func NewOctree(cube HyperRect) *Octree {
 
 func MakeOctree(w *World) *Octree {
 	//log.Printf("make octree")
-	rtn := NewOctree(GameConst.WorldCube)
+	rtn := NewOctree(GameConst.WorldCube.IMul(2))
 	for _, t := range w.Teams {
 		for _, obj := range t.GameObjs {
 			if obj != nil && obj.ObjType != 0 {
@@ -69,15 +69,15 @@ func (ot *Octree) Split() {
 	// split all data and make datalist nil
 	//log.Printf("split octree %v", ot.Center)
 	for i, _ := range ot.Children {
-		newbound := *ot.BoundCube.MakeCubeBy8Driect(ot.Center, i)
+		newbound := ot.BoundCube.MakeCubeBy8Driect(ot.Center, i)
 		ot.Children[i] = NewOctree(newbound)
 	}
 }
 
 func (ot *Octree) Insert(o *SPObj) bool {
 	//log.Printf("insert to octree obj%v %v", o.ID, o.PosVector)
-	if !o.PosVector.IsIn(&ot.BoundCube) {
-		//log.Printf("invalid Insert Octree %v %v", ot.BoundCube, o.PosVector)
+	if !o.PosVector.IsIn(ot.BoundCube) {
+		log.Printf("invalid Insert Octree %v %v", ot.BoundCube, o.PosVector)
 		return false
 	}
 	if len(ot.DataList) < MaxOctreeData {

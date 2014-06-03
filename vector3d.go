@@ -218,19 +218,6 @@ func (h *HyperRect) IsContact(c Vector3D, r float64) bool {
 	return hl/2+r >= hc.LenTo(c)
 }
 
-func between(min, max, v float64) bool {
-	return min < v && v < max
-}
-
-func (h1 *HyperRect) IsOverlap(h2 *HyperRect) bool {
-	for i := 0; i < 3; i++ {
-		if !between(h1.Min[i], h1.Max[i], h2.Min[i]) && !between(h1.Min[i], h1.Max[i], h2.Max[i]) {
-			return false
-		}
-	}
-	return true
-}
-
 func NewHyperRectByCR(c Vector3D, r float64) *HyperRect {
 	return &HyperRect{
 		Vector3D{c[0] - r, c[1] - r, c[2] - r},
@@ -243,6 +230,22 @@ func (h *HyperRect) RandVector() Vector3D {
 		rand.Float64()*(h.Max[0]-h.Min[0]) + h.Min[0],
 		rand.Float64()*(h.Max[1]-h.Min[1]) + h.Min[1],
 		rand.Float64()*(h.Max[2]-h.Min[2]) + h.Min[2],
+	}
+}
+
+func (h *HyperRect) Move(v Vector3D) *HyperRect {
+	return &HyperRect{
+		Min: h.Min.Add(v),
+		Max: h.Max.Add(v),
+	}
+}
+
+func (h *HyperRect) IMul(i float64) *HyperRect {
+	hs := h.SizeVector().Imul(i / 2)
+	hc := h.Center()
+	return &HyperRect{
+		Min: hc.Sub(hs),
+		Max: hc.Add(hs),
 	}
 }
 
@@ -261,11 +264,27 @@ func NewHyperRect(v1 Vector3D, v2 Vector3D) *HyperRect {
 	return &rtn
 }
 
+func (h1 *HyperRect) IsOverlap(h2 *HyperRect) bool {
+	return !((h1.Min[0] > h2.Max[0] || h1.Max[0] < h2.Min[0]) ||
+		(h1.Min[1] > h2.Max[1] || h1.Max[1] < h2.Min[1]) ||
+		(h1.Min[2] > h2.Max[2] || h1.Max[2] < h2.Min[2]))
+
+	// for i := 0; i < 3; i++ {
+	// 	if !between(h1.Min[i], h1.Max[i], h2.Min[i]) && !between(h1.Min[i], h1.Max[i], h2.Max[i]) {
+	// 		return false
+	// 	}
+	// }
+	// return true
+}
+
 func (p Vector3D) IsIn(hr *HyperRect) bool {
-	for i := 0; i < 3; i++ {
-		if hr.Min[i] > p[i] || hr.Max[i] < p[i] {
-			return false
-		}
-	}
-	return true
+	return hr.Min[0] <= p[0] && p[0] <= hr.Max[0] &&
+		hr.Min[1] <= p[1] && p[1] <= hr.Max[1] &&
+		hr.Min[2] <= p[2] && p[2] <= hr.Max[2]
+	// for i := 0; i < 3; i++ {
+	// 	if hr.Min[i] > p[i] || hr.Max[i] < p[i] {
+	// 		return false
+	// 	}
+	// }
+	// return true
 }

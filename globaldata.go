@@ -45,7 +45,8 @@ type GameConfig struct {
 	StartWorldCount      int
 	RemoveEmptyWorld     bool
 	TcpClientEncode      string // gob , json
-	WorldCube            HyperRect
+	WorldCube            *HyperRect
+	WorldDiag            float64
 	APIncFrame           int
 	KillScore            int
 	ShieldCount          int
@@ -59,6 +60,7 @@ type GameConfig struct {
 }
 
 func ValidateConfig(config *GameConfig) {
+	config.WorldDiag = config.WorldCube.DiagLen()
 	for _, o := range config.Radius {
 		if o > config.MaxObjectRadius {
 			config.MaxObjectRadius = o
@@ -78,19 +80,19 @@ var defaultConfig = GameConfig{
 	TcpListen:            "0.0.0.0:6666",
 	WsListen:             "0.0.0.0:8080",
 	FramePerSec:          60.0,
-	RemoveEmptyWorld:     true,
+	RemoveEmptyWorld:     false,
 	TcpClientEncode:      "gob",
 	MaxTcpClientPerWorld: 8,
 	MaxWsClientPerWorld:  8,
 	StartWorldCount:      1,
-	AICountPerWorld:      8,
+	AICountPerWorld:      32,
+	ClearY:               false,
 	AINames:              []string{"AICloud", "AIRandom", "AI2", "AI3"},
-	ClearY:               true,
 	APIncFrame:           10,
 	KillScore:            1,
 	ShieldCount:          8,
 	MaxObjectRadius:      1, // changed by init
-	WorldCube: HyperRect{
+	WorldCube: &HyperRect{
 		Vector3D{-WorldSize, -WorldSize, -WorldSize},
 		Vector3D{WorldSize, WorldSize, WorldSize}},
 

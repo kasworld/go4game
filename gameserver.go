@@ -77,44 +77,6 @@ func (g *GameService) findFreeWorld(teamCount int, ct ClientType) *World {
 	return g.addNewWorld()
 }
 
-// func (g *GameService) MoveTeam(w1id, w2id int64, tid int64) bool {
-// 	if w1id == w2id {
-// 		return false
-// 	}
-// 	w1 := g.Worlds[w1id]
-// 	w2 := g.Worlds[w2id]
-// 	if w1 == nil || w2 == nil {
-// 		return false
-// 	}
-// 	t := w1.Teams[tid]
-// 	if t == nil {
-// 		return false
-// 	}
-// 	//log.Printf("remove team%v from world%v ", tid, w1id)
-// 	rsp := make(chan interface{})
-// 	w1.CmdCh <- Cmd{Cmd: "RemoveTeam", Args: tid, Rsp: rsp}
-// 	<-rsp
-// 	//log.Printf("add team%v to world%v", tid, w2id)
-// 	w2.CmdCh <- Cmd{Cmd: "AddTeam", Args: t, Rsp: rsp}
-// 	<-rsp
-// 	//log.Printf("end team%v from world%v to world%v", tid, w1id, w2id)
-// 	return true
-// }
-
-// func (g *GameService) MoveToRandomWorld(wid int64, tid int64) {
-// 	for len(g.Worlds) < 2 {
-// 		g.addNewWorld()
-// 	}
-// 	worldids := g.worldIDList()
-// 	pos := worldids.findIndex(wid)
-// 	if pos < len(worldids) && worldids[pos] == wid { // find and normal
-// 		wid2 := worldids[(pos+1)%len(worldids)]
-// 		go g.MoveTeam(wid, wid2, tid)
-// 	} else {
-// 		log.Printf("invalid worldid %v", wid)
-// 	}
-// }
-
 func (g *GameService) nextWorld(wid int64) *World {
 	for len(g.Worlds) < 2 {
 		return nil

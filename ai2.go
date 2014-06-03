@@ -26,7 +26,7 @@ func (a *AI2) prepareTarget(s SPObjList) bool {
 	for _, t := range s {
 		if a.me.TeamID != t.TeamID {
 			estdur, estpos, estangle := a.me.calcAims(t, GameConst.MoveLimit[t.ObjType])
-			if math.IsInf(estdur, 1) || !estpos.IsIn(&GameConst.WorldCube) {
+			if math.IsInf(estdur, 1) || !estpos.IsIn(GameConst.WorldCube) {
 				estpos = nil
 			}
 			lenRate := a.me.calcLenRate(t)

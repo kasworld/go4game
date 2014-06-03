@@ -53,7 +53,7 @@ func NewTeam(conn interface{}) *Team {
 	o := t.addObject(NewGameObject(t.ID).MakeHomeMarkObj())
 	t.HomeObjID = o.ID
 
-	//t.addRevolutionDeco()
+	t.addRevolutionDeco()
 	return &t
 }
 
@@ -103,24 +103,33 @@ func (t *Team) countObjByType(got GameObjectType) int {
 	return rtn
 }
 
-func (sl *SPObjList) gather(o *SPObj) bool {
-	*sl = append(*sl, o)
+type NearInfo struct {
+	sl SPObjList
+	t  *Team
+}
+
+func (ni *NearInfo) gather(o *SPObj) bool {
+	if ni.t.ID != o.TeamID {
+		ni.sl = append(ni.sl, o)
+	}
 	return false
 }
 
-func (ot *Octree) makeNearObjs(t *Team) SPObjList {
+func (ot *Octree) makeNearObjs(t *Team, hr *HyperRect) SPObjList {
 	mainobj := t.findMainObj()
 	if mainobj == nil {
 		return nil
 	}
-	hr := NewHyperRectByCR(mainobj.PosVector, GameConst.MaxObjectRadius*4)
-	rtn := make(SPObjList, 0)
-	ot.QueryByHyperRect((&rtn).gather, hr)
-	//log.Printf("nears %v", len(rtn))
-	return rtn
+	rtn := NearInfo{
+		sl: make(SPObjList, 0),
+		t:  t,
+	}
+	ot.QueryByHyperRect(rtn.gather, hr.Move(mainobj.PosVector))
+	//log.Printf("nears %v", len(rtn.sl))
+	return rtn.sl
 }
 
-func (t *Team) processClientReq(ftime time.Time, w *WorldDisp, octree *Octree) bool {
+func (t *Team) processClientReq(ftime time.Time, w *World) bool {
 	var p *ReqGamePacket
 	var ok bool
 	select {
@@ -139,14 +148,14 @@ func (t *Team) processClientReq(ftime time.Time, w *WorldDisp, octree *Octree) b
 	case ReqWorldInfo:
 		rp = RspGamePacket{
 			Cmd:       RspWorldInfo,
-			WorldInfo: w,
+			WorldInfo: w.worldSerial,
 			TeamInfo:  &TeamInfoPacket{SPObj: NewSPObj(t.findMainObj())},
 		}
 	case ReqNearInfo:
 		t.applyClientAction(ftime, p.ClientAct)
 		rp = RspGamePacket{
 			Cmd:      RspNearInfo,
-			NearObjs: octree.makeNearObjs(t),
+			NearObjs: w.octree.makeNearObjs(t, w.clientViewRange),
 			TeamInfo: &TeamInfoPacket{
 				SPObj:       NewSPObj(t.findMainObj()),
 				ActionPoint: t.ActionPoint,
@@ -171,7 +180,7 @@ func (t *Team) Do1Frame(world *World, ftime time.Time) <-chan IDList {
 
 	chRtn := make(chan IDList)
 	go func() {
-		rtn := t.processClientReq(ftime, world.worldSerial, world.octree)
+		rtn := t.processClientReq(ftime, world)
 		if !rtn {
 			close(chRtn)
 			return
@@ -208,7 +217,7 @@ func (t *Team) CalcAP() int {
 	}
 	homepos := t.findHomeObj().PosVector
 	lenToHomepos := o.PosVector.LenTo(homepos)
-	lmax := GameConst.WorldCube.DiagLen()
+	lmax := GameConst.WorldDiag
 	rtn := int((lmax - lenToHomepos) / lmax * float64(GameConst.APIncFrame))
 	//log.Printf("ap:%v", rtn)
 	return rtn

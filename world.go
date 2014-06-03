@@ -1,7 +1,7 @@
 package go4game
 
 import (
-	//"math"
+	"math"
 	//"math/rand"
 	//"net"
 	//"bytes"
@@ -14,16 +14,18 @@ import (
 )
 
 type World struct {
-	ID          int64
-	CmdCh       chan Cmd
-	PService    *GameService
-	Teams       map[int64]*Team
-	worldSerial *WorldDisp
-	octree      *Octree
+	ID    int64
+	Teams map[int64]*Team
+
+	CmdCh           chan Cmd
+	pService        *GameService
+	worldSerial     *WorldDisp
+	octree          *Octree
+	clientViewRange *HyperRect
 }
 
 func (m World) String() string {
-	return fmt.Sprintf("World%v Teams:%v ", m.ID, len(m.Teams))
+	return fmt.Sprintf("World%v Teams:%v ViewRange %v", m.ID, len(m.Teams), m.clientViewRange.DiagLen())
 }
 
 func NewWorld(g *GameService) *World {
@@ -31,7 +33,7 @@ func NewWorld(g *GameService) *World {
 	w := World{
 		ID:       <-IdGenCh,
 		CmdCh:    make(chan Cmd, maxclientCount),
-		PService: g,
+		pService: g,
 		Teams:    make(map[int64]*Team),
 	}
 	return &w
@@ -83,6 +85,25 @@ func (w *World) removeTeam(id int64) {
 	}
 }
 
+func (w *World) decideClientViewRange() *HyperRect {
+	ocount := 0
+	for _, t := range w.Teams {
+		ocount += len(t.GameObjs)
+	}
+	n := math.Pow(float64(ocount), 1.0/3.0)
+	if n < 3 {
+		n = 3
+	}
+	hs := GameConst.WorldCube.SizeVector().Imul(1.0 / n / 2)
+	hr := HyperRect{
+		Min: hs.Neg(),
+		Max: hs,
+	}
+	//log.Printf("client view range %v", hr)
+	return &hr
+	//return NewHyperRectByCR(Vector3D{}, GameConst.MaxObjectRadius*4)
+}
+
 func (w *World) updateEnv() {
 	if w == nil {
 		log.Printf("warning updateEnv nil world")
@@ -94,6 +115,11 @@ func (w *World) updateEnv() {
 		chwsrl <- NewWorldDisp(w)
 	}()
 
+	chcvr := make(chan *HyperRect)
+	go func() {
+		chcvr <- w.decideClientViewRange()
+	}()
+
 	choctree := make(chan *Octree)
 	go func() {
 		choctree <- MakeOctree(w)
@@ -101,6 +127,7 @@ func (w *World) updateEnv() {
 
 	w.worldSerial = <-chwsrl
 	w.octree = <-choctree
+	w.clientViewRange = <-chcvr
 }
 
 func (w *World) isEmpty() bool {
@@ -139,7 +166,7 @@ func (w *World) Do1Frame(ftime time.Time) bool {
 		if quitedTidList[id] { // pass quited team
 			continue
 		}
-		nw := w.PService.nextWorld(w.ID)
+		nw := w.pService.nextWorld(w.ID)
 		if nw == nil {
 			break
 		}
@@ -159,7 +186,7 @@ func (w *World) Loop() {
 			w.removeTeam(id)
 			t.endTeam()
 		}
-		w.PService.CmdCh <- Cmd{Cmd: "delWorld", Args: w}
+		w.pService.CmdCh <- Cmd{Cmd: "delWorld", Args: w}
 	}()
 
 	timer60Ch := time.Tick(time.Duration(1000/GameConst.FramePerSec) * time.Millisecond)

@@ -109,7 +109,7 @@ func (a *AI3) CalcAttackFactor(o *SPObj, bulletType GameObjectType) float64 {
 		return -1.0
 	}
 	_, estpos, estangle := a.calcAims(o, GameConst.MoveLimit[bulletType])
-	if estpos == nil || !estpos.IsIn(&GameConst.WorldCube) { // cannot contact
+	if estpos == nil || !estpos.IsIn(GameConst.WorldCube) { // cannot contact
 		return -1.0
 	}
 	anglefactor := math.Pow(estangle/math.Pi, 2)

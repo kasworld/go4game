@@ -14,8 +14,8 @@ type AI2 struct {
 	Score       int
 	HomePos     Vector3D
 
-	targetlist  AimTargetList
-	mainobjlist AimTargetList
+	targetlist  AI2AimTargetList
+	mainobjlist AI2AimTargetList
 }
 
 func NewAI2() AIActor {
@@ -25,12 +25,12 @@ func NewAI2() AIActor {
 func (a *AI2) prepareTarget(s SPObjList) bool {
 	for _, t := range s {
 		if a.me.TeamID != t.TeamID {
-			estdur, estpos, estangle := a.me.calcAims(t, GameConst.MoveLimit[t.ObjType])
+			estdur, estpos, estangle := a.calcAims(t, GameConst.MoveLimit[t.ObjType])
 			if math.IsInf(estdur, 1) || !estpos.IsIn(GameConst.WorldCube) {
 				estpos = nil
 			}
-			lenRate := a.me.calcLenRate(t)
-			o := AimTarget{
+			lenRate := a.calcLenRate(t)
+			o := AI2AimTarget{
 				SPObj:    t,
 				AimPos:   estpos,
 				AimAngle: estangle,
@@ -56,8 +56,8 @@ func (a *AI2) MakeAction(packet *RspGamePacket) *ReqGamePacket {
 	if a.me == nil {
 		return &ReqGamePacket{Cmd: ReqNearInfo}
 	}
-	a.targetlist = make(AimTargetList, 0)
-	a.mainobjlist = make(AimTargetList, 0)
+	a.targetlist = make(AI2AimTargetList, 0)
+	a.mainobjlist = make(AI2AimTargetList, 0)
 	a.prepareTarget(packet.NearObjs)
 
 	if len(a.targetlist) == 0 {
@@ -72,10 +72,10 @@ func (a *AI2) MakeAction(packet *RspGamePacket) *ReqGamePacket {
 	var superBulletMv *Vector3D = nil
 
 	if a.ActionPoint >= GameConst.AP[ActionSuperBullet] {
-		attackFn := func(p1, p2 *AimTarget) bool {
+		attackFn := func(p1, p2 *AI2AimTarget) bool {
 			return p1.AttackFactor > p2.AttackFactor
 		}
-		By(attackFn).Sort(a.mainobjlist)
+		AI2By(attackFn).Sort(a.mainobjlist)
 		for _, o := range a.mainobjlist {
 			if o.AttackFactor > 1 && rand.Float64() < 0.5 {
 				t := o.AimPos.Sub(a.me.PosVector).NormalizedTo(GameConst.MoveLimit[GameObjSuperBullet])
@@ -86,10 +86,10 @@ func (a *AI2) MakeAction(packet *RspGamePacket) *ReqGamePacket {
 		}
 	}
 	if a.ActionPoint >= GameConst.AP[ActionHommingBullet] {
-		attackFn := func(p1, p2 *AimTarget) bool {
+		attackFn := func(p1, p2 *AI2AimTarget) bool {
 			return p1.AttackFactor > p2.AttackFactor
 		}
-		By(attackFn).Sort(a.mainobjlist)
+		AI2By(attackFn).Sort(a.mainobjlist)
 		for _, o := range a.mainobjlist {
 			if o.AttackFactor > 1 && rand.Float64() < 0.5 {
 				hommingTargetID = IDList{o.ID, o.TeamID}
@@ -100,10 +100,10 @@ func (a *AI2) MakeAction(packet *RspGamePacket) *ReqGamePacket {
 	}
 
 	if a.ActionPoint >= GameConst.AP[ActionAccel] {
-		evasionFn := func(p1, p2 *AimTarget) bool {
+		evasionFn := func(p1, p2 *AI2AimTarget) bool {
 			return p1.EvasionFactor > p2.EvasionFactor
 		}
-		By(evasionFn).Sort(a.targetlist)
+		AI2By(evasionFn).Sort(a.targetlist)
 		for _, o := range a.targetlist {
 			if o.EvasionFactor > 1 && rand.Float64() < 0.9 {
 				accvt = a.calcEvasionVector(o)
@@ -114,10 +114,10 @@ func (a *AI2) MakeAction(packet *RspGamePacket) *ReqGamePacket {
 	}
 
 	if a.ActionPoint >= GameConst.AP[ActionBullet] {
-		attackFn := func(p1, p2 *AimTarget) bool {
+		attackFn := func(p1, p2 *AI2AimTarget) bool {
 			return p1.AttackFactor > p2.AttackFactor
 		}
-		By(attackFn).Sort(a.targetlist)
+		AI2By(attackFn).Sort(a.targetlist)
 		for _, o := range a.targetlist {
 			if o.AttackFactor > 1 && rand.Float64() < 0.5 {
 				tmpbulletMoveVector := o.AimPos.Sub(a.me.PosVector).NormalizedTo(GameConst.MoveLimit[GameObjBullet])
@@ -144,7 +144,7 @@ func (a *AI2) MakeAction(packet *RspGamePacket) *ReqGamePacket {
 		},
 	}
 }
-func (a *AI2) calcEvasionVector(t *AimTarget) *Vector3D {
+func (a *AI2) calcEvasionVector(t *AI2AimTarget) *Vector3D {
 	speed := math.Sqrt(GameConst.ObjSqd[a.me.ObjType][t.ObjType]) * GameConst.FramePerSec
 	backvt := a.me.PosVector.Sub(t.SPObj.PosVector).NormalizedTo(speed) // backward
 	sidevt := t.AimPos.Sub(a.me.PosVector).NormalizedTo(speed)
@@ -154,7 +154,7 @@ func (a *AI2) calcEvasionVector(t *AimTarget) *Vector3D {
 }
 
 // attack
-func (a *AI2) CalcBulletAttackFactor(o *AimTarget) float64 {
+func (a *AI2) CalcBulletAttackFactor(o *AI2AimTarget) float64 {
 	// is obj attacked by bullet?
 	if !GameConst.IsInteract[o.ObjType][GameObjBullet] {
 		return -1.0
@@ -174,7 +174,7 @@ func (a *AI2) CalcBulletAttackFactor(o *AimTarget) float64 {
 }
 
 // evasion
-func (a *AI2) CalcEvasionFactor(o *AimTarget) float64 {
+func (a *AI2) CalcEvasionFactor(o *AI2AimTarget) float64 {
 	// can obj attact me?
 	if !GameConst.IsInteract[GameObjMain][o.ObjType] {
 		return -1.0
@@ -195,9 +195,9 @@ func (a *AI2) CalcEvasionFactor(o *AimTarget) float64 {
 
 // ai utils -----------------------------------------------------------
 
-type AimTargetList []*AimTarget
+type AI2AimTargetList []*AI2AimTarget
 
-type AimTarget struct {
+type AI2AimTarget struct {
 	*SPObj
 	AimPos        *Vector3D
 	AimAngle      float64
@@ -208,10 +208,10 @@ type AimTarget struct {
 
 // how fast collision occur
 // < 1 safe , > 1 danger
-func (me *SPObj) calcLenRate(t *SPObj) float64 {
-	collen := math.Sqrt(GameConst.ObjSqd[me.ObjType][t.ObjType])
-	curlen := me.PosVector.LenTo(t.PosVector) - collen
-	nextposme := me.PosVector.Add(me.MoveVector.Idiv(GameConst.FramePerSec))
+func (a *AI2) calcLenRate(t *SPObj) float64 {
+	collen := math.Sqrt(GameConst.ObjSqd[a.me.ObjType][t.ObjType])
+	curlen := a.me.PosVector.LenTo(t.PosVector) - collen
+	nextposme := a.me.PosVector.Add(a.me.MoveVector.Idiv(GameConst.FramePerSec))
 	nextpost := t.PosVector.Add(t.MoveVector.Idiv(GameConst.FramePerSec))
 	nextlen := nextposme.LenTo(nextpost) - collen
 	if curlen <= 0 || nextlen <= 0 {
@@ -222,45 +222,45 @@ func (me *SPObj) calcLenRate(t *SPObj) float64 {
 }
 
 //
-func (me *SPObj) calcAims(t *SPObj, movelimit float64) (float64, *Vector3D, float64) {
-	dur := me.PosVector.CalcAimAheadDur(t.PosVector, t.MoveVector, movelimit)
+func (a *AI2) calcAims(t *SPObj, movelimit float64) (float64, *Vector3D, float64) {
+	dur := a.me.PosVector.CalcAimAheadDur(t.PosVector, t.MoveVector, movelimit)
 	if math.IsInf(dur, 1) {
 		return math.Inf(1), nil, 0
 	}
 	estpos := t.PosVector.Add(t.MoveVector.Imul(dur))
-	estangle := t.MoveVector.Angle(estpos.Sub(me.PosVector))
+	estangle := t.MoveVector.Angle(estpos.Sub(a.me.PosVector))
 	return dur, &estpos, estangle
 }
 
-// By is the type of a "less" function that defines the ordering of its AimTarget arguments.
-type By func(p1, p2 *AimTarget) bool
+// AI2By is the type of a "less" function that defines the ordering of its AI2AimTarget arguments.
+type AI2By func(p1, p2 *AI2AimTarget) bool
 
-// Sort is a method on the function type, By, that sorts the argument slice according to the function.
-func (by By) Sort(aimtargets AimTargetList) {
-	ps := &aimtargetSorter{
+// Sort is a method on the function type, AI2By, that sorts the argument slice according to the function.
+func (by AI2By) Sort(aimtargets AI2AimTargetList) {
+	ps := &AI2AimTargetSorter{
 		aimtargets: aimtargets,
 		by:         by, // The Sort method's receiver is the function (closure) that defines the sort order.
 	}
 	sort.Sort(ps)
 }
 
-// aimtargetSorter joins a By function and a slice of AimTargets to be sorted.
-type aimtargetSorter struct {
-	aimtargets AimTargetList
-	by         func(p1, p2 *AimTarget) bool // Closure used in the Less method.
+// AI2AimTargetSorter joins a AI2By function and a slice of AI2AimTargets to be sorted.
+type AI2AimTargetSorter struct {
+	aimtargets AI2AimTargetList
+	by         func(p1, p2 *AI2AimTarget) bool // Closure used in the Less method.
 }
 
 // Len is part of sort.Interface.
-func (s *aimtargetSorter) Len() int {
+func (s *AI2AimTargetSorter) Len() int {
 	return len(s.aimtargets)
 }
 
 // Swap is part of sort.Interface.
-func (s *aimtargetSorter) Swap(i, j int) {
+func (s *AI2AimTargetSorter) Swap(i, j int) {
 	s.aimtargets[i], s.aimtargets[j] = s.aimtargets[j], s.aimtargets[i]
 }
 
 // Less is part of sort.Interface. It is implemented by calling the "by" closure in the sorter.
-func (s *aimtargetSorter) Less(i, j int) bool {
+func (s *AI2AimTargetSorter) Less(i, j int) bool {
 	return s.by(s.aimtargets[i], s.aimtargets[j])
 }

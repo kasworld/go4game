@@ -83,7 +83,7 @@ var defaultConfig = GameConfig{
 	TcpClientEncode:      "gob",
 	MaxTcpClientPerWorld: 32,
 	MaxWsClientPerWorld:  32,
-	StartWorldCount:      1,
+	StartWorldCount:      2,
 	AICountPerWorld:      8,
 	ClearY:               true,
 	AINames:              []string{"AICloud", "AIRandom", "AI2", "AI3"},

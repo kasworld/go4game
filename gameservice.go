@@ -61,6 +61,7 @@ func (g *GameService) addNewWorld() *World {
 	g.Worlds[w.ID] = w
 	go w.Loop()
 	w.addAITeams(GameConst.AINames, GameConst.AICountPerWorld)
+	w.addTerrainTeam()
 	return w
 }
 
@@ -68,9 +69,9 @@ func (g *GameService) delWorld(w *World) {
 	delete(g.Worlds, w.ID)
 }
 
-func (g *GameService) findFreeWorld(teamCount int, ct ClientType) *World {
+func (g *GameService) findFreeWorld(TeamCountByConn int, ct ClientType) *World {
 	for _, w := range g.Worlds {
-		if w.teamCount(ct) < teamCount {
+		if w.TeamCountByConn(ct) < TeamCountByConn {
 			return w
 		}
 	}
@@ -102,12 +103,12 @@ loop:
 		case conn := <-g.clientConnectionCh: // new team
 			w := g.findFreeWorld(GameConst.MaxTcpClientPerWorld, TCPClient)
 			rsp := make(chan interface{})
-			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(conn), Rsp: rsp}
+			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(conn, TeamTypePlayer), Rsp: rsp}
 			<-rsp
 		case conn := <-g.wsClientConnectionCh: // new team
 			w := g.findFreeWorld(GameConst.MaxWsClientPerWorld, WebSockClient)
 			rsp := make(chan interface{})
-			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(conn), Rsp: rsp}
+			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(conn, TeamTypeObserver), Rsp: rsp}
 			<-rsp
 		case cmd := <-g.CmdCh:
 			//log.Println(cmd)

@@ -4,27 +4,27 @@ import (
 	//"log"
 	//"time"
 	"math"
-	"math/rand"
+	//"math/rand"
 	"sort"
 	"time"
 )
 
-// AI3 ----------------------------------------------------------------
+// AI4 ----------------------------------------------------------------
 
-type AI3 struct {
+type AI4 struct {
 	me              *SPObj
 	ActionPoint     int
 	Score           int
 	HomePos         Vector3D
-	preparedTargets [ActionEnd]AI3AimTargetList
+	preparedTargets [ActionEnd]AI4AimTargetList
 	lastTargets     [ActionEnd]map[int64]time.Time
 }
 
-func NewAI3() AIActor {
-	return &AI3{}
+func NewAI4() AIActor {
+	return &AI4{}
 }
 
-func (a *AI3) delOldTagets() {
+func (a *AI4) delOldTagets() {
 	var act ClientActionType
 
 	validold := time.Now().Add(-500 * time.Millisecond)
@@ -50,15 +50,15 @@ func (a *AI3) delOldTagets() {
 	}
 }
 
-type AI3AimTargetList []*AI3AimTarget
+type AI4AimTargetList []*AI4AimTarget
 
-type AI3AimTarget struct {
+type AI4AimTarget struct {
 	*SPObj
 	actFactor [ActionEnd]float64
 }
 
 // estmate remain frame to contact( len == 0 )
-func (a *AI3) frame2Contact(t *SPObj) float64 {
+func (a *AI4) frame2Contact(t *SPObj) float64 {
 	collen := math.Sqrt(GameConst.ObjSqd[a.me.ObjType][t.ObjType])
 	curlen := a.me.PosVector.LenTo(t.PosVector) - collen
 	nextposme := a.me.PosVector.Add(a.me.MoveVector.Idiv(GameConst.FramePerSec))
@@ -74,7 +74,33 @@ func (a *AI3) frame2Contact(t *SPObj) float64 {
 	return curlen / -changelenperframe
 }
 
-func (a *AI3) CalcEvasionFactor(o *SPObj) float64 {
+func (a *AI4) calcEvasionVector(t *SPObj) *Vector3D {
+	speed := GameConst.MoveLimit[a.me.ObjType]
+	backvt := a.me.PosVector.Sub(t.PosVector).NormalizedTo(speed) // backward
+	tohomevt := a.HomePos.Sub(a.me.PosVector).NormalizedTo(speed) // to home pos
+	rtn := backvt.Add(backvt).Add(tohomevt)
+	return &rtn
+}
+
+func (a *AI4) calcBackVector(t *SPObj, evfactor float64) Vector3D {
+	speed := GameConst.MoveLimit[a.me.ObjType]
+	return a.me.PosVector.Sub(t.PosVector).NormalizedTo(evfactor * speed)
+}
+
+func (a *AI4) calcLenRate(t *SPObj) float64 {
+	collen := GameConst.Radius[a.me.ObjType] + GameConst.Radius[t.ObjType]
+	curlen := a.me.PosVector.LenTo(t.PosVector) - collen
+	nextposme := a.me.PosVector.Add(a.me.MoveVector.Idiv(GameConst.FramePerSec))
+	nextpost := t.PosVector.Add(t.MoveVector.Idiv(GameConst.FramePerSec))
+	nextlen := nextposme.LenTo(nextpost) - collen
+	if curlen <= 0 || nextlen <= 0 {
+		return math.Inf(1)
+	} else {
+		return curlen / nextlen
+	}
+}
+
+func (a *AI4) CalcEvasionFactor(o *SPObj) float64 {
 	// can obj damage me?
 	if !GameConst.IsInteract[a.me.ObjType][o.ObjType] {
 		return -1.0
@@ -94,9 +120,7 @@ func (a *AI3) CalcEvasionFactor(o *SPObj) float64 {
 
 	//speedrate := GameConst.MoveLimit[o.ObjType] / GameConst.MoveLimit[a.me.ObjType]
 
-	collen := math.Sqrt(GameConst.ObjSqd[a.me.ObjType][o.ObjType])
-	curlen := a.me.PosVector.LenTo(o.PosVector)
-	lenfactor := collen * 5 / curlen
+	lenfactor := a.calcLenRate(o)
 
 	timefactor := GameConst.FramePerSec / 2 / a.frame2Contact(o) // in 0.5 sec len
 
@@ -104,7 +128,7 @@ func (a *AI3) CalcEvasionFactor(o *SPObj) float64 {
 	return factor
 }
 
-func (a *AI3) CalcAttackFactor(o *SPObj, bulletType GameObjectType) float64 {
+func (a *AI4) CalcAttackFactor(o *SPObj, bulletType GameObjectType) float64 {
 	// is obj attacked by bullet?
 	if !GameConst.IsInteract[o.ObjType][bulletType] {
 		return -1.0
@@ -131,10 +155,10 @@ func (a *AI3) CalcAttackFactor(o *SPObj, bulletType GameObjectType) float64 {
 	return factor
 }
 
-func (a *AI3) prepareTarget(s SPObjList) bool {
+func (a *AI4) prepareTarget(s SPObjList) bool {
 	for _, t := range s {
 		if a.me.TeamID != t.TeamID {
-			o := AI3AimTarget{
+			o := AI4AimTarget{
 				SPObj: t,
 			}
 			o.actFactor[ActionAccel] = a.CalcEvasionFactor(t)
@@ -148,10 +172,10 @@ func (a *AI3) prepareTarget(s SPObjList) bool {
 			if GameConst.IsInteract[t.ObjType][GameObjBullet] {
 				a.preparedTargets[ActionBullet] = append(a.preparedTargets[ActionBullet], &o)
 			}
-			if t.ObjType == GameObjMain || t.ObjType == GameObjHommingBullet || t.ObjType == GameObjSuperBullet {
+			if GameConst.IsInteract[t.ObjType][GameObjSuperBullet] {
 				a.preparedTargets[ActionSuperBullet] = append(a.preparedTargets[ActionSuperBullet], &o)
 			}
-			if t.ObjType == GameObjMain || t.ObjType == GameObjHommingBullet || t.ObjType == GameObjSuperBullet {
+			if GameConst.IsInteract[t.ObjType][GameObjHommingBullet] {
 				a.preparedTargets[ActionHommingBullet] = append(a.preparedTargets[ActionHommingBullet], &o)
 			}
 			if GameConst.IsInteract[t.ObjType][GameObjBullet] {
@@ -162,15 +186,7 @@ func (a *AI3) prepareTarget(s SPObjList) bool {
 	return false
 }
 
-func (a *AI3) calcEvasionVector(t *SPObj) *Vector3D {
-	speed := GameConst.MoveLimit[a.me.ObjType]
-	backvt := a.me.PosVector.Sub(t.PosVector).NormalizedTo(speed) // backward
-	tohomevt := a.HomePos.Sub(a.me.PosVector).NormalizedTo(speed) // to home pos
-	rtn := backvt.Add(backvt).Add(tohomevt)
-	return &rtn
-}
-
-func (a *AI3) calcAims(t *SPObj, projectilemovelimit float64) (float64, *Vector3D, float64) {
+func (a *AI4) calcAims(t *SPObj, projectilemovelimit float64) (float64, *Vector3D, float64) {
 	dur := a.me.PosVector.CalcAimAheadDur(t.PosVector, t.MoveVector, projectilemovelimit)
 	if math.IsInf(dur, 1) {
 		return math.Inf(1), nil, 0
@@ -180,18 +196,18 @@ func (a *AI3) calcAims(t *SPObj, projectilemovelimit float64) (float64, *Vector3
 	return dur, &estpos, estangle
 }
 
-func (a *AI3) sortActTargets(act ClientActionType) bool {
+func (a *AI4) sortActTargets(act ClientActionType) bool {
 	if a.ActionPoint >= GameConst.AP[act] {
-		softFn := func(p1, p2 *AI3AimTarget) bool {
+		softFn := func(p1, p2 *AI4AimTarget) bool {
 			return p1.actFactor[act] > p2.actFactor[act]
 		}
-		AI3By(softFn).Sort(a.preparedTargets[act])
+		AI4By(softFn).Sort(a.preparedTargets[act])
 		return true
 	}
 	return false
 }
 
-func (a *AI3) MakeAction(packet *RspGamePacket) *ReqGamePacket {
+func (a *AI4) MakeAction(packet *RspGamePacket) *ReqGamePacket {
 	if a.lastTargets[0] == nil {
 		//log.Printf("init historydata ")
 		for act := ActionAccel; act < ActionEnd; act++ {
@@ -207,7 +223,7 @@ func (a *AI3) MakeAction(packet *RspGamePacket) *ReqGamePacket {
 		return &ReqGamePacket{Cmd: ReqNearInfo}
 	}
 	for i := ActionAccel; i < ActionEnd; i++ {
-		a.preparedTargets[i] = make(AI3AimTargetList, 0)
+		a.preparedTargets[i] = make(AI4AimTargetList, 0)
 	}
 	a.prepareTarget(packet.NearObjs)
 
@@ -215,7 +231,7 @@ func (a *AI3) MakeAction(packet *RspGamePacket) *ReqGamePacket {
 	rtn := &ReqGamePacket{
 		Cmd: ReqNearInfo,
 		ClientAct: &ClientActionPacket{
-			Accel:           nil,
+			Accel:           &Vector3D{},
 			NormalBulletMv:  nil,
 			BurstShot:       0,
 			HommingTargetID: nil,
@@ -226,17 +242,21 @@ func (a *AI3) MakeAction(packet *RspGamePacket) *ReqGamePacket {
 	var act ClientActionType
 
 	if act = ActionAccel; a.sortActTargets(act) {
-		for _, o := range a.preparedTargets[act] {
-			if o.actFactor[act] > 1 && rand.Float64() < 0.9 {
-				rtn.ClientAct.Accel = a.calcEvasionVector(o.SPObj)
-				a.ActionPoint -= GameConst.AP[act]
+		a.ActionPoint -= GameConst.AP[act]
+		for i, o := range a.preparedTargets[act] {
+			if i > 3 { // apply max 3 target
 				break
 			}
+			if o.actFactor[act] > 1 {
+				tmp := rtn.ClientAct.Accel.Add(a.calcBackVector(o.SPObj, o.actFactor[act]))
+				rtn.ClientAct.Accel = &tmp
+				//log.Printf("accel %v %v %v ", i, o.actFactor[act], rtn.ClientAct.Accel)
+			}
 		}
-		if rtn.ClientAct.Accel == nil && rand.Float64() < 0.5 {
-			tmp := a.HomePos.Sub(a.me.PosVector)
+		if rtn.ClientAct.Accel.Abs() < 10 {
+			tmp := rtn.ClientAct.Accel.Add(a.HomePos.Sub(a.me.PosVector))
 			rtn.ClientAct.Accel = &tmp
-			a.ActionPoint -= GameConst.AP[act]
+			//log.Printf("accel to home %v ", rtn.ClientAct.Accel)
 		}
 	}
 
@@ -303,35 +323,35 @@ func (a *AI3) MakeAction(packet *RspGamePacket) *ReqGamePacket {
 	return rtn
 }
 
-// AI3By is the type of a "less" function that defines the ordering of its AI3AimTarget arguments.
-type AI3By func(p1, p2 *AI3AimTarget) bool
+// AI4By is the type of a "less" function that defines the ordering of its AI4AimTarget arguments.
+type AI4By func(p1, p2 *AI4AimTarget) bool
 
-// Sort is a method on the function type, AI3By, that sorts the argument slice according to the function.
-func (by AI3By) Sort(aimtargets AI3AimTargetList) {
-	ps := &AI3AimTargetSorter{
+// Sort is a method on the function type, AI4By, that sorts the argument slice according to the function.
+func (by AI4By) Sort(aimtargets AI4AimTargetList) {
+	ps := &AI4AimTargetSorter{
 		aimtargets: aimtargets,
 		by:         by, // The Sort method's receiver is the function (closure) that defines the sort order.
 	}
 	sort.Sort(ps)
 }
 
-// AI3AimTargetSorter joins a AI3By function and a slice of AI3AimTargets to be sorted.
-type AI3AimTargetSorter struct {
-	aimtargets AI3AimTargetList
-	by         func(p1, p2 *AI3AimTarget) bool // Closure used in the Less method.
+// AI4AimTargetSorter joins a AI4By function and a slice of AI4AimTargets to be sorted.
+type AI4AimTargetSorter struct {
+	aimtargets AI4AimTargetList
+	by         func(p1, p2 *AI4AimTarget) bool // Closure used in the Less method.
 }
 
 // Len is part of sort.Interface.
-func (s *AI3AimTargetSorter) Len() int {
+func (s *AI4AimTargetSorter) Len() int {
 	return len(s.aimtargets)
 }
 
 // Swap is part of sort.Interface.
-func (s *AI3AimTargetSorter) Swap(i, j int) {
+func (s *AI4AimTargetSorter) Swap(i, j int) {
 	s.aimtargets[i], s.aimtargets[j] = s.aimtargets[j], s.aimtargets[i]
 }
 
 // Less is part of sort.Interface. It is implemented by calling the "by" closure in the sorter.
-func (s *AI3AimTargetSorter) Less(i, j int) bool {
+func (s *AI4AimTargetSorter) Less(i, j int) bool {
 	return s.by(s.aimtargets[i], s.aimtargets[j])
 }

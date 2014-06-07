@@ -72,7 +72,9 @@ func (m *World) makeWorldInfo() *WorldInfo {
 		Teams: make([]TeamInfo, 0, len(m.Teams)),
 	}
 	for _, t := range m.Teams {
-		rtn.Teams = append(rtn.Teams, *t.NewTeamInfo())
+		if t.Type == TeamTypeAI || t.Type == TeamTypePlayer {
+			rtn.Teams = append(rtn.Teams, *t.NewTeamInfo())
+		}
 	}
 	sort.Sort(ByScore(rtn.Teams))
 	return rtn

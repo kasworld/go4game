@@ -10,8 +10,20 @@ import (
 	"time"
 )
 
+type TeamType int
+
+const (
+	TeamTypeNil = iota
+	TeamTypePlayer
+	TeamTypeAI
+	TeamTypeObserver
+	TeamTypeTerrain
+	TeamTypeEnd
+)
+
 type Team struct {
 	ID          int64
+	Type        TeamType
 	Color       int
 	ActionPoint int
 	Score       int
@@ -22,7 +34,7 @@ type Team struct {
 	PacketStat     ActionStat
 	CollisionStat  ActionStat
 	NearStat       ActionStat
-	ClientConnInfo ConnInfo
+	ClientConnInfo *ConnInfo
 	chStep         <-chan IDList
 }
 
@@ -31,7 +43,7 @@ func (m Team) String() string {
 		m.ID, m.ClientConnInfo, len(m.GameObjs), m.Score, m.ActionPoint, m.PacketStat, m.CollisionStat, m.NearStat)
 }
 
-func NewTeam(conn interface{}) *Team {
+func NewTeam(conn interface{}, tt TeamType) *Team {
 	t := Team{
 		ID:            <-IdGenCh,
 		GameObjs:      make(map[int64]*GameObject, 10),
@@ -39,32 +51,47 @@ func NewTeam(conn interface{}) *Team {
 		PacketStat:    *NewActionStat(),
 		CollisionStat: *NewActionStat(),
 		NearStat:      *NewActionStat(),
+		Type:          tt,
 	}
-	switch conn.(type) {
+	switch tt {
 	default:
-		log.Printf("unknown type %#v", conn)
-	case net.Conn:
-		t.ClientConnInfo = *NewTcpConnInfo(conn.(net.Conn))
+		log.Printf("unknown team type %#v", tt)
+	case TeamTypePlayer, TeamTypeAI:
 		t.makeMainObj()
-	case *websocket.Conn:
-		t.ClientConnInfo = *NewWsConnInfo(conn.(*websocket.Conn))
-	case AIActor:
-		t.ClientConnInfo = *NewAIConnInfo(conn.(AIActor))
-		t.makeMainObj()
+		o := t.addObject(NewGameObject(t.ID).MakeHomeMarkObj())
+		t.HomeObjID = o.ID
+	case TeamTypeObserver:
+	case TeamTypeTerrain:
+		t.addTerrain()
+		t.addRevolutionDeco()
 	}
-	o := t.addObject(NewGameObject(t.ID).MakeHomeMarkObj())
-	t.HomeObjID = o.ID
 
-	t.addRevolutionDeco()
+	if conn != nil {
+		t.AddConn(conn)
+	}
 	return &t
 }
 
-func (o *GameObject) MakeRevolutionDecoObj() *GameObject {
-	o.moveByTimeFn = moveByTimeFn_clock
-	o.borderActionFn = borderActionFn_None
-	o.ObjType = GameObjDeco
-	o.clearYFn = ClearY_none
-	return o
+func (t *Team) AddConn(conn interface{}) *Team {
+	switch conn.(type) {
+	default:
+		log.Printf("unknown conn type %#v", conn)
+	case net.Conn:
+		t.ClientConnInfo = NewTcpConnInfo(conn.(net.Conn))
+	case *websocket.Conn:
+		t.ClientConnInfo = NewWsConnInfo(conn.(*websocket.Conn))
+	case AIActor:
+		t.ClientConnInfo = NewAIConnInfo(conn.(AIActor))
+	}
+	return t
+}
+
+func (t *Team) addTerrain() {
+	for i := 0; i < 100; i++ {
+		pos := GameConst.WorldCube.RandVector()
+		o := NewGameObject(t.ID).MakeHardObj(pos)
+		t.addObject(o)
+	}
 }
 
 func (t *Team) addRevolutionDeco() {
@@ -133,6 +160,9 @@ func (ot *Octree) makeNearObjs(t *Team, hr *HyperRect) SPObjList {
 }
 
 func (t *Team) processClientReq(ftime time.Time, w *World) bool {
+	if t.ClientConnInfo == nil {
+		return true
+	}
 	var p *ReqGamePacket
 	var ok bool
 	select {
@@ -174,25 +204,6 @@ func (t *Team) processClientReq(ftime time.Time, w *World) bool {
 	return true
 }
 
-func (t *Team) Do1Frame(world *World, ftime time.Time) <-chan IDList {
-	ap := t.CalcAP()
-	if ap < 0 {
-		log.Printf("invalid ap team%v %v", t.ID, ap)
-	}
-	t.ActionPoint += ap
-
-	chRtn := make(chan IDList)
-	go func() {
-		rtn := t.processClientReq(ftime, world)
-		if !rtn {
-			close(chRtn)
-			return
-		}
-		chRtn <- t.actByTime(world, ftime)
-	}()
-	return chRtn
-}
-
 func (t *Team) actByTime(world *World, ftime time.Time) IDList {
 	clist := make(IDList, 0)
 	for _, v := range t.GameObjs {
@@ -210,6 +221,25 @@ func (t *Team) actByTime(world *World, ftime time.Time) IDList {
 		}
 	}
 	return clist
+}
+
+func (t *Team) Do1Frame(world *World, ftime time.Time) <-chan IDList {
+	ap := t.CalcAP()
+	if ap < 0 {
+		log.Printf("invalid ap team%v %v", t.ID, ap)
+	}
+	t.ActionPoint += ap
+
+	chRtn := make(chan IDList)
+	go func() {
+		rtn := t.processClientReq(ftime, world)
+		if !rtn {
+			close(chRtn)
+			return
+		}
+		chRtn <- t.actByTime(world, ftime)
+	}()
+	return chRtn
 }
 
 // 0(outer max) ~ GameConst.APIncFrame( 0,0,0)

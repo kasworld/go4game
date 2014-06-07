@@ -3,17 +3,18 @@
     "WsListen": "0.0.0.0:8080",
     "ClearY": true,
     "FramePerSec": 60,
-    "AICountPerWorld": 8,
+    "AICountPerWorld": 5,
     "AINames": [
+        "AINothing",
         "AICloud",
         "AIRandom",
         "AI2",
         "AI3"
     ],
-    "MaxTcpClientPerWorld": 8,
-    "MaxWsClientPerWorld": 8,
-    "StartWorldCount": 8,
-    "RemoveEmptyWorld": true,
+    "MaxTcpClientPerWorld": 32,
+    "MaxWsClientPerWorld": 32,
+    "StartWorldCount": 2,
+    "RemoveEmptyWorld": false,
     "TcpClientEncode": "gob",
     "WorldCube": {
         "Min": [
@@ -27,10 +28,12 @@
             500
         ]
     },
+    "WorldDiag": 1732.0508075688772,
     "APIncFrame": 10,
     "KillScore": 1,
     "ShieldCount": 8,
     "MaxObjectRadius": 15,
+    "ShowDecoObjs": true,
     "MoveLimit": [
         0,
         100,

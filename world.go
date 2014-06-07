@@ -24,9 +24,9 @@ type World struct {
 	clientViewRange *HyperRect
 }
 
-func (m World) String() string {
-	return fmt.Sprintf("World%v Teams:%v ViewRange %v",
-		m.ID, len(m.Teams), m.clientViewRange.DiagLen())
+func (w World) String() string {
+	return fmt.Sprintf("World%v AIs:%v Players:%v ViewRange %v",
+		w.ID, w.TeamCountByType(TeamTypeAI), w.TeamCountByType(TeamTypePlayer), w.clientViewRange.DiagLen())
 }
 
 func NewWorld(g *GameService) *World {
@@ -43,10 +43,12 @@ func NewWorld(g *GameService) *World {
 func (w *World) addAITeams(anames []string, n int) {
 	NewAI := map[string]MakeAI{
 		"AINothing": NewAINothing,
+		"AINoMove":  NewAINoMove,
 		"AICloud":   NewAICloud,
 		"AIRandom":  NewAIRandom,
 		"AI2":       NewAI2,
 		"AI3":       NewAI3,
+		"AI4":       NewAI4,
 	}
 	for i := 0; i < n; i++ {
 		thisai := anames[i%len(anames)]
@@ -56,9 +58,15 @@ func (w *World) addAITeams(anames []string, n int) {
 			log.Printf("unknown AI %v", thisai)
 			continue
 		}
-		w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(fn()), Rsp: rsp}
+		w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(fn(), TeamTypeAI), Rsp: rsp}
 		<-rsp
 	}
+}
+
+func (w *World) addTerrainTeam() {
+	rsp := make(chan interface{})
+	w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(nil, TeamTypeTerrain), Rsp: rsp}
+	<-rsp
 }
 
 func (w *World) addTeam(t *Team) {
@@ -130,7 +138,7 @@ func (w *World) updateEnv() {
 }
 
 func (w *World) isEmpty() bool {
-	return GameConst.RemoveEmptyWorld && w.teamCount(AIClient) == len(w.Teams)
+	return GameConst.RemoveEmptyWorld && w.TeamCountByConn(AIClient) == len(w.Teams)
 }
 
 func (w *World) Do1Frame(ftime time.Time) bool {
@@ -223,10 +231,20 @@ loop:
 	}
 }
 
-func (w *World) teamCount(ct ClientType) int {
+func (w *World) TeamCountByConn(ct ClientType) int {
 	n := 0
 	for _, t := range w.Teams {
-		if t.ClientConnInfo.clientType == ct {
+		if t.ClientConnInfo != nil && t.ClientConnInfo.clientType == ct {
+			n++
+		}
+	}
+	return n
+}
+
+func (w *World) TeamCountByType(tt TeamType) int {
+	n := 0
+	for _, t := range w.Teams {
+		if t.Type == tt {
 			n++
 		}
 	}

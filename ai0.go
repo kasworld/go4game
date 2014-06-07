@@ -34,6 +34,32 @@ func (a *AINothing) MakeAction(packet *RspGamePacket) *ReqGamePacket {
 	}
 }
 
+// AINoMove ----------------------------------------------------------------
+type AINoMove struct {
+}
+
+func NewAINoMove() AIActor {
+	return &AINoMove{}
+}
+
+func (a *AINoMove) MakeAction(packet *RspGamePacket) *ReqGamePacket {
+	var bulletMoveVector *Vector3D = nil
+	var accvt Vector3D = packet.TeamInfo.SPObj.MoveVector.Neg()
+	var burstCount int = 0
+	var hommingTargetID IDList // objid, teamid
+	var superBulletMv *Vector3D = nil
+	return &ReqGamePacket{
+		Cmd: ReqNearInfo,
+		ClientAct: &ClientActionPacket{
+			Accel:           &accvt,
+			NormalBulletMv:  bulletMoveVector,
+			BurstShot:       burstCount,
+			HommingTargetID: hommingTargetID,
+			SuperBulletMv:   superBulletMv,
+		},
+	}
+}
+
 // AIRandom ----------------------------------------------------------------
 type AIRandom struct {
 	me          *SPObj

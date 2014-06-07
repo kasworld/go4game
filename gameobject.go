@@ -118,12 +118,12 @@ func (o *GameObject) MakeHommingBullet(mo *GameObject, targetteamid int64, targe
 	o.clearYFn(o, nil)
 	return o
 }
-func (o *GameObject) MakeMarkObj(pos Vector3D) *GameObject {
-	o.PosVector = pos
-	o.moveByTimeFn = moveByTimeFn_none
+
+func (o *GameObject) MakeRevolutionDecoObj() *GameObject {
+	o.moveByTimeFn = moveByTimeFn_clock
 	o.borderActionFn = borderActionFn_None
-	o.ObjType = GameObjMark
-	o.clearYFn(o, nil)
+	o.ObjType = GameObjDeco
+	o.clearYFn = ClearY_none
 	return o
 }
 
@@ -134,6 +134,16 @@ func (o *GameObject) MakeHomeMarkObj() *GameObject {
 	o.moveByTimeFn = moveByTimeFn_home
 	o.ObjType = GameObjMark
 	o.clearYFn(o, nil)
+	return o
+}
+
+func (o *GameObject) MakeHardObj(pos Vector3D) *GameObject {
+	o.PosVector = pos
+	o.moveByTimeFn = moveByTimeFn_none
+	o.borderActionFn = borderActionFn_None
+	o.ObjType = GameObjHard
+	o.clearYFn(o, nil)
+	//o.clearYFn = ClearY_none
 	return o
 }
 

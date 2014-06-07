@@ -11,7 +11,7 @@ import (
 type GameObjectType int
 
 const (
-	_ GameObjectType = iota
+	GameObjNil GameObjectType = iota
 	GameObjMain
 	GameObjShield
 	GameObjBullet
@@ -19,6 +19,7 @@ const (
 	GameObjSuperBullet
 	GameObjDeco
 	GameObjMark
+	GameObjHard
 	GameObjEnd
 )
 
@@ -51,11 +52,13 @@ type GameConfig struct {
 	KillScore            int
 	ShieldCount          int
 	MaxObjectRadius      float64
+	MinObjectRadius      float64
 
 	MoveLimit  [GameObjEnd]float64
 	Radius     [GameObjEnd]float64
 	ObjSqd     [GameObjEnd][GameObjEnd]float64
 	IsInteract [GameObjEnd][GameObjEnd]bool // harmed obj : can harm obj
+	NoInteract [GameObjEnd]bool
 	AP         [ActionEnd]int
 }
 
@@ -65,10 +68,32 @@ func ValidateConfig(config *GameConfig) {
 		if o > config.MaxObjectRadius {
 			config.MaxObjectRadius = o
 		}
+		if o > 0 && config.MinObjectRadius == 0 {
+			config.MinObjectRadius = o
+		}
+		if o > 0 && o < config.MinObjectRadius {
+			config.MinObjectRadius = o
+		}
 	}
 	for o1 := GameObjMain; o1 < GameObjEnd; o1++ {
 		for o2 := GameObjMain; o2 < GameObjEnd; o2++ {
 			config.ObjSqd[o1][o2] = math.Pow(config.Radius[o1]+config.Radius[o2], 2)
+		}
+	}
+	for i := GameObjNil; i < GameObjEnd; i++ {
+		interact := false
+		for j := GameObjNil; j < GameObjEnd; j++ {
+			if config.IsInteract[i][j] {
+				interact = true
+				break
+			}
+			if config.IsInteract[j][i] {
+				interact = true
+				break
+			}
+		}
+		if interact == false {
+			config.NoInteract[i] = true
 		}
 	}
 }
@@ -76,21 +101,22 @@ func ValidateConfig(config *GameConfig) {
 const WorldSize = 500
 
 var defaultConfig = GameConfig{
+	AICountPerWorld: 9,
+	ClearY:          true,
+	StartWorldCount: 1,
+	//AINames:            []string{"AINothing", "AICloud", "AIRandom", "AI2", "AI3"},
+	//AINames:            []string{"AICloud", "AIRandom", "AI2", "AI3"},
+	AINames:              []string{"AI2", "AI3", "AI4"},
+	APIncFrame:           10,
+	ShieldCount:          8,
+	MaxTcpClientPerWorld: 32,
+	MaxWsClientPerWorld:  32,
+	RemoveEmptyWorld:     false,
+	TcpClientEncode:      "gob",
 	TcpListen:            "0.0.0.0:6666",
 	WsListen:             "0.0.0.0:8080",
 	FramePerSec:          60.0,
-	RemoveEmptyWorld:     false,
-	TcpClientEncode:      "gob",
-	MaxTcpClientPerWorld: 32,
-	MaxWsClientPerWorld:  32,
-	StartWorldCount:      2,
-	AICountPerWorld:      8,
-	ClearY:               true,
-	AINames:              []string{"AICloud", "AIRandom", "AI2", "AI3"},
-	APIncFrame:           10,
 	KillScore:            1,
-	ShieldCount:          8,
-	MaxObjectRadius:      1, // changed by init
 	WorldCube: &HyperRect{
 		Vector3D{-WorldSize, -WorldSize, -WorldSize},
 		Vector3D{WorldSize, WorldSize, WorldSize}},
@@ -110,38 +136,44 @@ var defaultConfig = GameConfig{
 		GameObjHommingBullet: 7,
 		GameObjSuperBullet:   15,
 		GameObjDeco:          3,
-		GameObjMark:          3},
+		GameObjMark:          3,
+		GameObjHard:          10},
 	IsInteract: [GameObjEnd][GameObjEnd]bool{
 		GameObjMain: [GameObjEnd]bool{
 			GameObjMain:          true,
 			GameObjShield:        true,
 			GameObjBullet:        true,
 			GameObjHommingBullet: true,
-			GameObjSuperBullet:   true},
+			GameObjSuperBullet:   true,
+			GameObjHard:          true},
 		GameObjShield: [GameObjEnd]bool{
 			GameObjMain:          true,
 			GameObjShield:        true,
 			GameObjBullet:        true,
 			GameObjHommingBullet: true,
-			GameObjSuperBullet:   true},
+			GameObjSuperBullet:   true,
+			GameObjHard:          true},
 		GameObjBullet: [GameObjEnd]bool{
 			GameObjMain:          true,
 			GameObjShield:        true,
 			GameObjBullet:        true,
 			GameObjHommingBullet: true,
-			GameObjSuperBullet:   true},
+			GameObjSuperBullet:   true,
+			GameObjHard:          true},
 		GameObjHommingBullet: [GameObjEnd]bool{
 			GameObjMain:          true,
 			GameObjShield:        true,
 			GameObjBullet:        false,
 			GameObjHommingBullet: true,
-			GameObjSuperBullet:   true},
+			GameObjSuperBullet:   true,
+			GameObjHard:          true},
 		GameObjSuperBullet: [GameObjEnd]bool{
 			GameObjMain:          true,
 			GameObjShield:        true,
 			GameObjBullet:        false,
 			GameObjHommingBullet: true,
-			GameObjSuperBullet:   true},
+			GameObjSuperBullet:   true,
+			GameObjHard:          true},
 	},
 	AP: [ActionEnd]int{
 		ActionAccel:         1,
@@ -201,5 +233,5 @@ func SaveLoad(config *GameConfig, filename string) {
 
 func init() {
 	ValidateConfig(&GameConst)
-	//SaveLoad(&defaultConfig, "default.json")
+	//SaveLoad(&defaultConfig, "profile.json")
 }

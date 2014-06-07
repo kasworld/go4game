@@ -54,7 +54,8 @@ func MakeOctree(w *World) *Octree {
 	rtn := NewOctree(GameConst.WorldCube.IMul(2))
 	for _, t := range w.Teams {
 		for _, obj := range t.GameObjs {
-			if obj != nil && obj.ObjType != 0 {
+			// add only interactible obj
+			if obj != nil && !GameConst.NoInteract[obj.ObjType] {
 				rtn.Insert(NewSPObj(obj))
 			}
 		}

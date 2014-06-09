@@ -9,12 +9,13 @@ import (
 	"github.com/gorilla/websocket"
 	"log"
 	"net"
-	"reflect"
+	//"reflect"
 	"time"
 )
 
 type AIActor interface {
 	MakeAction(*RspGamePacket) *ReqGamePacket
+	String() string
 }
 type MakeAI func() AIActor
 
@@ -41,7 +42,7 @@ func (c ConnInfo) String() string {
 	if c.AiConn == nil {
 		return fmt.Sprintf("Client%v", c.clientType)
 	} else {
-		return fmt.Sprintf("AI%v", reflect.TypeOf(c.AiConn))
+		return c.AiConn.String() // fmt.Sprintf("AI%v", reflect.TypeOf(c.AiConn))
 	}
 }
 

@@ -116,7 +116,7 @@ var defaultConfig = GameConfig{
 	SetTerrain:      false,
 	StartWorldCount: 1,
 	//AINames:         []string{"AINothing", "AINoMove", "AICloud", "AIRandom", "AI2", "AI3", "AI4"},
-	AINames: []string{"AINothing", "AINoMove", "AICloud", "AIRandom"},
+	AINames: []string{"AI5"},
 	//AINames: []string{"AICloud", "AIRandom", "AI2", "AI3"},
 	//AINames:              []string{"AI4"},
 	APIncFrame:           10,

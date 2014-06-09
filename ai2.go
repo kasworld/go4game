@@ -3,6 +3,7 @@ package go4game
 import (
 	//"log"
 	//"time"
+	"fmt"
 	"math"
 	"math/rand"
 	"sort"
@@ -16,6 +17,10 @@ type AI2 struct {
 
 	targetlist  AI2AimTargetList
 	mainobjlist AI2AimTargetList
+}
+
+func (a AI2) String() string {
+	return fmt.Sprintf("AI2")
 }
 
 func NewAI2() AIActor {

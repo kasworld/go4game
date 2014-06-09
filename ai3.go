@@ -3,6 +3,7 @@ package go4game
 import (
 	//"log"
 	//"time"
+	"fmt"
 	"math"
 	"math/rand"
 	"sort"
@@ -18,6 +19,10 @@ type AI3 struct {
 	HomePos         Vector3D
 	preparedTargets [ActionEnd]AI3AimTargetList
 	lastTargets     [ActionEnd]map[int64]time.Time
+}
+
+func (a AI3) String() string {
+	return fmt.Sprintf("AI3")
 }
 
 func NewAI3() AIActor {

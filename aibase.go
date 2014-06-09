@@ -4,6 +4,7 @@ import (
 	//"log"
 	//"time"
 	//"math"
+	"fmt"
 	"math/rand"
 	//"sort"
 )
@@ -16,6 +17,15 @@ type AIBase struct {
 	ActionPoint int
 	Score       int
 	HomePos     Vector3D
+}
+
+func NewAIBase(act [ActionEnd]int) AIActor {
+	a := AIBase{act: act}
+	return &a
+}
+
+func (a AIBase) String() string {
+	return fmt.Sprintf("AIBase%v ", a.act)
 }
 
 func (a *AIBase) TryAct(act ClientActionType, actnum int) bool {
@@ -33,7 +43,7 @@ func (a *AIBase) CheckAct(act ClientActionType, actnum int, actcount int) bool {
 	return false
 }
 
-func (a *AIBase) MakeAction(packet *RspGamePacket) *ReqGamePacket {
+func (a *AIBase) prepareAI(packet *RspGamePacket) {
 	a.me = packet.TeamInfo.SPObj
 	a.ActionPoint = packet.TeamInfo.ActionPoint
 	a.Score = packet.TeamInfo.Score
@@ -48,6 +58,10 @@ func (a *AIBase) MakeAction(packet *RspGamePacket) *ReqGamePacket {
 			SuperBulletMv:   nil,
 		},
 	}
+}
+
+func (a *AIBase) MakeAction(packet *RspGamePacket) *ReqGamePacket {
+	a.prepareAI(packet)
 	if a.me == nil {
 		return a.send
 	}

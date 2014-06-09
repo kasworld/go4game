@@ -5,6 +5,7 @@ import (
 	//"time"
 	"math"
 	//"math/rand"
+	"fmt"
 	"sort"
 	"time"
 )
@@ -18,6 +19,10 @@ type AI4 struct {
 	HomePos         Vector3D
 	preparedTargets [ActionEnd]AI4AimTargetList
 	lastTargets     [ActionEnd]map[int64]time.Time
+}
+
+func (a AI4) String() string {
+	return fmt.Sprintf("AI4")
 }
 
 // from gameobj moveByTimeFn_accel

@@ -49,6 +49,7 @@ func (w *World) addAITeams(anames []string, n int) {
 		"AI2":       NewAI2,
 		"AI3":       NewAI3,
 		"AI4":       NewAI4,
+		"AI5":       NewAI5,
 	}
 	for i := 0; i < n; i++ {
 		thisai := anames[i%len(anames)]

@@ -8,177 +8,47 @@ import (
 	//"sort"
 )
 
-// AINothing ----------------------------------------------------------------
-type AINothing struct {
-}
-
-func NewAINothing() AIActor {
-	return &AINothing{}
-}
-
-func (a *AINothing) MakeAction(packet *RspGamePacket) *ReqGamePacket {
-	var bulletMoveVector *Vector3D = nil
-	var accvt *Vector3D = nil
-	var burstCount int = 0
-	var hommingTargetID IDList // objid, teamid
-	var superBulletMv *Vector3D = nil
-	return &ReqGamePacket{
-		Cmd: ReqNearInfo,
-		ClientAct: &ClientActionPacket{
-			Accel:           accvt,
-			NormalBulletMv:  bulletMoveVector,
-			BurstShot:       burstCount,
-			HommingTargetID: hommingTargetID,
-			SuperBulletMv:   superBulletMv,
-		},
-	}
-}
-
-// AINoMove ----------------------------------------------------------------
-type AINoMove struct {
-}
-
-func NewAINoMove() AIActor {
-	return &AINoMove{}
-}
-
-func (a *AINoMove) MakeAction(packet *RspGamePacket) *ReqGamePacket {
-	var bulletMoveVector *Vector3D = nil
-	var accvt Vector3D = packet.TeamInfo.SPObj.MoveVector.Neg()
-	var burstCount int = 0
-	var hommingTargetID IDList // objid, teamid
-	var superBulletMv *Vector3D = nil
-	return &ReqGamePacket{
-		Cmd: ReqNearInfo,
-		ClientAct: &ClientActionPacket{
-			Accel:           &accvt,
-			NormalBulletMv:  bulletMoveVector,
-			BurstShot:       burstCount,
-			HommingTargetID: hommingTargetID,
-			SuperBulletMv:   superBulletMv,
-		},
-	}
-}
-
-// AIRandom ----------------------------------------------------------------
-type AIRandom struct {
-	me          *SPObj
-	ActionPoint int
-	Score       int
-	HomePos     Vector3D
-}
-
 func NewAIRandom() AIActor {
-	return &AIRandom{}
-}
-
-func (a *AIRandom) MakeAction(packet *RspGamePacket) *ReqGamePacket {
-	a.me = packet.TeamInfo.SPObj
-	a.ActionPoint = packet.TeamInfo.ActionPoint
-	a.Score = packet.TeamInfo.Score
-	a.HomePos = packet.TeamInfo.HomePos
-
-	if a.me == nil {
-		return &ReqGamePacket{Cmd: ReqNearInfo}
-	}
-
-	rtn := &ReqGamePacket{
-		Cmd: ReqNearInfo,
-		ClientAct: &ClientActionPacket{
-			Accel:           nil,
-			NormalBulletMv:  nil,
-			BurstShot:       0,
-			HommingTargetID: nil,
-			SuperBulletMv:   nil,
+	return &AIBase{
+		act: [ActionEnd]int{
+			ActionAccel:         1,
+			ActionBullet:        1,
+			ActionSuperBullet:   1,
+			ActionHommingBullet: 1,
+			ActionBurstBullet:   1,
 		},
 	}
-
-	if a.ActionPoint >= GameConst.AP[ActionSuperBullet] && rand.Float64() < 0.5 {
-		tmp := GameConst.WorldCube.RandVector()
-		rtn.ClientAct.SuperBulletMv = &tmp
-		a.ActionPoint -= GameConst.AP[ActionSuperBullet]
-	}
-
-	if a.ActionPoint >= GameConst.AP[ActionHommingBullet] && rand.Float64() < 0.5 {
-		rtn.ClientAct.HommingTargetID = IDList{a.me.ID, a.me.TeamID}
-		a.ActionPoint -= GameConst.AP[ActionHommingBullet]
-	}
-
-	if a.ActionPoint >= GameConst.AP[ActionBullet] && rand.Float64() < 0.5 {
-		tmp := GameConst.WorldCube.RandVector()
-		rtn.ClientAct.NormalBulletMv = &tmp
-		a.ActionPoint -= GameConst.AP[ActionBullet]
-	}
-
-	if a.ActionPoint >= GameConst.AP[ActionAccel] {
-		if rand.Float64() < 0.5 {
-			tmp := GameConst.WorldCube.RandVector()
-			rtn.ClientAct.Accel = &tmp
-			a.ActionPoint -= GameConst.AP[ActionAccel]
-		} else {
-			tmp := a.HomePos.Sub(a.me.PosVector)
-			rtn.ClientAct.Accel = &tmp
-			a.ActionPoint -= GameConst.AP[ActionAccel]
-		}
-	}
-
-	if a.ActionPoint >= GameConst.AP[ActionBurstBullet]*40 && rand.Float64() < 0.5 {
-		rtn.ClientAct.BurstShot = a.ActionPoint/GameConst.AP[ActionBurstBullet] - 4
-		a.ActionPoint -= GameConst.AP[ActionBurstBullet] * rtn.ClientAct.BurstShot
-	}
-
-	return rtn
 }
-
-// AICloud ----------------------------------------------------------------
-type AICloud struct {
-	me          *SPObj
-	ActionPoint int
-	Score       int
-	HomePos     Vector3D
-}
-
 func NewAICloud() AIActor {
-	return &AICloud{}
-}
-
-func (a *AICloud) MakeAction(packet *RspGamePacket) *ReqGamePacket {
-	a.me = packet.TeamInfo.SPObj
-	a.ActionPoint = packet.TeamInfo.ActionPoint
-	a.Score = packet.TeamInfo.Score
-	a.HomePos = packet.TeamInfo.HomePos
-
-	if a.me == nil {
-		return &ReqGamePacket{Cmd: ReqNearInfo}
-	}
-
-	rtn := &ReqGamePacket{
-		Cmd: ReqNearInfo,
-		ClientAct: &ClientActionPacket{
-			Accel:           nil,
-			NormalBulletMv:  nil,
-			BurstShot:       0,
-			HommingTargetID: nil,
-			SuperBulletMv:   nil,
+	return &AIBase{
+		act: [ActionEnd]int{
+			ActionAccel:         1,
+			ActionBullet:        0,
+			ActionSuperBullet:   0,
+			ActionHommingBullet: 1,
+			ActionBurstBullet:   0,
 		},
 	}
-
-	if a.ActionPoint >= GameConst.AP[ActionHommingBullet] && rand.Float64() < 0.5 {
-		rtn.ClientAct.HommingTargetID = IDList{a.me.ID, a.me.TeamID}
-		a.ActionPoint -= GameConst.AP[ActionHommingBullet]
+}
+func NewAINothing() AIActor {
+	return &AIBase{
+		act: [ActionEnd]int{
+			ActionAccel:         0,
+			ActionBullet:        0,
+			ActionSuperBullet:   0,
+			ActionHommingBullet: 0,
+			ActionBurstBullet:   0,
+		},
 	}
-
-	if a.ActionPoint >= GameConst.AP[ActionAccel] {
-		if rand.Float64() < 0.5 {
-			tmp := GameConst.WorldCube.RandVector()
-			rtn.ClientAct.Accel = &tmp
-			a.ActionPoint -= GameConst.AP[ActionAccel]
-		} else {
-			tmp := a.HomePos.Sub(a.me.PosVector)
-			rtn.ClientAct.Accel = &tmp
-			a.ActionPoint -= GameConst.AP[ActionAccel]
-		}
+}
+func NewAINoMove() AIActor {
+	return &AIBase{
+		act: [ActionEnd]int{
+			ActionAccel:         2,
+			ActionBullet:        0,
+			ActionSuperBullet:   0,
+			ActionHommingBullet: 0,
+			ActionBurstBullet:   0,
+		},
 	}
-
-	return rtn
 }

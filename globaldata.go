@@ -67,7 +67,10 @@ type GameConfig struct {
 
 func ValidateConfig(config *GameConfig) {
 	config.WorldDiag = config.WorldCube.DiagLen()
-	config.WorldCube2 = config.WorldCube.IMul(2)
+	config.WorldCube2 = &HyperRect{
+		Min: config.WorldCube.Min.Sub(Vector3D{100, 100, 100}),
+		Max: config.WorldCube.Max.Add(Vector3D{100, 100, 100}),
+	}
 	config.WorldDiag2 = config.WorldCube2.DiagLen()
 
 	for _, o := range config.Radius {
@@ -105,14 +108,15 @@ func ValidateConfig(config *GameConfig) {
 }
 
 const WorldSize = 500
-const WorldSizeY = 500
+const WorldSizeY = 5
 
 var defaultConfig = GameConfig{
-	AICountPerWorld: 7,
+	AICountPerWorld: 4,
 	ClearY:          false,
 	SetTerrain:      false,
 	StartWorldCount: 1,
-	AINames:         []string{"AINothing", "AINoMove", "AICloud", "AIRandom", "AI2", "AI3", "AI4"},
+	//AINames:         []string{"AINothing", "AINoMove", "AICloud", "AIRandom", "AI2", "AI3", "AI4"},
+	AINames: []string{"AINothing", "AINoMove", "AICloud", "AIRandom"},
 	//AINames: []string{"AICloud", "AIRandom", "AI2", "AI3"},
 	//AINames:              []string{"AI4"},
 	APIncFrame:           10,

@@ -1,6 +1,7 @@
 package go4game
 
 import (
+	//"log"
 	"math"
 	"math/rand"
 )
@@ -12,10 +13,9 @@ var V3DUnitX = Vector3D{1, 0, 0}
 var V3DUnitY = Vector3D{0, 1, 0}
 var V3DUnitZ = Vector3D{0, 0, 1}
 
-func (p Vector3D) Copy() Vector3D {
-	//return Vector3D{p[0], p[1], p[2]}
-	return p
-}
+// func (p Vector3D) Copy() Vector3D {
+// 	return Vector3D{p[0], p[1], p[2]}
+// }
 func (p Vector3D) Eq(other Vector3D) bool {
 	return p == other
 	//return p[0] == other[0] && p[1] == other[1] && p[2] == other[2]
@@ -34,7 +34,6 @@ func (p Vector3D) Neg() Vector3D {
 }
 func (p Vector3D) Sub(other Vector3D) Vector3D {
 	return Vector3D{p[0] - other[0], p[1] - other[1], p[2] - other[2]}
-	//return p.Add(other.Neg())
 }
 func (p Vector3D) Mul(other Vector3D) Vector3D {
 	return Vector3D{p[0] * other[0], p[1] * other[1], p[2] * other[2]}
@@ -58,8 +57,9 @@ func (p Vector3D) Sqd(q Vector3D) float64 {
 }
 
 func (p Vector3D) LenTo(other Vector3D) float64 {
-	return p.Sub(other).Abs()
+	return math.Sqrt(p.Sqd(other))
 }
+
 func (p *Vector3D) Normalize() {
 	d := p.Abs()
 	if d > 0 {
@@ -92,6 +92,8 @@ func (p Vector3D) Cross(other Vector3D) Vector3D {
 		p[0]*other[1] - p[1]*other[0],
 	}
 }
+
+// reflect plane( == normal vector )
 func (p Vector3D) Reflect(normal Vector3D) Vector3D {
 	d := 2 * (p[0]*normal[0] + p[1]*normal[1] + p[2]*normal[2])
 	return Vector3D{p[0] - d*normal[0], p[1] - d*normal[1], p[2] - d*normal[2]}
@@ -251,7 +253,10 @@ func (h *HyperRect) IMul(i float64) *HyperRect {
 
 // make normalized hyperrect , if not need use HyperRect{Min: , Max:}
 func NewHyperRect(v1 Vector3D, v2 Vector3D) *HyperRect {
-	rtn := HyperRect{}
+	rtn := HyperRect{
+		Min: Vector3D{},
+		Max: Vector3D{},
+	}
 	for i := 0; i < 3; i++ {
 		if v1[i] > v2[i] {
 			rtn.Max[i] = v1[i]

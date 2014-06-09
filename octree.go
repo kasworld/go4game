@@ -3,6 +3,7 @@ package go4game
 import (
 	"log"
 	//"math"
+	//"time"
 )
 
 const (
@@ -51,7 +52,7 @@ func NewOctree(cube *HyperRect) *Octree {
 
 func MakeOctree(w *World) *Octree {
 	//log.Printf("make octree")
-	rtn := NewOctree(GameConst.WorldCube.IMul(2))
+	rtn := NewOctree(GameConst.WorldCube2)
 	for _, t := range w.Teams {
 		for _, obj := range t.GameObjs {
 			// add only interactible obj
@@ -68,7 +69,7 @@ func (ot *Octree) Split() {
 		return
 	}
 	// split all data and make datalist nil
-	//log.Printf("split octree %v", ot.Center)
+	//log.Printf("split octree %v %v", ot.BoundCube, ot.Center)
 	for i, _ := range ot.Children {
 		newbound := ot.BoundCube.MakeCubeBy8Driect(ot.Center, i)
 		ot.Children[i] = NewOctree(newbound)

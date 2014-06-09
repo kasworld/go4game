@@ -45,9 +45,12 @@ type GameConfig struct {
 	MaxWsClientPerWorld  int
 	StartWorldCount      int
 	RemoveEmptyWorld     bool
+	SetTerrain           bool
 	TcpClientEncode      string // gob , json
 	WorldCube            *HyperRect
 	WorldDiag            float64
+	WorldCube2           *HyperRect // for octree
+	WorldDiag2           float64
 	APIncFrame           int
 	KillScore            int
 	ShieldCount          int
@@ -64,6 +67,9 @@ type GameConfig struct {
 
 func ValidateConfig(config *GameConfig) {
 	config.WorldDiag = config.WorldCube.DiagLen()
+	config.WorldCube2 = config.WorldCube.IMul(2)
+	config.WorldDiag2 = config.WorldCube2.DiagLen()
+
 	for _, o := range config.Radius {
 		if o > config.MaxObjectRadius {
 			config.MaxObjectRadius = o
@@ -99,14 +105,16 @@ func ValidateConfig(config *GameConfig) {
 }
 
 const WorldSize = 500
+const WorldSizeY = 500
 
 var defaultConfig = GameConfig{
-	AICountPerWorld: 9,
-	ClearY:          true,
+	AICountPerWorld: 7,
+	ClearY:          false,
+	SetTerrain:      false,
 	StartWorldCount: 1,
-	//AINames:            []string{"AINothing", "AICloud", "AIRandom", "AI2", "AI3"},
-	//AINames:            []string{"AICloud", "AIRandom", "AI2", "AI3"},
-	AINames:              []string{"AI2", "AI3", "AI4"},
+	AINames:         []string{"AINothing", "AINoMove", "AICloud", "AIRandom", "AI2", "AI3", "AI4"},
+	//AINames: []string{"AICloud", "AIRandom", "AI2", "AI3"},
+	//AINames:              []string{"AI4"},
 	APIncFrame:           10,
 	ShieldCount:          8,
 	MaxTcpClientPerWorld: 32,
@@ -118,9 +126,8 @@ var defaultConfig = GameConfig{
 	FramePerSec:          60.0,
 	KillScore:            1,
 	WorldCube: &HyperRect{
-		Vector3D{-WorldSize, -WorldSize, -WorldSize},
-		Vector3D{WorldSize, WorldSize, WorldSize}},
-
+		Vector3D{-WorldSize, -WorldSizeY, -WorldSize},
+		Vector3D{WorldSize, WorldSizeY, WorldSize}},
 	MoveLimit: [GameObjEnd]float64{
 		GameObjMain:          100,
 		GameObjShield:        200,
@@ -137,7 +144,7 @@ var defaultConfig = GameConfig{
 		GameObjSuperBullet:   15,
 		GameObjDeco:          3,
 		GameObjMark:          3,
-		GameObjHard:          10},
+		GameObjHard:          3},
 	IsInteract: [GameObjEnd][GameObjEnd]bool{
 		GameObjMain: [GameObjEnd]bool{
 			GameObjMain:          true,

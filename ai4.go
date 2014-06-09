@@ -20,6 +20,17 @@ type AI4 struct {
 	lastTargets     [ActionEnd]map[int64]time.Time
 }
 
+// from gameobj moveByTimeFn_accel
+func (m *SPObj) TestMoveByAccel(accelVector Vector3D) Vector3D {
+	dur := 1000 / GameConst.FramePerSec
+	MoveVector := m.MoveVector.Add(accelVector.Imul(dur))
+	if MoveVector.Abs() > GameConst.MoveLimit[m.ObjType] {
+		MoveVector = MoveVector.NormalizedTo(GameConst.MoveLimit[m.ObjType])
+	}
+	PosVector := m.PosVector.Add(MoveVector.Imul(dur))
+	return PosVector
+}
+
 func NewAI4() AIActor {
 	return &AI4{}
 }
@@ -82,19 +93,16 @@ func (a *AI4) calcEvasionVector(t *SPObj) *Vector3D {
 	return &rtn
 }
 
-func (a *AI4) calcBackVector(t *SPObj, evfactor float64) Vector3D {
-	speed := GameConst.MoveLimit[a.me.ObjType]
-	return a.me.PosVector.Sub(t.PosVector).NormalizedTo(evfactor * speed)
-}
-
 func (a *AI4) calcLenRate(t *SPObj) float64 {
 	collen := GameConst.Radius[a.me.ObjType] + GameConst.Radius[t.ObjType]
 	curlen := a.me.PosVector.LenTo(t.PosVector) - collen
+
 	nextposme := a.me.PosVector.Add(a.me.MoveVector.Idiv(GameConst.FramePerSec))
 	nextpost := t.PosVector.Add(t.MoveVector.Idiv(GameConst.FramePerSec))
+
 	nextlen := nextposme.LenTo(nextpost) - collen
 	if curlen <= 0 || nextlen <= 0 {
-		return math.Inf(1)
+		return GameConst.WorldDiag // math.Inf(1)
 	} else {
 		return curlen / nextlen
 	}
@@ -107,25 +115,26 @@ func (a *AI4) CalcEvasionFactor(o *SPObj) float64 {
 	}
 	// higher is danger : 0 ~ 2
 	// anglefactor := 2 - a.me.PosVector.Sub(&o.PosVector).Angle(&o.MoveVector)*2/math.Pi
-	anglefactor := 1.0
+	// anglefactor := 1.0
 
-	typefactor := [GameObjEnd]float64{
-		GameObjMain:          2.0,
-		GameObjBullet:        1.0,
-		GameObjShield:        0.0,
-		GameObjHommingBullet: 1.0,
-		GameObjSuperBullet:   1.0,
-		GameObjHard:          1.0,
-	}[o.ObjType]
+	// typefactor := [GameObjEnd]float64{
+	// 	GameObjMain:          2.0,
+	// 	GameObjBullet:        1.0,
+	// 	GameObjShield:        0.0,
+	// 	GameObjHommingBullet: 1.0,
+	// 	GameObjSuperBullet:   1.0,
+	// 	GameObjHard:          1.0,
+	// }[o.ObjType]
 
 	//speedrate := GameConst.MoveLimit[o.ObjType] / GameConst.MoveLimit[a.me.ObjType]
 
 	lenfactor := a.calcLenRate(o)
+	return lenfactor
 
-	timefactor := GameConst.FramePerSec / 2 / a.frame2Contact(o) // in 0.5 sec len
+	// timefactor := GameConst.FramePerSec / 2 / a.frame2Contact(o) // in 0.5 sec len
 
-	factor := anglefactor * typefactor * lenfactor * timefactor //* speedrate
-	return factor
+	// factor := anglefactor * typefactor * lenfactor * timefactor //* speedrate
+	// return factor
 }
 
 func (a *AI4) CalcAttackFactor(o *SPObj, bulletType GameObjectType) float64 {
@@ -207,28 +216,22 @@ func (a *AI4) sortActTargets(act ClientActionType) bool {
 	return false
 }
 
-func (a *AI4) MakeAction(packet *RspGamePacket) *ReqGamePacket {
-	if a.lastTargets[0] == nil {
-		//log.Printf("init historydata ")
-		for act := ActionAccel; act < ActionEnd; act++ {
-			a.lastTargets[act] = make(map[int64]time.Time)
-		}
-	}
+func (a *AI4) calcBackVector(t *SPObj, evfactor float64) Vector3D {
+	speed := GameConst.MoveLimit[a.me.ObjType]
+	return a.me.PosVector.Sub(t.PosVector).NormalizedTo(evfactor * speed)
+}
+
+func (a *AI4) prepareAI(packet *RspGamePacket) *ReqGamePacket {
 	a.me = packet.TeamInfo.SPObj
 	a.ActionPoint = packet.TeamInfo.ActionPoint
 	a.Score = packet.TeamInfo.Score
 	a.HomePos = packet.TeamInfo.HomePos
-
-	if a.me == nil {
-		return &ReqGamePacket{Cmd: ReqNearInfo}
-	}
 	for i := ActionAccel; i < ActionEnd; i++ {
 		a.preparedTargets[i] = make(AI4AimTargetList, 0)
 	}
 	a.prepareTarget(packet.NearObjs)
-
 	a.delOldTagets()
-	rtn := &ReqGamePacket{
+	return &ReqGamePacket{
 		Cmd: ReqNearInfo,
 		ClientAct: &ClientActionPacket{
 			Accel:           &Vector3D{},
@@ -239,6 +242,19 @@ func (a *AI4) MakeAction(packet *RspGamePacket) *ReqGamePacket {
 		},
 	}
 
+}
+
+func (a *AI4) MakeAction(packet *RspGamePacket) *ReqGamePacket {
+	if a.lastTargets[0] == nil {
+		//log.Printf("init historydata ")
+		for act := ActionAccel; act < ActionEnd; act++ {
+			a.lastTargets[act] = make(map[int64]time.Time)
+		}
+	}
+	if packet.TeamInfo.SPObj == nil {
+		return &ReqGamePacket{Cmd: ReqNearInfo}
+	}
+	rtn := a.prepareAI(packet)
 	var act ClientActionType
 
 	if act = ActionAccel; a.sortActTargets(act) {

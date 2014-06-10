@@ -7,25 +7,25 @@ import (
 	//"math/rand"
 	"sort"
 	"time"
-
 )
 
 type AIAdvFns struct {
-    CalcSuperFactorFn   []func(a *AIAdv, o *AIAdvAimTarget) float64
-    SuperBulletFn       []func(a *AIAdv) *Vector3D
-    CalcBulletFactorFn  []func(a *AIAdv, o *AIAdvAimTarget) float64
-    NormalBulletFn      []func(a *AIAdv) *Vector3D
-    CalcHommingFactorFn []func(a *AIAdv, o *AIAdvAimTarget) float64
-    HommingBulletFn     []func(a *AIAdv) IDList
-    CalcAccelFactorFn   []func(a *AIAdv, o *AIAdvAimTarget) float64
-    AccelFn             []func(a *AIAdv) *Vector3D
-    CalcBurstFactorFn   []func(a *AIAdv) int
-    BurstBulletFn       []func(a *AIAdv) int
+	CalcSuperFactorFn   []func(a *AIAdv, o *AIAdvAimTarget) float64
+	SuperBulletFn       []func(a *AIAdv) *Vector3D
+	CalcBulletFactorFn  []func(a *AIAdv, o *AIAdvAimTarget) float64
+	NormalBulletFn      []func(a *AIAdv) *Vector3D
+	CalcHommingFactorFn []func(a *AIAdv, o *AIAdvAimTarget) float64
+	HommingBulletFn     []func(a *AIAdv) IDList
+	CalcAccelFactorFn   []func(a *AIAdv, o *AIAdvAimTarget) float64
+	AccelFn             []func(a *AIAdv) *Vector3D
+	CalcBurstFactorFn   []func(a *AIAdv) int
+	BurstBulletFn       []func(a *AIAdv) int
 }
 
 type AIAdv struct {
-    AIAdvFns
-	act                 [ActionEnd]int
+	AIAdvFns
+	act  [ActionEnd]int
+	name string
 
 	send            *ReqGamePacket
 	me              *SPObj
@@ -34,6 +34,10 @@ type AIAdv struct {
 	HomePos         Vector3D
 	preparedTargets [ActionEnd]AIAdvAimTargetList
 	lastTargets     [ActionEnd]map[int64]time.Time
+}
+
+func (a AIAdv) String() string {
+	return fmt.Sprintf("AI%v%v ", a.name, a.act)
 }
 
 func (a *AIAdv) UseAP(act ClientActionType) bool {
@@ -122,39 +126,31 @@ func (a *AIAdv) MakeAction(packet *RspGamePacket) *ReqGamePacket {
 		}
 	}
 
-	if act, actnum, ok := a.checkSort(ActionSuperBullet, a.CalcSuperFactorFn); ok {
-		if a.SuperBulletFn[actnum] != nil {
-			a.send.ClientAct.SuperBulletMv = a.SuperBulletFn[actnum](a)
-		}
+	if act, actnum, ok := a.checkSort(ActionSuperBullet, a.CalcSuperFactorFn); ok && a.SuperBulletFn[actnum] != nil {
+		a.send.ClientAct.SuperBulletMv = a.SuperBulletFn[actnum](a)
 		if a.send.ClientAct.SuperBulletMv != nil {
 			a.UseAP(act)
 		}
 	}
-	if act, actnum, ok := a.checkSort(ActionHommingBullet, a.CalcHommingFactorFn); ok {
-		if a.HommingBulletFn[actnum] != nil {
-			a.send.ClientAct.HommingTargetID = a.HommingBulletFn[actnum](a)
-		}
+	if act, actnum, ok := a.checkSort(ActionHommingBullet, a.CalcHommingFactorFn); ok && a.HommingBulletFn[actnum] != nil {
+		a.send.ClientAct.HommingTargetID = a.HommingBulletFn[actnum](a)
 		if a.send.ClientAct.HommingTargetID != nil {
 			a.UseAP(act)
 		}
 	}
-	if act, actnum, ok := a.checkSort(ActionBullet, a.CalcBulletFactorFn); ok {
-		if a.NormalBulletFn[actnum] != nil {
-			a.send.ClientAct.NormalBulletMv = a.NormalBulletFn[actnum](a)
-		}
+	if act, actnum, ok := a.checkSort(ActionBullet, a.CalcBulletFactorFn); ok && a.NormalBulletFn[actnum] != nil {
+		a.send.ClientAct.NormalBulletMv = a.NormalBulletFn[actnum](a)
 		if a.send.ClientAct.NormalBulletMv != nil {
 			a.UseAP(act)
 		}
 	}
-	if act, actnum, ok := a.checkSort(ActionAccel, a.CalcAccelFactorFn); ok {
-		if a.AccelFn[actnum] != nil {
-			a.send.ClientAct.Accel = a.AccelFn[actnum](a)
-		}
+	if act, actnum, ok := a.checkSort(ActionAccel, a.CalcAccelFactorFn); ok && a.AccelFn[actnum] != nil {
+		a.send.ClientAct.Accel = a.AccelFn[actnum](a)
 		if a.send.ClientAct.Accel != nil {
 			a.UseAP(act)
 		}
 	}
-	if act, actnum := a.getATAIN(ActionBurstBullet); a.CheckActn(act, a.CalcBurstFactorFn[actnum](a) ) {
+	if act, actnum := a.getATAIN(ActionBurstBullet); a.CalcBurstFactorFn[actnum] != nil && a.CheckActn(act, a.CalcBurstFactorFn[actnum](a)) {
 		if a.BurstBulletFn[actnum] != nil {
 			a.send.ClientAct.BurstShot = a.BurstBulletFn[actnum](a)
 		}
@@ -187,10 +183,6 @@ func (a *AIAdv) delOldTagets() {
 			delete(a.lastTargets[act], i)
 		}
 	}
-}
-
-func (a AIAdv) String() string {
-	return fmt.Sprintf("AIAdv%v ", a.act)
 }
 
 type AIAdvAimTargetList []*AIAdvAimTarget

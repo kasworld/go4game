@@ -111,12 +111,12 @@ const WorldSize = 500
 const WorldSizeY = 5
 
 var defaultConfig = GameConfig{
-	AICountPerWorld: 4,
+	AICountPerWorld: 5,
 	ClearY:          false,
 	SetTerrain:      false,
 	StartWorldCount: 1,
 	//AINames:         []string{"AINothing", "AINoMove", "AICloud", "AIRandom", "AI2", "AI3", "AI4"},
-	AINames: []string{"AI5"},
+	AINames: []string{"AINothing", "AINoMove", "AICloud", "AIRandom", "AI5"},
 	//AINames: []string{"AICloud", "AIRandom", "AI2", "AI3"},
 	//AINames:              []string{"AI4"},
 	APIncFrame:           10,

@@ -29,11 +29,13 @@ var advinst = AIAdvFns{
 	CalcAccelFactorFn: []func(a *AIAdv, o *AIAdvAimTarget) float64{
 		1: calcAccelFactor_1,
 		2: calcAccelFactor_1,
+		3: calcAccelFactor_1,
 		4: calcAccelFactor_4,
 	},
 	AccelFn: []func(a *AIAdv) *Vector3D{
-		1: makeAccel_1,
-		2: makeAccel_2,
+		1: makeAccel_nomove,
+		2: makeAccel_tohome,
+		3: makeAccel_rnd,
 		4: makeAccel_4,
 	},
 	CalcBurstFactorFn: []func(a *AIAdv) int{
@@ -54,9 +56,10 @@ var advinst = AIAdvFns{
 	},
 }
 
-func NewAIAdv(act [ActionEnd]int) AIActor {
+func NewAIAdv(name string, act [ActionEnd]int) AIActor {
 	a := AIAdv{
 		act:      act,
+		name:     name,
 		AIAdvFns: advinst,
 	}
 	for act := ActionAccel; act < ActionEnd; act++ {
@@ -72,16 +75,17 @@ func NewAIAdv(act [ActionEnd]int) AIActor {
 func calcAccelFactor_1(a *AIAdv, o *AIAdvAimTarget) float64 {
 	return 1
 }
-func makeAccel_1(a *AIAdv) *Vector3D {
+func makeAccel_tohome(a *AIAdv) *Vector3D {
 	var vt Vector3D
-	if rand.Float64() < 0.5 {
-		vt = GameConst.WorldCube.RandVector().Sub(a.me.PosVector).NormalizedTo(GameConst.MoveLimit[GameObjMain])
-	} else {
-		vt = a.HomePos.Sub(a.me.PosVector).NormalizedTo(GameConst.MoveLimit[GameObjMain])
-	}
+	vt = a.HomePos.Sub(a.me.PosVector).NormalizedTo(GameConst.MoveLimit[GameObjMain])
 	return &vt
 }
-func makeAccel_2(a *AIAdv) *Vector3D {
+func makeAccel_rnd(a *AIAdv) *Vector3D {
+	var vt Vector3D
+	vt = GameConst.WorldCube.RandVector().Sub(a.me.PosVector).NormalizedTo(GameConst.MoveLimit[GameObjMain])
+	return &vt
+}
+func makeAccel_nomove(a *AIAdv) *Vector3D {
 	vt := a.me.MoveVector.Neg()
 	return &vt
 }
@@ -130,6 +134,24 @@ func calcAccelFactor_4(a *AIAdv, o *AIAdvAimTarget) float64 {
 	if !GameConst.IsInteract[a.me.ObjType][o.ObjType] {
 		return -1.0
 	}
+	// higher is danger : 0 ~ 2
+	// anglefactor := 2 - a.me.PosVector.Sub(&o.PosVector).Angle(&o.MoveVector)*2/math.Pi
+	// anglefactor := 1.0
+
+	// typefactor := [GameObjEnd]float64{
+	//  GameObjMain:          2.0,
+	//  GameObjBullet:        1.0,
+	//  GameObjShield:        0.0,
+	//  GameObjHommingBullet: 1.0,
+	//  GameObjSuperBullet:   1.0,
+	//  GameObjHard:          1.0,
+	// }[o.ObjType]
+
+	//speedrate := GameConst.MoveLimit[o.ObjType] / GameConst.MoveLimit[a.me.ObjType]
+	// timefactor := GameConst.FramePerSec / 2 / a.frame2Contact(o) // in 0.5 sec len
+
+	// factor := anglefactor * typefactor * lenfactor * timefactor //* speedrate
+	// return factor
 	lenfactor := a.calcLenRate(o.SPObj)
 	return lenfactor
 }
@@ -178,16 +200,15 @@ func calcSuperFactor_4(a *AIAdv, o *AIAdvAimTarget) float64 {
 }
 func makeSuperBulletMv_4(a *AIAdv) *Vector3D {
 	act := ActionSuperBullet
-	var vt Vector3D
 	for _, o := range a.preparedTargets[act] {
 		if o.actFactor > 1 && a.lastTargets[act][o.ID].IsZero() {
 			_, estpos, _ := a.calcAims(o.SPObj, GameConst.MoveLimit[GameObjSuperBullet])
-			vt = estpos.Sub(a.me.PosVector).NormalizedTo(GameConst.MoveLimit[GameObjSuperBullet])
 			a.lastTargets[act][o.ID] = time.Now()
-			break
+			vt := estpos.Sub(a.me.PosVector).NormalizedTo(GameConst.MoveLimit[GameObjSuperBullet])
+			return &vt
 		}
 	}
-	return &vt
+	return nil
 }
 
 func calcBulletFactor_4(a *AIAdv, o *AIAdvAimTarget) float64 {
@@ -218,16 +239,15 @@ func calcBulletFactor_4(a *AIAdv, o *AIAdvAimTarget) float64 {
 }
 func makeNormalBulletMv_4(a *AIAdv) *Vector3D {
 	act := ActionBullet
-	var vt Vector3D
 	for _, o := range a.preparedTargets[act] {
 		if o.actFactor > 1 && a.lastTargets[act][o.ID].IsZero() {
 			_, estpos, _ := a.calcAims(o.SPObj, GameConst.MoveLimit[GameObjBullet])
-			vt = estpos.Sub(a.me.PosVector).NormalizedTo(GameConst.MoveLimit[GameObjBullet])
+			vt := estpos.Sub(a.me.PosVector).NormalizedTo(GameConst.MoveLimit[GameObjBullet])
 			a.lastTargets[act][o.ID] = time.Now()
-			break
+			return &vt
 		}
 	}
-	return &vt
+	return nil
 }
 
 func calcHommingFactor_4(a *AIAdv, o *AIAdvAimTarget) float64 {

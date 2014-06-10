@@ -9,17 +9,30 @@ import (
 	"time"
 )
 
+type FactorCalcFn func(a *AIAdv, o *AIAdvAimTarget) float64
+type VectorMakeFn func(a *AIAdv) *Vector3D
+type IDListMakeFn func(a *AIAdv) IDList
+type IntMakeFn func(a *AIAdv) int
+
+type AIVector3DAct struct {
+	CalcFn FactorCalcFn
+	Fn     VectorMakeFn
+}
+type AIIDListAct struct {
+	CalcFn FactorCalcFn
+	Fn     IDListMakeFn
+}
+type AIIntAct struct {
+	CalcFn IntMakeFn
+	Fn     IntMakeFn
+}
+
 type AIAdvFns struct {
-	CalcSuperFactorFn   []func(a *AIAdv, o *AIAdvAimTarget) float64
-	SuperBulletFn       []func(a *AIAdv) *Vector3D
-	CalcBulletFactorFn  []func(a *AIAdv, o *AIAdvAimTarget) float64
-	NormalBulletFn      []func(a *AIAdv) *Vector3D
-	CalcHommingFactorFn []func(a *AIAdv, o *AIAdvAimTarget) float64
-	HommingBulletFn     []func(a *AIAdv) IDList
-	CalcAccelFactorFn   []func(a *AIAdv, o *AIAdvAimTarget) float64
-	AccelFn             []func(a *AIAdv) *Vector3D
-	CalcBurstFactorFn   []func(a *AIAdv) int
-	BurstBulletFn       []func(a *AIAdv) int
+	SuperFns   []AIVector3DAct
+	BulletFns  []AIVector3DAct
+	AccelFns   []AIVector3DAct
+	HommingFns []AIIDListAct
+	BurstFns   []AIIntAct
 }
 
 type AIAdv struct {
@@ -85,16 +98,15 @@ func (a *AIAdv) getATAIN(act ClientActionType) (ClientActionType, int) {
 	return act, a.act[act]
 }
 
-func (a *AIAdv) checkSort(act ClientActionType, calcfn []func(*AIAdv, *AIAdvAimTarget) float64) (ClientActionType, int, bool) {
-	actnum := a.act[act]
-	if a.CheckAct(act) && calcfn[actnum] != nil {
+func (a *AIAdv) checkSort(act ClientActionType, calcfn FactorCalcFn) bool {
+	if a.CheckAct(act) && calcfn != nil {
 		for _, o := range a.preparedTargets[act] {
-			o.actFactor = calcfn[actnum](a, o)
+			o.actFactor = calcfn(a, o)
 		}
 		sort.Sort(a.preparedTargets[act])
-		return act, actnum, true
+		return true
 	} else {
-		return act, actnum, false
+		return false
 	}
 }
 
@@ -126,35 +138,35 @@ func (a *AIAdv) MakeAction(packet *RspGamePacket) *ReqGamePacket {
 		}
 	}
 
-	if act, actnum, ok := a.checkSort(ActionSuperBullet, a.CalcSuperFactorFn); ok && a.SuperBulletFn[actnum] != nil {
-		a.send.ClientAct.SuperBulletMv = a.SuperBulletFn[actnum](a)
+	if act, actnum := a.getATAIN(ActionSuperBullet); a.checkSort(act, a.SuperFns[actnum].CalcFn) {
+		a.send.ClientAct.SuperBulletMv = a.SuperFns[actnum].Fn(a)
 		if a.send.ClientAct.SuperBulletMv != nil {
 			a.UseAP(act)
 		}
 	}
-	if act, actnum, ok := a.checkSort(ActionHommingBullet, a.CalcHommingFactorFn); ok && a.HommingBulletFn[actnum] != nil {
-		a.send.ClientAct.HommingTargetID = a.HommingBulletFn[actnum](a)
+	if act, actnum := a.getATAIN(ActionHommingBullet); a.checkSort(act, a.HommingFns[actnum].CalcFn) {
+		a.send.ClientAct.HommingTargetID = a.HommingFns[actnum].Fn(a)
 		if a.send.ClientAct.HommingTargetID != nil {
 			a.UseAP(act)
 		}
 	}
-	if act, actnum, ok := a.checkSort(ActionBullet, a.CalcBulletFactorFn); ok && a.NormalBulletFn[actnum] != nil {
-		a.send.ClientAct.NormalBulletMv = a.NormalBulletFn[actnum](a)
+	if act, actnum := a.getATAIN(ActionBullet); a.checkSort(act, a.BulletFns[actnum].CalcFn) {
+		a.send.ClientAct.NormalBulletMv = a.BulletFns[actnum].Fn(a)
 		if a.send.ClientAct.NormalBulletMv != nil {
 			a.UseAP(act)
 		}
 	}
-	if act, actnum, ok := a.checkSort(ActionAccel, a.CalcAccelFactorFn); ok && a.AccelFn[actnum] != nil {
-		a.send.ClientAct.Accel = a.AccelFn[actnum](a)
+	if act, actnum := a.getATAIN(ActionAccel); a.checkSort(act, a.AccelFns[actnum].CalcFn) {
+		a.send.ClientAct.Accel = a.AccelFns[actnum].Fn(a)
 		if a.send.ClientAct.Accel != nil {
 			a.UseAP(act)
 		}
 	}
-	if act, actnum := a.getATAIN(ActionBurstBullet); a.CalcBurstFactorFn[actnum] != nil && a.CheckActn(act, a.CalcBurstFactorFn[actnum](a)) {
-		if a.BurstBulletFn[actnum] != nil {
-			a.send.ClientAct.BurstShot = a.BurstBulletFn[actnum](a)
+	if act, actnum := a.getATAIN(ActionBurstBullet); a.BurstFns[actnum].CalcFn != nil && a.CheckActn(act, a.BurstFns[actnum].CalcFn(a)) {
+		if a.BurstFns[actnum].Fn != nil {
+			a.send.ClientAct.BurstShot = a.BurstFns[actnum].Fn(a)
+			a.UseAPn(act, a.send.ClientAct.BurstShot)
 		}
-		a.UseAPn(act, a.send.ClientAct.BurstShot)
 	}
 	return a.send
 }

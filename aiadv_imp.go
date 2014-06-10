@@ -9,50 +9,28 @@ import (
 	"time"
 )
 
-var advinst = AIAdvFns{
-	CalcSuperFactorFn: []func(a *AIAdv, o *AIAdvAimTarget) float64{
-		1: calcSuperFactor_1,
-		4: calcSuperFactor_4,
+var advinst2 = AIAdvFns{
+	SuperFns: []AIVector3DAct{
+		1: AIVector3DAct{calcSuperFactor_1, makeSuperBulletMv_1},
+		4: AIVector3DAct{calcSuperFactor_4, makeSuperBulletMv_4},
 	},
-	SuperBulletFn: []func(a *AIAdv) *Vector3D{
-		1: makeSuperBulletMv_1,
-		4: makeSuperBulletMv_4,
+	BulletFns: []AIVector3DAct{
+		1: AIVector3DAct{calcBulletFactor_1, makeNormalBulletMv_1},
+		4: AIVector3DAct{calcBulletFactor_4, makeNormalBulletMv_4},
 	},
-	CalcBulletFactorFn: []func(a *AIAdv, o *AIAdvAimTarget) float64{
-		1: calcBulletFactor_1,
-		4: calcBulletFactor_4,
+	AccelFns: []AIVector3DAct{
+		1: AIVector3DAct{calcAccelFactor_1, makeAccel_nomove},
+		2: AIVector3DAct{calcAccelFactor_1, makeAccel_tohome},
+		3: AIVector3DAct{calcAccelFactor_1, makeAccel_rnd},
+		4: AIVector3DAct{calcAccelFactor_4, makeAccel_4},
 	},
-	NormalBulletFn: []func(a *AIAdv) *Vector3D{
-		1: makeNormalBulletMv_1,
-		4: makeNormalBulletMv_4,
+	HommingFns: []AIIDListAct{
+		1: AIIDListAct{calcHommingFactor_1, makeHommingTargetID_1},
+		4: AIIDListAct{calcHommingFactor_4, makeHommingTargetID_4},
 	},
-	CalcAccelFactorFn: []func(a *AIAdv, o *AIAdvAimTarget) float64{
-		1: calcAccelFactor_1,
-		2: calcAccelFactor_1,
-		3: calcAccelFactor_1,
-		4: calcAccelFactor_4,
-	},
-	AccelFn: []func(a *AIAdv) *Vector3D{
-		1: makeAccel_nomove,
-		2: makeAccel_tohome,
-		3: makeAccel_rnd,
-		4: makeAccel_4,
-	},
-	CalcBurstFactorFn: []func(a *AIAdv) int{
-		1: calcBurstFactor_1,
-		4: calcBurstFactor_4,
-	},
-	BurstBulletFn: []func(a *AIAdv) int{
-		1: makeBurstBullet_1,
-		4: makeBurstBullet_4,
-	},
-	CalcHommingFactorFn: []func(a *AIAdv, o *AIAdvAimTarget) float64{
-		1: calcHommingFactor_1,
-		4: calcHommingFactor_4,
-	},
-	HommingBulletFn: []func(a *AIAdv) IDList{
-		1: makeHommingTargetID_1,
-		4: makeHommingTargetID_4,
+	BurstFns: []AIIntAct{
+		1: AIIntAct{calcBurstFactor_1, makeBurstBullet_1},
+		4: AIIntAct{calcBurstFactor_4, makeBurstBullet_4},
 	},
 }
 
@@ -60,7 +38,7 @@ func NewAIAdv(name string, act [ActionEnd]int) AIActor {
 	a := AIAdv{
 		act:      act,
 		name:     name,
-		AIAdvFns: advinst,
+		AIAdvFns: advinst2,
 	}
 	for act := ActionAccel; act < ActionEnd; act++ {
 		a.lastTargets[act] = make(map[int64]time.Time)

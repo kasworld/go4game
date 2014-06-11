@@ -47,12 +47,17 @@ func NewTeamDisp(t *Team) *TeamDisp {
 
 type WorldDisp struct {
 	ID       int64
+	B1       *HyperRect
+	B2       *HyperRect
 	TeamList []TeamDisp
 }
 
 func NewWorldDisp(w *World) *WorldDisp {
 	ws := WorldDisp{
-		ID:       w.ID,
+		ID: w.ID,
+		B1: GameConst.WorldCube,
+		B2: GameConst.WorldCube2,
+
 		TeamList: make([]TeamDisp, 0, len(w.Teams)),
 	}
 	for _, t := range w.Teams {

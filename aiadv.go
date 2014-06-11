@@ -210,5 +210,5 @@ func (s AIAdvAimTargetList) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 func (s AIAdvAimTargetList) Less(i, j int) bool {
-	return s[i].actFactor < s[j].actFactor
+	return s[i].actFactor > s[j].actFactor
 }

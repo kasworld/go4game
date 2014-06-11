@@ -107,7 +107,7 @@ func (t *Team) addMaze() {
 	for i := GameConst.WorldCube.Min[0]; i < GameConst.WorldCube.Max[0]; i += w {
 		j := 0.0
 		for k := GameConst.WorldCube.Min[2]; k < GameConst.WorldCube.Max[2]; k += w {
-			if rand.Float64() < 0.7 {
+			if rand.Float64() < 0.8 {
 				continue
 			}
 			pos := Vector3D{i, j, k}

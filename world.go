@@ -26,7 +26,7 @@ type World struct {
 
 func (w World) String() string {
 	return fmt.Sprintf("World%v AIs:%v Players:%v ViewRange %v",
-		w.ID, w.TeamCountByType(TeamTypeAI), w.TeamCountByType(TeamTypePlayer), w.clientViewRange.DiagLen())
+		w.ID, w.TeamCountByType(TeamTypeAI), w.TeamCountByType(TeamTypePlayer), w.clientViewRange)
 }
 
 func NewWorld(g *GameService) *World {
@@ -105,6 +105,11 @@ func (w *World) decideClientViewRange() *HyperRect {
 		n = 2
 	}
 	hs := GameConst.WorldCube.SizeVector().Imul(1.0 / n / 2)
+	for i := 0; i < 3; i++ {
+		if hs[i] < GameConst.MaxObjectRadius*3 {
+			hs[i] = GameConst.MaxObjectRadius * 3
+		}
+	}
 	hr := HyperRect{
 		Min: hs.Neg(),
 		Max: hs,

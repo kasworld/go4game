@@ -132,6 +132,8 @@ var cameraCube, sceneCube;
 var objects = {};
 var debugContext;
 var info;
+var worldcube1, worldcube2;
+
 
 initWebSocket();
 init();
@@ -241,6 +243,23 @@ function recvPacket2objects() {
     if (!recvPacket) {
         return false;
     }
+
+    if (!worldcube1 ){
+        var b1 = recvPacket.WorldInfo.B1;
+        var box1 = new THREE.BoxGeometry(
+            b1.Max[0] - b1.Min[0],b1.Max[1] - b1.Min[1],b1.Max[2] - b1.Min[2]);
+        var wiremat = new THREE.MeshBasicMaterial( { color: 0xffaa00, wireframe: true } );
+        worldcube1 = new THREE.Mesh(box1, wiremat);
+        scene.add( worldcube1);
+
+        var b2 = recvPacket.WorldInfo.B2;
+        var box2 = new THREE.BoxGeometry(
+            b2.Max[0] - b2.Min[0],b2.Max[1] - b2.Min[1],b2.Max[2] - b2.Min[2]);
+        var wiremat = new THREE.MeshBasicMaterial( { color: 0xffaa00, wireframe: true } );
+        worldcube2 = new THREE.Mesh(box2, wiremat);
+        scene.add( worldcube2);
+    }
+
     var teams = recvPacket.WorldInfo.TeamList;
 
     var thisobjs = [];

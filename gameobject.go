@@ -71,6 +71,7 @@ func (o *GameObject) MakeMainObj() *GameObject {
 	o.PosVector = GameConst.WorldCube.RandVector()
 	o.MoveVector = GameConst.WorldCube.RandVector()
 	o.accelVector = GameConst.WorldCube.RandVector()
+	//o.borderActionFn = borderActionFn_Block
 	o.borderActionFn = borderActionFn_Bounce
 	o.ObjType = GameObjMain
 	o.clearYFn(o, nil)

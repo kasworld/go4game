@@ -2,11 +2,16 @@ package go4game
 
 import (
 	//"log"
+	"fmt"
 	"math"
 	"math/rand"
 )
 
 type Vector3D [3]float64
+
+func (v Vector3D) String() string {
+	return fmt.Sprintf("[%5.2f,%5.2f,%5.2f]", v[0], v[1], v[2])
+}
 
 var V3DZero = Vector3D{0, 0, 0}
 var V3DUnitX = Vector3D{1, 0, 0}

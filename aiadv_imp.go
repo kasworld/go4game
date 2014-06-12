@@ -1,7 +1,7 @@
 package go4game
 
 import (
-	//"log"
+	"log"
 	//"fmt"
 	"math"
 	"math/rand"
@@ -67,7 +67,7 @@ func makeAccel_rnd(a *AIAdv) *Vector3D {
 	return &vt
 }
 func makeAccel_nomove(a *AIAdv) *Vector3D {
-	vt := a.me.MoveVector.Neg()
+	vt := a.me.MoveVector.Neg().Imul(GameConst.FramePerSec)
 	return &vt
 }
 
@@ -289,47 +289,76 @@ func makeBurstBullet_4(a *AIAdv) int {
 
 // ---------- 5 ------------------------
 func calcAccelFactor_5(a *AIAdv, o *AIAdvAimTarget) float64 {
-	if !GameConst.IsInteract[a.me.ObjType][o.ObjType] {
-		return -1.0
-	}
-	t := o.SPObj
-	collen := GameConst.Radius[a.me.ObjType] + GameConst.Radius[o.ObjType]
-	curlen := a.me.PosVector.LenTo(t.PosVector) - collen
-
-	nextposme := a.me.PosVector.Add(a.me.MoveVector.Idiv(GameConst.FramePerSec))
-	nextpost := t.PosVector.Add(t.MoveVector.Idiv(GameConst.FramePerSec))
-	nextlen := nextposme.LenTo(nextpost) - collen
-
-	var lenfactor float64
-	if curlen <= collen/2 || nextlen <= collen/2 {
-		lenfactor = GameConst.WorldDiag // math.Inf(1)
-	} else {
-		lenfactor = (curlen / nextlen) + (collen / curlen)
-	}
-	//log.Printf("f:%v", lenfactor)
-	return lenfactor
+	return a.me.calcLenFactor(o.SPObj)
 }
+
+func d2sVt(s *SPObj, d *SPObj, vt Vector3D) Vector3D {
+	s2dVt := d.PosVector.Sub(s.PosVector)
+	vtfatordanger := vt.Project(s2dVt).Imul(1)
+	return vtfatordanger.Neg()
+}
+
 func makeAccel_5(a *AIAdv) *Vector3D {
 	act := ActionAccel
-	var vt Vector3D
-	dcount := 0
+	toHomeVt := a.HomePos.Sub(a.me.PosVector).Imul(GameConst.FramePerSec)
+	vt := toHomeVt
 	for _, o := range a.preparedTargets[act] {
-		if o.actFactor < 2 {
-			continue
+		if o.actFactor >= 1 {
+			spdFactor := 1.0
+			if GameConst.MoveLimit[a.me.ObjType] < GameConst.MoveLimit[o.ObjType] {
+				spdFactor += GameConst.MoveLimit[o.ObjType] / GameConst.MoveLimit[a.me.ObjType]
+			}
+			vtfatordanger := d2sVt(a.me, o.SPObj, vt).Imul(spdFactor)
+			vt = vt.Add(vtfatordanger)
 		}
-		dcount++
-		//log.Printf("f:%v", o.actFactor)
-		backbt := a.me.PosVector.Sub(o.SPObj.PosVector).NormalizedTo(o.actFactor)
-		vt = vt.Add(backbt)
 	}
-	if dcount == 0 {
-		vt = vt.Add(a.HomePos.Sub(a.me.PosVector))
-		//log.Printf("h:%v", vt)
-	} else {
-		vt = vt.Add(a.me.MoveVector.Neg())
+	revMv := a.me.MoveVector.Neg().Imul(GameConst.FramePerSec)
+	vt = vt.Add(revMv)
+	return &vt
+}
+
+func calcBulletFactor_5(a *AIAdv, o *AIAdvAimTarget) float64 {
+	bulletType := GameObjBullet
+	if !GameConst.IsInteract[o.ObjType][bulletType] {
+		return -1.0
+	}
+	_, estpos, estangle := a.calcAims(o.SPObj, GameConst.MoveLimit[bulletType])
+	if estpos == nil || (!estpos.IsIn(GameConst.WorldCube) && o.ObjType != GameObjMain) { // cannot contact
+		return -1.0
 	}
 
-	return &vt
+	anglefactor := estangle / math.Pi * 180
+	log.Printf("af %v %v", estangle, anglefactor)
+
+	typefactor := [GameObjEnd]float64{
+		GameObjMain:          1.2,
+		GameObjBullet:        1.0,
+		GameObjShield:        0,
+		GameObjHommingBullet: 1.3,
+		GameObjSuperBullet:   1.4,
+	}[o.ObjType]
+
+	collen := math.Sqrt(GameConst.ObjSqd[a.me.ObjType][o.ObjType])
+	curlen := a.me.PosVector.LenTo(o.PosVector)
+	lenfactor := collen * 50 / curlen
+
+	factor := anglefactor * typefactor * lenfactor
+	return factor
+}
+func makeNormalBulletMv_5(a *AIAdv) *Vector3D {
+	act := ActionBullet
+	for _, o := range a.preparedTargets[act] {
+		if o.actFactor > 1 && a.lastTargets[act][o.ID].IsZero() {
+			estdur, estpos, _ := a.calcAims(o.SPObj, GameConst.MoveLimit[GameObjBullet])
+			if !estpos.IsIn(GameConst.WorldCube) && o.ObjType == GameObjMain {
+				adjEstpos(estpos)
+			}
+			vt := a.calcFireVt(a.me.PosVector, *estpos, estdur)
+			a.lastTargets[act][o.ID] = time.Now()
+			return &vt
+		}
+	}
+	return nil
 }
 
 func calcSuperFactor_5(a *AIAdv, o *AIAdvAimTarget) float64 {
@@ -365,48 +394,6 @@ func makeSuperBulletMv_5(a *AIAdv) *Vector3D {
 			_, estpos, _ := a.calcAims(o.SPObj, GameConst.MoveLimit[GameObjSuperBullet])
 			a.lastTargets[act][o.ID] = time.Now()
 			vt := estpos.Sub(a.me.PosVector).NormalizedTo(GameConst.MoveLimit[GameObjSuperBullet])
-			return &vt
-		}
-	}
-	return nil
-}
-
-func calcBulletFactor_5(a *AIAdv, o *AIAdvAimTarget) float64 {
-	bulletType := GameObjBullet
-	if !GameConst.IsInteract[o.ObjType][bulletType] {
-		return -1.0
-	}
-	_, estpos, estangle := a.calcAims(o.SPObj, GameConst.MoveLimit[bulletType])
-	if estpos == nil || (!estpos.IsIn(GameConst.WorldCube) && o.ObjType != GameObjMain) { // cannot contact
-		return -1.0
-	}
-	anglefactor := math.Pow(estangle/math.Pi, 2)
-
-	typefactor := [GameObjEnd]float64{
-		GameObjMain:          1.2,
-		GameObjBullet:        1.0,
-		GameObjShield:        0,
-		GameObjHommingBullet: 1.3,
-		GameObjSuperBullet:   1.4,
-	}[o.ObjType]
-
-	collen := math.Sqrt(GameConst.ObjSqd[a.me.ObjType][o.ObjType])
-	curlen := a.me.PosVector.LenTo(o.PosVector)
-	lenfactor := collen * 50 / curlen
-
-	factor := anglefactor * typefactor * lenfactor
-	return factor
-}
-func makeNormalBulletMv_5(a *AIAdv) *Vector3D {
-	act := ActionBullet
-	for _, o := range a.preparedTargets[act] {
-		if o.actFactor > 1 && a.lastTargets[act][o.ID].IsZero() {
-			estdur, estpos, _ := a.calcAims(o.SPObj, GameConst.MoveLimit[GameObjBullet])
-			if !estpos.IsIn(GameConst.WorldCube) && o.ObjType == GameObjMain {
-				a.adjEstpos(estpos)
-			}
-			vt := a.calcFireVt(a.me.PosVector, *estpos, estdur)
-			a.lastTargets[act][o.ID] = time.Now()
 			return &vt
 		}
 	}
@@ -470,12 +457,38 @@ func makeBurstBullet_5(a *AIAdv) int {
 
 // --------------------- util fns ------------------
 
+func (s *SPObj) calcLenFactor(o *SPObj) float64 {
+	// safe <- -1, 0, 1, 2, 3 -> danger
+	if !GameConst.IsInteract[s.ObjType][o.ObjType] {
+		return -1.0
+	}
+	spdFactor := 1.0
+	if GameConst.MoveLimit[s.ObjType] < GameConst.MoveLimit[o.ObjType] {
+		spdFactor += GameConst.MoveLimit[o.ObjType] / GameConst.MoveLimit[s.ObjType]
+	}
+
+	curlen, collen := s.collen(o)
+	nextlen, _ := s.TestMoveByAccel(V3DZero).collen(o.TestMoveByAccel(V3DZero))
+	lenrange := (collen / 2) * spdFactor
+	var lenfactor float64
+	if curlen <= lenrange {
+		lenfactor += 1
+	}
+	if nextlen <= lenrange {
+		lenfactor += 2
+	}
+	// if lenfactor > 0 {
+	// 	log.Printf("curlen %v collen %v nextlen %v lenfactor %v", curlen, collen, nextlen, lenfactor)
+	// }
+	return lenfactor
+}
+
 func (a *AIAdv) calcFireVt(srcpos Vector3D, dstpos Vector3D, dur float64) Vector3D {
 	l := srcpos.LenTo(dstpos)
 	return dstpos.Sub(srcpos).NormalizedTo(l / dur)
 }
 
-func (a *AIAdv) adjEstpos(pos *Vector3D) {
+func adjEstpos(pos *Vector3D) {
 	for i := range pos {
 		if pos[i] > GameConst.WorldCube.Max[i] {
 			pos[i] = GameConst.WorldCube.Max[i]
@@ -487,14 +500,20 @@ func (a *AIAdv) adjEstpos(pos *Vector3D) {
 }
 
 // from gameobj moveByTimeFn_accel
-func (a *AIAdv) TestMoveByAccel(m *SPObj, accelVector Vector3D) Vector3D {
-	dur := 1000 / GameConst.FramePerSec
-	MoveVector := m.MoveVector.Add(accelVector.Imul(dur))
-	if MoveVector.Abs() > GameConst.MoveLimit[m.ObjType] {
-		MoveVector = MoveVector.NormalizedTo(GameConst.MoveLimit[m.ObjType])
+func (m SPObj) TestMoveByAccel(accelVector Vector3D) *SPObj {
+	dur := 1.0 / GameConst.FramePerSec
+	m.MoveVector = m.MoveVector.Add(accelVector.Imul(dur))
+	if m.MoveVector.Abs() > GameConst.MoveLimit[m.ObjType] {
+		m.MoveVector = m.MoveVector.NormalizedTo(GameConst.MoveLimit[m.ObjType])
 	}
-	PosVector := m.PosVector.Add(MoveVector.Imul(dur))
-	return PosVector
+	m.PosVector = m.PosVector.Add(m.MoveVector.Imul(dur))
+	return &m
+}
+
+func (m *SPObj) collen(t *SPObj) (float64, float64) {
+	collen := GameConst.Radius[m.ObjType] + GameConst.Radius[t.ObjType]
+	curlen := m.PosVector.LenTo(t.PosVector) - collen
+	return curlen, collen
 }
 
 // estmate remain frame to contact( len == 0 )
@@ -542,8 +561,11 @@ func (a *AIAdv) calcAims(t *SPObj, projectilemovelimit float64) (float64, *Vecto
 	if math.IsInf(dur, 1) {
 		return math.Inf(1), nil, 0
 	}
+	if t.MoveVector.Abs() < 0.1 {
+		return dur, &t.PosVector, 0
+	}
 	estpos := t.PosVector.Add(t.MoveVector.Imul(dur))
-	estangle := t.MoveVector.Angle(estpos.Sub(a.me.PosVector))
+	estangle := t.PosVector.Sub(a.me.PosVector).Angle(estpos.Sub(a.me.PosVector))
 	return dur, &estpos, estangle
 }
 

@@ -108,22 +108,17 @@ func ValidateConfig(config *GameConfig) {
 }
 
 const WorldSize = 500
-const WorldSizeY = 10
+const WorldSizeY = 5
 
 var defaultConfig = GameConfig{
-	AICountPerWorld: 2,
+	AICountPerWorld: 12,
 	ClearY:          false,
 	SetTerrain:      false,
 	StartWorldCount: 1,
-	//AINames:         []string{"AINothing", "AINoMove", "AICloud", "AIRandom", "AI2", "AI3", "AI4"},
-	AINames: []string{
-		"AI5",
-		"AI5",
-	},
-	//AINames: []string{"AICloud", "AIRandom", "AI2", "AI3"},
-	//AINames:              []string{"AI4"},
+	//AINames:         []string{"AINothing", "AINoMove", "AICloud", "AIRandom", "AI2", "AI3", "AI4", "AI5"},
+	AINames:              []string{"AICloud", "AIRandom", "AI4", "AI5"},
 	APIncFrame:           10,
-	ShieldCount:          0,
+	ShieldCount:          8,
 	MaxTcpClientPerWorld: 32,
 	MaxWsClientPerWorld:  32,
 	RemoveEmptyWorld:     false,

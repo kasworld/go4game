@@ -1,7 +1,7 @@
 package go4game
 
 import (
-	"log"
+	//"log"
 	//"fmt"
 	"math"
 	"math/rand"
@@ -324,10 +324,11 @@ func calcBulletFactor_5(a *AIAdv, o *AIAdvAimTarget) float64 {
 }
 func makeNormalBulletMv_5(a *AIAdv) *Vector3D {
 	act := ActionBullet
+	bulletType := GameObjBullet
 	for _, o := range a.preparedTargets[act] {
 		if o.actFactor > 1 {
 			if a.lastTargets[act][o.ID].IsZero() {
-				_, estpos, _ := a.calcAims(o.SPObj, GameConst.MoveLimit[GameObjBullet])
+				_, estpos, _ := a.calcAims(o.SPObj, GameConst.MoveLimit[bulletType])
 				if !estpos.IsIn(GameConst.WorldCube2) && o.ObjType != GameObjMain {
 					continue
 				}
@@ -335,16 +336,14 @@ func makeNormalBulletMv_5(a *AIAdv) *Vector3D {
 				if o.ObjType == GameObjMain {
 					changed := estpos.MakeIn(GameConst.WorldCube)
 					if changed != 0 {
-						log.Printf("target %v bounce %b", o.ID, changed)
+						//log.Printf("target %v bounce %b", o.ID, changed)
 					}
 				}
 				lennew := a.me.PosVector.LenTo(*estpos)
 				lenrate := lennew / lenori
-				vt := estpos.Sub(a.me.PosVector).NormalizedTo(GameConst.MoveLimit[GameObjBullet]).Imul(lenrate)
+				vt := estpos.Sub(a.me.PosVector).NormalizedTo(GameConst.MoveLimit[bulletType]).Imul(lenrate)
 				a.lastTargets[act][o.ID] = time.Now()
 				return &vt
-			} else {
-				delete(a.lastTargets[act], o.ID)
 			}
 		}
 	}
@@ -356,35 +355,57 @@ func calcSuperFactor_5(a *AIAdv, o *AIAdvAimTarget) float64 {
 	if !GameConst.IsInteract[o.ObjType][bulletType] {
 		return -1.0
 	}
-	_, estpos, estangle := a.calcAims(o.SPObj, GameConst.MoveLimit[bulletType])
-	if estpos == nil || !estpos.IsIn(GameConst.WorldCube) { // cannot contact
+	_, estpos, _ := a.calcAims(o.SPObj, GameConst.MoveLimit[bulletType])
+	if estpos == nil || (!estpos.IsIn(GameConst.WorldCube2) && o.ObjType != GameObjMain) { // cannot contact
 		return -1.0
 	}
-	anglefactor := math.Pow(estangle/math.Pi, 2)
+
+	mvangle := a.me.PosVector.Sub(o.PosVector).Angle(o.MoveVector)
+	anglefactor := mvangle / math.Pi * 180
+	if anglefactor > 30 && o.ObjType != GameObjMain {
+		return -1.0
+	}
+	//log.Printf("af %v %v", estangle, anglefactor)
 
 	typefactor := [GameObjEnd]float64{
-		GameObjMain:          1.2,
-		GameObjBullet:        1.0,
+		GameObjMain:          1.,
+		GameObjBullet:        0.5,
 		GameObjShield:        0,
-		GameObjHommingBullet: 1.3,
-		GameObjSuperBullet:   1.4,
+		GameObjHommingBullet: 1.,
+		GameObjSuperBullet:   1.,
 	}[o.ObjType]
 
-	collen := math.Sqrt(GameConst.ObjSqd[a.me.ObjType][o.ObjType])
+	//collen := math.Sqrt(GameConst.ObjSqd[a.me.ObjType][o.ObjType])
 	curlen := a.me.PosVector.LenTo(o.PosVector)
-	lenfactor := collen * 50 / curlen
+	lenfactor := GameConst.WorldDiag / 2 / curlen
+	//log.Printf("lf %v ", lenfactor)
 
-	factor := anglefactor * typefactor * lenfactor
+	factor := lenfactor * typefactor
 	return factor
 }
 func makeSuperBulletMv_5(a *AIAdv) *Vector3D {
 	act := ActionSuperBullet
+	bulletType := GameObjSuperBullet
 	for _, o := range a.preparedTargets[act] {
-		if o.actFactor > 1 && a.lastTargets[act][o.ID].IsZero() {
-			_, estpos, _ := a.calcAims(o.SPObj, GameConst.MoveLimit[GameObjSuperBullet])
-			a.lastTargets[act][o.ID] = time.Now()
-			vt := estpos.Sub(a.me.PosVector).NormalizedTo(GameConst.MoveLimit[GameObjSuperBullet])
-			return &vt
+		if o.actFactor > 1 {
+			if a.lastTargets[act][o.ID].IsZero() {
+				_, estpos, _ := a.calcAims(o.SPObj, GameConst.MoveLimit[bulletType])
+				if !estpos.IsIn(GameConst.WorldCube2) && o.ObjType != GameObjMain {
+					continue
+				}
+				lenori := a.me.PosVector.LenTo(*estpos)
+				if o.ObjType == GameObjMain {
+					changed := estpos.MakeIn(GameConst.WorldCube)
+					if changed != 0 {
+						//log.Printf("target %v bounce %b", o.ID, changed)
+					}
+				}
+				lennew := a.me.PosVector.LenTo(*estpos)
+				lenrate := lennew / lenori
+				vt := estpos.Sub(a.me.PosVector).NormalizedTo(GameConst.MoveLimit[bulletType]).Imul(lenrate)
+				a.lastTargets[act][o.ID] = time.Now()
+				return &vt
+			}
 		}
 	}
 	return nil

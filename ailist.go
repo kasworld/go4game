@@ -82,8 +82,8 @@ func NewAI5() AIActor {
 		[...]int{
 			ActionAccel:         5,
 			ActionBullet:        5,
-			ActionSuperBullet:   0,
-			ActionHommingBullet: 0,
-			ActionBurstBullet:   0,
+			ActionSuperBullet:   5,
+			ActionHommingBullet: 5,
+			ActionBurstBullet:   5,
 		})
 }

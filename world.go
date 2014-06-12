@@ -104,7 +104,7 @@ func (w *World) decideClientViewRange() *HyperRect {
 	if n < 2 {
 		n = 2
 	}
-	hs := GameConst.WorldCube.SizeVector().Imul(1.0 / n / 2)
+	hs := GameConst.WorldCube.SizeVector().Imul(1.0 / n)
 	for i := 0; i < 3; i++ {
 		if hs[i] < GameConst.MaxObjectRadius*3 {
 			hs[i] = GameConst.MaxObjectRadius * 3

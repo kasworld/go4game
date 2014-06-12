@@ -298,3 +298,19 @@ func (p Vector3D) IsIn(hr *HyperRect) bool {
 	// }
 	// return true
 }
+
+func (p *Vector3D) MakeIn(hr *HyperRect) int {
+	changed := 0
+	var i uint
+	for i = 0; i < 3; i++ {
+		if p[i] > hr.Max[i] {
+			p[i] = hr.Max[i]
+			changed += 1 << (i*2 + 1)
+		}
+		if p[i] < hr.Min[i] {
+			p[i] = hr.Min[i]
+			changed += 1 << (i * 2)
+		}
+	}
+	return changed
+}

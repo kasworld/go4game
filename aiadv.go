@@ -99,15 +99,16 @@ func (a *AIAdv) getATAIN(act ClientActionType) (ClientActionType, int) {
 }
 
 func (a *AIAdv) checkSort(act ClientActionType, calcfn FactorCalcFn) bool {
-	if a.CheckAct(act) && calcfn != nil {
+	if !a.CheckAct(act) {
+		return false
+	}
+	if calcfn != nil {
 		for _, o := range a.preparedTargets[act] {
 			o.actFactor = calcfn(a, o)
 		}
 		sort.Sort(a.preparedTargets[act])
-		return true
-	} else {
-		return false
 	}
+	return true
 }
 
 func (a *AIAdv) MakeAction(packet *RspGamePacket) *ReqGamePacket {
@@ -138,31 +139,31 @@ func (a *AIAdv) MakeAction(packet *RspGamePacket) *ReqGamePacket {
 		}
 	}
 
-	if act, actnum := a.getATAIN(ActionSuperBullet); a.checkSort(act, a.SuperFns[actnum].CalcFn) {
+	if act, actnum := a.getATAIN(ActionSuperBullet); a.SuperFns[actnum].Fn != nil && a.checkSort(act, a.SuperFns[actnum].CalcFn) {
 		a.send.ClientAct.SuperBulletMv = a.SuperFns[actnum].Fn(a)
 		if a.send.ClientAct.SuperBulletMv != nil {
 			a.UseAP(act)
 		}
 	}
-	if act, actnum := a.getATAIN(ActionHommingBullet); a.checkSort(act, a.HommingFns[actnum].CalcFn) {
+	if act, actnum := a.getATAIN(ActionHommingBullet); a.HommingFns[actnum].Fn != nil && a.checkSort(act, a.HommingFns[actnum].CalcFn) {
 		a.send.ClientAct.HommingTargetID = a.HommingFns[actnum].Fn(a)
 		if a.send.ClientAct.HommingTargetID != nil {
 			a.UseAP(act)
 		}
 	}
-	if act, actnum := a.getATAIN(ActionBullet); a.checkSort(act, a.BulletFns[actnum].CalcFn) {
+	if act, actnum := a.getATAIN(ActionBullet); a.BulletFns[actnum].Fn != nil && a.checkSort(act, a.BulletFns[actnum].CalcFn) {
 		a.send.ClientAct.NormalBulletMv = a.BulletFns[actnum].Fn(a)
 		if a.send.ClientAct.NormalBulletMv != nil {
 			a.UseAP(act)
 		}
 	}
-	if act, actnum := a.getATAIN(ActionAccel); a.checkSort(act, a.AccelFns[actnum].CalcFn) {
+	if act, actnum := a.getATAIN(ActionAccel); a.AccelFns[actnum].Fn != nil && a.checkSort(act, a.AccelFns[actnum].CalcFn) {
 		a.send.ClientAct.Accel = a.AccelFns[actnum].Fn(a)
 		if a.send.ClientAct.Accel != nil {
 			a.UseAP(act)
 		}
 	}
-	if act, actnum := a.getATAIN(ActionBurstBullet); a.BurstFns[actnum].CalcFn != nil && a.CheckActn(act, a.BurstFns[actnum].CalcFn(a)) {
+	if act, actnum := a.getATAIN(ActionBurstBullet); a.BurstFns[actnum].Fn != nil && a.CheckActn(act, a.BurstFns[actnum].CalcFn(a)) {
 		if a.BurstFns[actnum].Fn != nil {
 			a.send.ClientAct.BurstShot = a.BurstFns[actnum].Fn(a)
 			a.UseAPn(act, a.send.ClientAct.BurstShot)

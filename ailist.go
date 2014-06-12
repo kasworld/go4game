@@ -60,11 +60,11 @@ func NewAI2() AIActor {
 func NewAI3() AIActor {
 	return NewAIAdv("3",
 		[...]int{
-			ActionAccel:         4,
-			ActionBullet:        4,
-			ActionSuperBullet:   4,
-			ActionHommingBullet: 4,
-			ActionBurstBullet:   4,
+			ActionAccel:         1,
+			ActionBullet:        1,
+			ActionSuperBullet:   0,
+			ActionHommingBullet: 0,
+			ActionBurstBullet:   0,
 		})
 }
 func NewAI4() AIActor {
@@ -81,7 +81,7 @@ func NewAI5() AIActor {
 	return NewAIAdv("5",
 		[...]int{
 			ActionAccel:         5,
-			ActionBullet:        0,
+			ActionBullet:        5,
 			ActionSuperBullet:   0,
 			ActionHommingBullet: 0,
 			ActionBurstBullet:   0,

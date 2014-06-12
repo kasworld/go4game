@@ -11,24 +11,24 @@ import (
 
 var advinst2 = AIAdvFns{
 	SuperFns: []AIVector3DAct{
-		1: AIVector3DAct{calcSuperFactor_1, makeSuperBulletMv_1},
+		1: AIVector3DAct{nil, makeSuperBulletMv_1},
 		4: AIVector3DAct{calcSuperFactor_4, makeSuperBulletMv_4},
 		5: AIVector3DAct{calcSuperFactor_5, makeSuperBulletMv_5},
 	},
 	BulletFns: []AIVector3DAct{
-		1: AIVector3DAct{calcBulletFactor_1, makeNormalBulletMv_1},
+		1: AIVector3DAct{nil, makeNormalBulletMv_1},
 		4: AIVector3DAct{calcBulletFactor_4, makeNormalBulletMv_4},
 		5: AIVector3DAct{calcBulletFactor_5, makeNormalBulletMv_5},
 	},
 	AccelFns: []AIVector3DAct{
-		1: AIVector3DAct{calcAccelFactor_1, makeAccel_nomove},
-		2: AIVector3DAct{calcAccelFactor_1, makeAccel_tohome},
-		3: AIVector3DAct{calcAccelFactor_1, makeAccel_rnd},
+		1: AIVector3DAct{nil, makeAccel_nomove},
+		2: AIVector3DAct{nil, makeAccel_tohome},
+		3: AIVector3DAct{nil, makeAccel_rnd},
 		4: AIVector3DAct{calcAccelFactor_4, makeAccel_4},
-		5: AIVector3DAct{calcAccelFactor_5, makeAccel_5},
+		5: AIVector3DAct{nil, makeAccel_nearSight},
 	},
 	HommingFns: []AIIDListAct{
-		1: AIIDListAct{calcHommingFactor_1, makeHommingTargetID_1},
+		1: AIIDListAct{nil, makeHommingTargetID_1},
 		4: AIIDListAct{calcHommingFactor_4, makeHommingTargetID_4},
 		5: AIIDListAct{calcHommingFactor_5, makeHommingTargetID_5},
 	},
@@ -53,9 +53,6 @@ func NewAIAdv(name string, act [ActionEnd]int) AIActor {
 
 // ------------- 1 -----------------------
 
-func calcAccelFactor_1(a *AIAdv, o *AIAdvAimTarget) float64 {
-	return 1
-}
 func makeAccel_tohome(a *AIAdv) *Vector3D {
 	var vt Vector3D
 	vt = a.HomePos.Sub(a.me.PosVector).NormalizedTo(GameConst.MoveLimit[GameObjMain])
@@ -71,9 +68,6 @@ func makeAccel_nomove(a *AIAdv) *Vector3D {
 	return &vt
 }
 
-func calcSuperFactor_1(a *AIAdv, o *AIAdvAimTarget) float64 {
-	return 1
-}
 func makeSuperBulletMv_1(a *AIAdv) *Vector3D {
 	if rand.Float64() < 0.5 {
 		vt := GameConst.WorldCube.RandVector().Sub(a.me.PosVector).NormalizedTo(GameConst.MoveLimit[GameObjSuperBullet])
@@ -82,9 +76,6 @@ func makeSuperBulletMv_1(a *AIAdv) *Vector3D {
 	return nil
 }
 
-func calcBulletFactor_1(a *AIAdv, o *AIAdvAimTarget) float64 {
-	return 1
-}
 func makeNormalBulletMv_1(a *AIAdv) *Vector3D {
 	if rand.Float64() < 0.5 {
 		vt := GameConst.WorldCube.RandVector().Sub(a.me.PosVector).NormalizedTo(GameConst.MoveLimit[GameObjBullet])
@@ -93,9 +84,6 @@ func makeNormalBulletMv_1(a *AIAdv) *Vector3D {
 	return nil
 }
 
-func calcHommingFactor_1(a *AIAdv, o *AIAdvAimTarget) float64 {
-	return 1
-}
 func makeHommingTargetID_1(a *AIAdv) IDList {
 	if rand.Float64() < 0.5 {
 		return IDList{a.me.ID, a.me.TeamID}
@@ -288,27 +276,19 @@ func makeBurstBullet_4(a *AIAdv) int {
 }
 
 // ---------- 5 ------------------------
-func calcAccelFactor_5(a *AIAdv, o *AIAdvAimTarget) float64 {
-	return a.me.calcLenFactor(o.SPObj)
-}
 
-func d2sVt(s *SPObj, d *SPObj, vt Vector3D) Vector3D {
-	s2dVt := d.PosVector.Sub(s.PosVector)
-	vtfatordanger := vt.Project(s2dVt).Imul(1)
-	return vtfatordanger.Neg()
-}
-
-func makeAccel_5(a *AIAdv) *Vector3D {
+func makeAccel_nearSight(a *AIAdv) *Vector3D {
 	act := ActionAccel
 	toHomeVt := a.HomePos.Sub(a.me.PosVector).Imul(GameConst.FramePerSec)
 	vt := toHomeVt
 	for _, o := range a.preparedTargets[act] {
-		if o.actFactor >= 1 {
+		if a.me.calcLenFactor(o.SPObj) >= 1 {
 			spdFactor := 1.0
 			if GameConst.MoveLimit[a.me.ObjType] < GameConst.MoveLimit[o.ObjType] {
 				spdFactor += GameConst.MoveLimit[o.ObjType] / GameConst.MoveLimit[a.me.ObjType]
 			}
-			vtfatordanger := d2sVt(a.me, o.SPObj, vt).Imul(spdFactor)
+			dst2srcVt := vt.Project(o.PosVector.Sub(a.me.PosVector)).Neg()
+			vtfatordanger := dst2srcVt.Imul(spdFactor)
 			vt = vt.Add(vtfatordanger)
 		}
 	}
@@ -322,40 +302,50 @@ func calcBulletFactor_5(a *AIAdv, o *AIAdvAimTarget) float64 {
 	if !GameConst.IsInteract[o.ObjType][bulletType] {
 		return -1.0
 	}
-	_, estpos, estangle := a.calcAims(o.SPObj, GameConst.MoveLimit[bulletType])
-	if estpos == nil || (!estpos.IsIn(GameConst.WorldCube) && o.ObjType != GameObjMain) { // cannot contact
+	_, estpos, _ := a.calcAims(o.SPObj, GameConst.MoveLimit[bulletType])
+	if estpos == nil || (!estpos.IsIn(GameConst.WorldCube2) && o.ObjType != GameObjMain) { // cannot contact
 		return -1.0
 	}
 
-	anglefactor := estangle / math.Pi * 180
-	log.Printf("af %v %v", estangle, anglefactor)
+	mvangle := a.me.PosVector.Sub(o.PosVector).Angle(o.MoveVector)
+	anglefactor := mvangle / math.Pi * 180
+	if anglefactor > 30 && o.ObjType != GameObjMain {
+		return -1.0
+	}
+	//log.Printf("af %v %v", estangle, anglefactor)
 
-	typefactor := [GameObjEnd]float64{
-		GameObjMain:          1.2,
-		GameObjBullet:        1.0,
-		GameObjShield:        0,
-		GameObjHommingBullet: 1.3,
-		GameObjSuperBullet:   1.4,
-	}[o.ObjType]
-
-	collen := math.Sqrt(GameConst.ObjSqd[a.me.ObjType][o.ObjType])
+	//collen := math.Sqrt(GameConst.ObjSqd[a.me.ObjType][o.ObjType])
 	curlen := a.me.PosVector.LenTo(o.PosVector)
-	lenfactor := collen * 50 / curlen
+	lenfactor := GameConst.WorldDiag / 2 / curlen
+	//log.Printf("lf %v ", lenfactor)
 
-	factor := anglefactor * typefactor * lenfactor
+	factor := lenfactor
 	return factor
 }
 func makeNormalBulletMv_5(a *AIAdv) *Vector3D {
 	act := ActionBullet
 	for _, o := range a.preparedTargets[act] {
-		if o.actFactor > 1 && a.lastTargets[act][o.ID].IsZero() {
-			estdur, estpos, _ := a.calcAims(o.SPObj, GameConst.MoveLimit[GameObjBullet])
-			if !estpos.IsIn(GameConst.WorldCube) && o.ObjType == GameObjMain {
-				adjEstpos(estpos)
+		if o.actFactor > 1 {
+			if a.lastTargets[act][o.ID].IsZero() {
+				_, estpos, _ := a.calcAims(o.SPObj, GameConst.MoveLimit[GameObjBullet])
+				if !estpos.IsIn(GameConst.WorldCube2) && o.ObjType != GameObjMain {
+					continue
+				}
+				lenori := a.me.PosVector.LenTo(*estpos)
+				if o.ObjType == GameObjMain {
+					changed := estpos.MakeIn(GameConst.WorldCube)
+					if changed != 0 {
+						log.Printf("target %v bounce %b", o.ID, changed)
+					}
+				}
+				lennew := a.me.PosVector.LenTo(*estpos)
+				lenrate := lennew / lenori
+				vt := estpos.Sub(a.me.PosVector).NormalizedTo(GameConst.MoveLimit[GameObjBullet]).Imul(lenrate)
+				a.lastTargets[act][o.ID] = time.Now()
+				return &vt
+			} else {
+				delete(a.lastTargets[act], o.ID)
 			}
-			vt := a.calcFireVt(a.me.PosVector, *estpos, estdur)
-			a.lastTargets[act][o.ID] = time.Now()
-			return &vt
 		}
 	}
 	return nil
@@ -457,6 +447,12 @@ func makeBurstBullet_5(a *AIAdv) int {
 
 // --------------------- util fns ------------------
 
+func (m *SPObj) colilen(t *SPObj) (float64, float64) {
+	collen := GameConst.Radius[m.ObjType] + GameConst.Radius[t.ObjType]
+	curlen := m.PosVector.LenTo(t.PosVector) - collen
+	return curlen, collen
+}
+
 func (s *SPObj) calcLenFactor(o *SPObj) float64 {
 	// safe <- -1, 0, 1, 2, 3 -> danger
 	if !GameConst.IsInteract[s.ObjType][o.ObjType] {
@@ -467,8 +463,8 @@ func (s *SPObj) calcLenFactor(o *SPObj) float64 {
 		spdFactor += GameConst.MoveLimit[o.ObjType] / GameConst.MoveLimit[s.ObjType]
 	}
 
-	curlen, collen := s.collen(o)
-	nextlen, _ := s.TestMoveByAccel(V3DZero).collen(o.TestMoveByAccel(V3DZero))
+	curlen, collen := s.colilen(o)
+	nextlen, _ := s.TestMoveByAccel(V3DZero).colilen(o.TestMoveByAccel(V3DZero))
 	lenrange := (collen / 2) * spdFactor
 	var lenfactor float64
 	if curlen <= lenrange {
@@ -477,26 +473,7 @@ func (s *SPObj) calcLenFactor(o *SPObj) float64 {
 	if nextlen <= lenrange {
 		lenfactor += 2
 	}
-	// if lenfactor > 0 {
-	// 	log.Printf("curlen %v collen %v nextlen %v lenfactor %v", curlen, collen, nextlen, lenfactor)
-	// }
 	return lenfactor
-}
-
-func (a *AIAdv) calcFireVt(srcpos Vector3D, dstpos Vector3D, dur float64) Vector3D {
-	l := srcpos.LenTo(dstpos)
-	return dstpos.Sub(srcpos).NormalizedTo(l / dur)
-}
-
-func adjEstpos(pos *Vector3D) {
-	for i := range pos {
-		if pos[i] > GameConst.WorldCube.Max[i] {
-			pos[i] = GameConst.WorldCube.Max[i]
-		}
-		if pos[i] < GameConst.WorldCube.Min[i] {
-			pos[i] = GameConst.WorldCube.Min[i]
-		}
-	}
 }
 
 // from gameobj moveByTimeFn_accel
@@ -508,12 +485,6 @@ func (m SPObj) TestMoveByAccel(accelVector Vector3D) *SPObj {
 	}
 	m.PosVector = m.PosVector.Add(m.MoveVector.Imul(dur))
 	return &m
-}
-
-func (m *SPObj) collen(t *SPObj) (float64, float64) {
-	collen := GameConst.Radius[m.ObjType] + GameConst.Radius[t.ObjType]
-	curlen := m.PosVector.LenTo(t.PosVector) - collen
-	return curlen, collen
 }
 
 // estmate remain frame to contact( len == 0 )

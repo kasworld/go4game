@@ -117,7 +117,7 @@ var defaultConfig = GameConfig{
 	StartWorldCount: 1,
 	//AINames:         []string{"AINothing", "AINoMove", "AICloud", "AIRandom", "AI2", "AI3", "AI4"},
 	AINames: []string{
-		"AIRandom",
+		"AI5",
 		"AI5",
 	},
 	//AINames: []string{"AICloud", "AIRandom", "AI2", "AI3"},

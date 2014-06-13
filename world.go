@@ -10,6 +10,8 @@ import (
 	//"text/template"
 	"fmt"
 	"log"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -40,26 +42,30 @@ func NewWorld(g *GameService) *World {
 	return &w
 }
 
-func (w *World) addAITeams(anames []string, n int) {
-	NewAI := map[string]MakeAI{
-		"AINothing": NewAINothing,
-		"AINoMove":  NewAINoMove,
-		"AICloud":   NewAICloud,
-		"AIRandom":  NewAIRandom,
-		"AI2":       NewAI2,
-		"AI3":       NewAI3,
-		"AI4":       NewAI4,
-		"AI5":       NewAI5,
+func AIstr2AIActor(aistr string) AIActor {
+	sname := strings.Split(aistr, "-")
+	act := [5]int{}
+
+	for i := 0; i < 5; i++ {
+		v, err := strconv.Atoi(sname[i+1])
+		if err != nil {
+			log.Printf("unknown AI %v", aistr)
+			return nil
+		}
+		act[i] = v
 	}
+	return NewAIAdv(sname[0], act)
+}
+
+func (w *World) addAITeamsFromString(anames []string, n int) {
 	for i := 0; i < n; i++ {
 		thisai := anames[i%len(anames)]
-		rsp := make(chan interface{})
-		fn := NewAI[thisai]
-		if fn == nil {
-			log.Printf("unknown AI %v", thisai)
+		newteam := AIstr2AIActor(thisai)
+		if newteam == nil {
 			continue
 		}
-		w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(fn(), TeamTypeAI), Rsp: rsp}
+		rsp := make(chan interface{})
+		w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(newteam, TeamTypeAI), Rsp: rsp}
 		<-rsp
 	}
 }

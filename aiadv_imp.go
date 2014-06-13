@@ -10,22 +10,22 @@ import (
 )
 
 var advinst2 = AIAdvFns{
-	SuperFns: []AIVector3DAct{
-		1: AIVector3DAct{nil, makeSuperBulletMv_1},
-		4: AIVector3DAct{calcSuperFactor_4, makeSuperBulletMv_4},
-		5: AIVector3DAct{calcSuperFactor_5, makeSuperBulletMv_5},
-	},
-	BulletFns: []AIVector3DAct{
-		1: AIVector3DAct{nil, makeNormalBulletMv_1},
-		4: AIVector3DAct{calcBulletFactor_4, makeNormalBulletMv_4},
-		5: AIVector3DAct{calcBulletFactor_5, makeNormalBulletMv_5},
-	},
 	AccelFns: []AIVector3DAct{
 		1: AIVector3DAct{nil, makeAccel_nomove},
 		2: AIVector3DAct{nil, makeAccel_tohome},
 		3: AIVector3DAct{nil, makeAccel_rnd},
 		4: AIVector3DAct{calcAccelFactor_4, makeAccel_4},
 		5: AIVector3DAct{nil, makeAccel_nearSight},
+	},
+	BulletFns: []AIVector3DAct{
+		1: AIVector3DAct{nil, makeNormalBulletMv_1},
+		4: AIVector3DAct{calcBulletFactor_4, makeNormalBulletMv_4},
+		5: AIVector3DAct{calcBulletFactor_5, makeNormalBulletMv_5},
+	},
+	SuperFns: []AIVector3DAct{
+		1: AIVector3DAct{nil, makeSuperBulletMv_1},
+		4: AIVector3DAct{calcSuperFactor_4, makeSuperBulletMv_4},
+		5: AIVector3DAct{calcSuperFactor_5, makeSuperBulletMv_5},
 	},
 	HommingFns: []AIIDListAct{
 		1: AIIDListAct{nil, makeHommingTargetID_1},

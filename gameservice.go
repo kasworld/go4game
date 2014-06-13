@@ -60,7 +60,8 @@ func (g *GameService) addNewWorld() *World {
 	w := NewWorld(g)
 	g.Worlds[w.ID] = w
 	go w.Loop()
-	w.addAITeams(GameConst.AINames, GameConst.AICountPerWorld)
+	//w.addAITeams(GameConst.AINames, GameConst.AICountPerWorld)
+	w.addAITeamsFromString(GameConst.AINames, GameConst.AICountPerWorld)
 	if GameConst.SetTerrain {
 		w.addTerrainTeam()
 	}

@@ -37,7 +37,6 @@ const (
 type GameConfig struct {
 	TcpListen            string
 	WsListen             string
-	ClearY               bool
 	FramePerSec          float64
 	AICountPerWorld      int
 	AINames              []string
@@ -108,15 +107,21 @@ func ValidateConfig(config *GameConfig) {
 }
 
 const WorldSize = 500
-const WorldSizeY = 5
+const WorldSizeY = 15
 
 var defaultConfig = GameConfig{
-	AICountPerWorld: 12,
-	ClearY:          false,
+	AICountPerWorld: 7,
 	SetTerrain:      false,
 	StartWorldCount: 1,
-	//AINames:         []string{"AINothing", "AINoMove", "AICloud", "AIRandom", "AI2", "AI3", "AI4", "AI5"},
-	AINames:              []string{"AICloud", "AIRandom", "AI4", "AI5"},
+	AINames: []string{
+		"Nothing-0-0-0-0-0",
+		"NoMove-1-0-0-0-0",
+		"Home-2-0-0-0-0",
+		"Cloud-2-0-0-1-0",
+		"Random-3-1-1-1-1",
+		"Adv4-4-4-4-4-4",
+		"Adv5-5-5-5-5-5",
+	},
 	APIncFrame:           10,
 	ShieldCount:          8,
 	MaxTcpClientPerWorld: 32,

@@ -62,8 +62,8 @@ func NewTeam(conn interface{}, tt TeamType) *Team {
 		t.HomeObjID = o.ID
 	case TeamTypeObserver:
 	case TeamTypeTerrain:
-		t.addMaze()
-		//t.addTerrain()
+		//t.addMaze()
+		t.addTerrain()
 		//t.addRevolutionDeco()
 	}
 
@@ -88,25 +88,28 @@ func (t *Team) AddConn(conn interface{}) *Team {
 }
 
 func (t *Team) addTerrain() {
-	//w := GameConst.MaxObjectRadius*2 + GameConst.Radius[GameObjHard]*2
 	w := GameConst.MaxObjectRadius * 3
-	for i := GameConst.WorldCube.Min[0]; i < GameConst.WorldCube.Max[0]; i += w {
-		//for j := GameConst.WorldCube.Min[1]; j < GameConst.WorldCube.Max[1]; j += w {
-		j := 0.0
-		for k := GameConst.WorldCube.Min[2]; k < GameConst.WorldCube.Max[2]; k += w {
-			pos := Vector3D{i, j, k}
-			o := NewGameObject(t.ID).MakeHardObj(pos)
-			t.addObject(o)
+	hr := GameConst.WorldCube2
+	for i := hr.Min[0]; i <= hr.Max[0]; i += w {
+		for j := hr.Min[1]; j <= hr.Max[1]; j += w {
+			for k := hr.Min[2]; k <= hr.Max[2]; k += w {
+				if rand.Float64() < 0.5 {
+					continue
+				}
+				pos := Vector3D{i, j, k}
+				o := NewGameObject(t.ID).MakeHardObj(pos)
+				t.addObject(o)
+			}
 		}
-		//}
 	}
 }
 
 func (t *Team) addMaze() {
 	w := GameConst.MaxObjectRadius
-	for i := GameConst.WorldCube.Min[0]; i < GameConst.WorldCube.Max[0]; i += w {
+	hr := GameConst.WorldCube2
+	for i := hr.Min[0]; i < hr.Max[0]; i += w {
 		j := 0.0
-		for k := GameConst.WorldCube.Min[2]; k < GameConst.WorldCube.Max[2]; k += w {
+		for k := hr.Min[2]; k < hr.Max[2]; k += w {
 			if rand.Float64() < 0.8 {
 				continue
 			}

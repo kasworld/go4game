@@ -10,8 +10,6 @@ import (
 	//"text/template"
 	"fmt"
 	"log"
-	"strconv"
-	"strings"
 	"time"
 )
 
@@ -40,21 +38,6 @@ func NewWorld(g *GameService) *World {
 		Teams:    make(map[int64]*Team),
 	}
 	return &w
-}
-
-func AIstr2AIActor(aistr string) AIActor {
-	sname := strings.Split(aistr, "-")
-	act := [5]int{}
-
-	for i := 0; i < 5; i++ {
-		v, err := strconv.Atoi(sname[i+1])
-		if err != nil {
-			log.Printf("unknown AI %v", aistr)
-			return nil
-		}
-		act[i] = v
-	}
-	return NewAIAdv(sname[0], act)
 }
 
 func (w *World) addAITeamsFromString(anames []string, n int) {

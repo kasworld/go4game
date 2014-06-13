@@ -134,7 +134,9 @@ type ActionFnEnvInfo struct {
 
 func (o *GameObject) IsCollision(s *SPObj) bool {
 	o.colcount++
-	if (s.TeamID != o.TeamID) && GameConst.IsInteract[o.ObjType][s.ObjType] && (s.PosVector.Sqd(o.PosVector) <= GameConst.ObjSqd[s.ObjType][o.ObjType]) {
+	if (s.TeamID != o.TeamID) &&
+		GameConst.IsInteract[o.ObjType][s.ObjType] &&
+		(s.PosVector.Sqd(o.PosVector) <= GameConst.ObjSqd[s.ObjType][o.ObjType]) {
 		return true
 	}
 	return false

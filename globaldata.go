@@ -107,20 +107,24 @@ func ValidateConfig(config *GameConfig) {
 }
 
 const WorldSize = 500
-const WorldSizeY = 15
+const WorldSizeY = 5
 
 var defaultConfig = GameConfig{
-	AICountPerWorld: 7,
+	AICountPerWorld: 6,
 	SetTerrain:      false,
 	StartWorldCount: 1,
 	AINames: []string{
-		"Nothing-0-0-0-0-0",
-		"NoMove-1-0-0-0-0",
-		"Home-2-0-0-0-0",
-		"Cloud-2-0-0-1-0",
-		"Random-3-1-1-1-1",
-		"Adv4-4-4-4-4-4",
-		"Adv5-5-5-5-5-5",
+		// "Nothing-0-0-0-0-0",
+		// "NoMove-1-0-0-0-0",
+		// "Home-2-0-0-0-0",
+		// "Cloud-2-0-0-1-0",
+		// "Random-3-1-1-1-1",
+		"Adv-4-3-3-4-4",
+		"Adv-4-4-4-4-4",
+		"Adv-5-5-5-5-5",
+		"Adv-5-3-3-4-4",
+		"Adv-5-4-4-4-4",
+		"Adv-4-5-5-5-5",
 	},
 	APIncFrame:           10,
 	ShieldCount:          8,
@@ -247,5 +251,5 @@ func SaveLoad(config *GameConfig, filename string) {
 
 func init() {
 	ValidateConfig(&GameConst)
-	//SaveLoad(&defaultConfig, "profile.json")
+	//SaveLoad(&defaultConfig, "default.json")
 }

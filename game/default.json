@@ -1,39 +1,54 @@
 {
     "TcpListen": "0.0.0.0:6666",
     "WsListen": "0.0.0.0:8080",
-    "ClearY": true,
     "FramePerSec": 60,
-    "AICountPerWorld": 5,
+    "AICountPerWorld": 7,
     "AINames": [
-        "AINothing",
-        "AICloud",
-        "AIRandom",
-        "AI2",
-        "AI3"
+        "Nothing-0-0-0-0-0",
+        "NoMove-1-0-0-0-0",
+        "Home-2-0-0-0-0",
+        "Cloud-2-0-0-1-0",
+        "Random-3-1-1-1-1",
+        "Adv4-4-4-4-4-4",
+        "Adv5-5-5-5-5-5"
     ],
     "MaxTcpClientPerWorld": 32,
     "MaxWsClientPerWorld": 32,
-    "StartWorldCount": 2,
+    "StartWorldCount": 1,
     "RemoveEmptyWorld": false,
+    "SetTerrain": false,
     "TcpClientEncode": "gob",
     "WorldCube": {
         "Min": [
             -500,
-            -500,
+            -15,
             -500
         ],
         "Max": [
             500,
-            500,
+            15,
             500
         ]
     },
-    "WorldDiag": 1732.0508075688772,
+    "WorldDiag": 1414.5317246354002,
+    "WorldCube2": {
+        "Min": [
+            -600,
+            -115,
+            -600
+        ],
+        "Max": [
+            600,
+            115,
+            600
+        ]
+    },
+    "WorldDiag2": 1712.5711664044798,
     "APIncFrame": 10,
     "KillScore": 1,
     "ShieldCount": 8,
     "MaxObjectRadius": 15,
-    "ShowDecoObjs": true,
+    "MinObjectRadius": 3,
     "MoveLimit": [
         0,
         100,
@@ -42,7 +57,8 @@
         200,
         600,
         600,
-        100
+        100,
+        0
     ],
     "Radius": [
         0,
@@ -52,10 +68,12 @@
         7,
         15,
         3,
+        3,
         3
     ],
     "ObjSqd": [
         [
+            0,
             0,
             0,
             0,
@@ -73,6 +91,7 @@
             289,
             625,
             169,
+            169,
             169
         ],
         [
@@ -83,6 +102,7 @@
             144,
             400,
             64,
+            64,
             64
         ],
         [
@@ -92,6 +112,7 @@
             100,
             144,
             400,
+            64,
             64,
             64
         ],
@@ -103,6 +124,7 @@
             196,
             484,
             100,
+            100,
             100
         ],
         [
@@ -112,6 +134,7 @@
             400,
             484,
             900,
+            324,
             324,
             324
         ],
@@ -123,6 +146,7 @@
             100,
             324,
             36,
+            36,
             36
         ],
         [
@@ -132,6 +156,18 @@
             64,
             100,
             324,
+            36,
+            36,
+            36
+        ],
+        [
+            0,
+            169,
+            64,
+            64,
+            100,
+            324,
+            36,
             36,
             36
         ]
@@ -145,15 +181,6 @@
             false,
             false,
             false,
-            false
-        ],
-        [
-            false,
-            true,
-            true,
-            true,
-            true,
-            true,
             false,
             false
         ],
@@ -165,7 +192,8 @@
             true,
             true,
             false,
-            false
+            false,
+            true
         ],
         [
             false,
@@ -175,7 +203,19 @@
             true,
             true,
             false,
-            false
+            false,
+            true
+        ],
+        [
+            false,
+            true,
+            true,
+            true,
+            true,
+            true,
+            false,
+            false,
+            true
         ],
         [
             false,
@@ -185,7 +225,8 @@
             true,
             true,
             false,
-            false
+            false,
+            true
         ],
         [
             false,
@@ -195,6 +236,18 @@
             true,
             true,
             false,
+            false,
+            true
+        ],
+        [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
             false
         ],
         [
@@ -205,9 +258,11 @@
             false,
             false,
             false,
+            false,
             false
         ],
         [
+            false,
             false,
             false,
             false,
@@ -217,6 +272,17 @@
             false,
             false
         ]
+    ],
+    "NoInteract": [
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false
     ],
     "AP": [
         1,

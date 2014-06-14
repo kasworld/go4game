@@ -33,11 +33,11 @@ var advinst2 = AIAdvFns{
 	},
 	HommingFns: []AIIDListAct{
 		1: AIIDListAct{nil, makeHommingTargetID_fullshield},
-		4: AIIDListAct{calcHommingFactor_4, makeHommingTargetID_halfshield},
+		2: AIIDListAct{calcHommingFactor_4, makeHommingTargetID_halfshield},
 	},
 	BurstFns: []AIIntAct{
 		1: AIIntAct{calcBurstFactor_30, makeBurstBullet_sub4},
-		4: AIIntAct{calcBurstFactor_52, makeBurstBullet_div2},
+		2: AIIntAct{calcBurstFactor_52, makeBurstBullet_div2},
 	},
 }
 

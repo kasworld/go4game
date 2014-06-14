@@ -125,6 +125,14 @@ func (o *GameObject) MakeHardObj(pos Vector3D) *GameObject {
 	return o
 }
 
+func (o *GameObject) MakeFoodObj(pos Vector3D) *GameObject {
+	o.PosVector = pos
+	o.moveByTimeFn = moveByTimeFn_none
+	o.borderActionFn = borderActionFn_None
+	o.ObjType = GameObjFood
+	return o
+}
+
 type ActionFnEnvInfo struct {
 	frameTime time.Time
 	world     *World

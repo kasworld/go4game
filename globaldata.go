@@ -20,6 +20,7 @@ const (
 	GameObjDeco
 	GameObjMark
 	GameObjHard
+	GameObjFood
 	GameObjEnd
 )
 
@@ -45,6 +46,7 @@ type GameConfig struct {
 	StartWorldCount      int
 	RemoveEmptyWorld     bool
 	SetTerrain           bool
+	SetFood              bool
 	TcpClientEncode      string // gob , json
 	WorldCube            *HyperRect
 	WorldDiag            float64
@@ -107,11 +109,12 @@ func ValidateConfig(config *GameConfig) {
 }
 
 const WorldSize = 500
-const WorldSizeY = 5
+const WorldSizeY = 0
 
 var defaultConfig = GameConfig{
 	AICountPerWorld: 6,
 	SetTerrain:      false,
+	SetFood:         true,
 	StartWorldCount: 1,
 	AINames: []string{
 		// "Nothing-0-0-0-0-0",
@@ -155,7 +158,8 @@ var defaultConfig = GameConfig{
 		GameObjSuperBullet:   15,
 		GameObjDeco:          3,
 		GameObjMark:          3,
-		GameObjHard:          3},
+		GameObjHard:          3,
+		GameObjFood:          3},
 	IsInteract: [GameObjEnd][GameObjEnd]bool{
 		GameObjMain: [GameObjEnd]bool{
 			GameObjMain:          true,
@@ -192,6 +196,8 @@ var defaultConfig = GameConfig{
 			GameObjHommingBullet: true,
 			GameObjSuperBullet:   true,
 			GameObjHard:          true},
+		GameObjFood: [GameObjEnd]bool{
+			GameObjMain: true},
 	},
 	AP: [ActionEnd]int{
 		ActionAccel:         1,

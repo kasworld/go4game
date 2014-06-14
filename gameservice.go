@@ -63,7 +63,14 @@ func (g *GameService) addNewWorld() *World {
 	//w.addAITeams(GameConst.AINames, GameConst.AICountPerWorld)
 	w.addAITeamsFromString(GameConst.AINames, GameConst.AICountPerWorld)
 	if GameConst.SetTerrain {
-		w.addTerrainTeam()
+		rsp := make(chan interface{})
+		w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(nil, TeamTypeTerrain), Rsp: rsp}
+		<-rsp
+	}
+	if GameConst.SetFood {
+		rsp := make(chan interface{})
+		w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(nil, TeamTypeFood), Rsp: rsp}
+		<-rsp
 	}
 	return w
 }

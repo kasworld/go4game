@@ -18,6 +18,8 @@ const (
 	TeamTypeAI
 	TeamTypeObserver
 	TeamTypeTerrain
+	TeamTypeFood
+	TeamTypeDeco
 	TeamTypeEnd
 )
 
@@ -61,10 +63,13 @@ func NewTeam(conn interface{}, tt TeamType) *Team {
 		o := t.addObject(NewGameObject(t.ID).MakeHomeMarkObj())
 		t.HomeObjID = o.ID
 	case TeamTypeObserver:
+	case TeamTypeFood:
+		t.addFood()
+	case TeamTypeDeco:
+		t.addRevolutionDeco()
 	case TeamTypeTerrain:
 		//t.addMaze()
 		t.addTerrain()
-		//t.addRevolutionDeco()
 	}
 
 	if conn != nil {
@@ -85,6 +90,15 @@ func (t *Team) AddConn(conn interface{}) *Team {
 		t.ClientConnInfo = NewAIConnInfo(conn.(AIActor))
 	}
 	return t
+}
+
+func (t *Team) addFood() {
+	hr := GameConst.WorldCube
+	for i := 0; i < 50; i++ {
+		pos := hr.RandVector()
+		o := NewGameObject(t.ID).MakeFoodObj(pos)
+		t.addObject(o)
+	}
 }
 
 func (t *Team) addTerrain() {

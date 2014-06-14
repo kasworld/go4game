@@ -53,12 +53,6 @@ func (w *World) addAITeamsFromString(anames []string, n int) {
 	}
 }
 
-func (w *World) addTerrainTeam() {
-	rsp := make(chan interface{})
-	w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(nil, TeamTypeTerrain), Rsp: rsp}
-	<-rsp
-}
-
 func (w *World) addTeam(t *Team) {
 	if w == nil {
 		log.Printf("warning add team%v to nil world", t.ID)

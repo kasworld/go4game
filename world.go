@@ -127,7 +127,7 @@ func (w *World) updateEnv() {
 }
 
 func (w *World) isEmpty() bool {
-	return GameConst.RemoveEmptyWorld && w.TeamCountByConn(AIClient) == len(w.Teams)
+	return GameConst.RemoveEmptyWorld && w.TeamCountByConn(AIConn) == len(w.Teams)
 }
 
 func (w *World) Do1Frame(ftime time.Time) bool {
@@ -220,10 +220,10 @@ loop:
 	}
 }
 
-func (w *World) TeamCountByConn(ct ClientType) int {
+func (w *World) TeamCountByConn(ct ConnType) int {
 	n := 0
 	for _, t := range w.Teams {
-		if t.ClientConnInfo != nil && t.ClientConnInfo.clientType == ct {
+		if t.ClientConnInfo != nil && t.ClientConnInfo.connType == ct {
 			n++
 		}
 	}

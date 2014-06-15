@@ -9,6 +9,22 @@ import (
 	"time"
 )
 
+type GameObjectType int
+
+const (
+	GameObjNil GameObjectType = iota
+	GameObjMain
+	GameObjShield
+	GameObjBullet
+	GameObjHommingBullet
+	GameObjSuperBullet
+	GameObjDeco
+	GameObjMark
+	GameObjHard
+	GameObjFood
+	GameObjEnd
+)
+
 func (m GameObject) String() string {
 	return fmt.Sprintf("GameObject:%v Type:%v Team%v",
 		m.ID, m.ObjType, m.TeamID)

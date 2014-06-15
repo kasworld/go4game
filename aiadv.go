@@ -9,6 +9,17 @@ import (
 	"time"
 )
 
+type ClientActionType int
+
+const (
+	ActionAccel ClientActionType = iota
+	ActionBullet
+	ActionSuperBullet
+	ActionHommingBullet
+	ActionBurstBullet
+	ActionEnd
+)
+
 type FactorCalcFn func(a *AIAdv, o *AIAdvAimTarget) float64
 type VectorMakeFn func(a *AIAdv) *Vector3D
 type IDListMakeFn func(a *AIAdv) IDList

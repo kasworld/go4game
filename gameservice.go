@@ -79,7 +79,7 @@ func (g *GameService) delWorld(w *World) {
 	delete(g.Worlds, w.ID)
 }
 
-func (g *GameService) findFreeWorld(TeamCountByConn int, ct ClientType) *World {
+func (g *GameService) findFreeWorld(TeamCountByConn int, ct ConnType) *World {
 	for _, w := range g.Worlds {
 		if w.TeamCountByConn(ct) < TeamCountByConn {
 			return w
@@ -111,12 +111,12 @@ loop:
 	for {
 		select {
 		case conn := <-g.clientConnectionCh: // new team
-			w := g.findFreeWorld(GameConst.MaxTcpClientPerWorld, TCPClient)
+			w := g.findFreeWorld(GameConst.MaxTcpClientPerWorld, TCPConn)
 			rsp := make(chan interface{})
 			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(conn, TeamTypePlayer), Rsp: rsp}
 			<-rsp
 		case conn := <-g.wsClientConnectionCh: // new team
-			w := g.findFreeWorld(GameConst.MaxWsClientPerWorld, WebSockClient)
+			w := g.findFreeWorld(GameConst.MaxWsClientPerWorld, WebSockConn)
 			rsp := make(chan interface{})
 			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(conn, TeamTypeObserver), Rsp: rsp}
 			<-rsp

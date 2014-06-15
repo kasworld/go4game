@@ -17,41 +17,40 @@ type AIActor interface {
 	MakeAction(*RspGamePacket) *ReqGamePacket
 	String() string
 }
-type MakeAI func() AIActor
 
 // client conn type
-type ClientType int
+type ConnType int
 
 const (
-	_ ClientType = iota
-	TCPClient
-	WebSockClient
-	AIClient
+	_ ConnType = iota
+	TCPConn
+	WebSockConn
+	AIConn
 )
 
 type ConnInfo struct {
-	ReadCh     chan *ReqGamePacket
-	WriteCh    chan *RspGamePacket
-	clientType ClientType
-	Conn       net.Conn
-	WsConn     *websocket.Conn
-	AiConn     AIActor
+	ReadCh   chan *ReqGamePacket
+	WriteCh  chan *RspGamePacket
+	connType ConnType
+	tcpConn  net.Conn
+	wsConn   *websocket.Conn
+	aiConn   AIActor
 }
 
 func (c ConnInfo) String() string {
-	if c.AiConn == nil {
-		return fmt.Sprintf("Client%v", c.clientType)
+	if c.aiConn == nil {
+		return fmt.Sprintf("Client%v", c.connType)
 	} else {
-		return c.AiConn.String() // fmt.Sprintf("AI%v", reflect.TypeOf(c.AiConn))
+		return c.aiConn.String() // fmt.Sprintf("AI%v", reflect.TypeOf(c.aiConn))
 	}
 }
 
 func NewAIConnInfo(aiconn AIActor) *ConnInfo {
 	c := ConnInfo{
-		ReadCh:     make(chan *ReqGamePacket, 1),
-		WriteCh:    make(chan *RspGamePacket, 1),
-		AiConn:     aiconn,
-		clientType: AIClient,
+		ReadCh:   make(chan *ReqGamePacket, 1),
+		WriteCh:  make(chan *RspGamePacket, 1),
+		aiConn:   aiconn,
+		connType: AIConn,
 	}
 	go c.aiLoop()
 	return &c
@@ -66,7 +65,7 @@ loop:
 	for packet := range c.WriteCh { // get rsp from server
 		switch packet.Cmd {
 		case RspNearInfo:
-			c.ReadCh <- c.AiConn.MakeAction(packet)
+			c.ReadCh <- c.aiConn.MakeAction(packet)
 		default:
 			log.Printf("unknown packet %v", packet.Cmd)
 			break loop
@@ -83,10 +82,10 @@ type IEncoder interface {
 
 func NewTcpConnInfo(conn net.Conn) *ConnInfo {
 	c := ConnInfo{
-		Conn:       conn,
-		ReadCh:     make(chan *ReqGamePacket, 1),
-		WriteCh:    make(chan *RspGamePacket, 1),
-		clientType: TCPClient,
+		tcpConn:  conn,
+		ReadCh:   make(chan *ReqGamePacket, 1),
+		WriteCh:  make(chan *RspGamePacket, 1),
+		connType: TCPConn,
 	}
 	go c.tcpReadLoop()
 	go c.tcpWriteLoop()
@@ -95,14 +94,14 @@ func NewTcpConnInfo(conn net.Conn) *ConnInfo {
 
 func (c *ConnInfo) tcpReadLoop() {
 	defer func() {
-		c.Conn.Close()
+		c.tcpConn.Close()
 		close(c.ReadCh)
 	}()
 	var dec IDecoder
 	if GameConst.TcpClientEncode == "gob" {
-		dec = gob.NewDecoder(c.Conn)
+		dec = gob.NewDecoder(c.tcpConn)
 	} else if GameConst.TcpClientEncode == "json" {
-		dec = json.NewDecoder(c.Conn)
+		dec = json.NewDecoder(c.tcpConn)
 	} else {
 		log.Fatal("unknown tcp client encode %v", GameConst.TcpClientEncode)
 	}
@@ -119,13 +118,13 @@ func (c *ConnInfo) tcpReadLoop() {
 
 func (c *ConnInfo) tcpWriteLoop() {
 	defer func() {
-		c.Conn.Close()
+		c.tcpConn.Close()
 	}()
 	var enc IEncoder
 	if GameConst.TcpClientEncode == "gob" {
-		enc = gob.NewEncoder(c.Conn)
+		enc = gob.NewEncoder(c.tcpConn)
 	} else if GameConst.TcpClientEncode == "json" {
-		enc = json.NewEncoder(c.Conn)
+		enc = json.NewEncoder(c.tcpConn)
 	} else {
 		log.Fatal("unknown tcp client encode %v", GameConst.TcpClientEncode)
 	}
@@ -147,10 +146,10 @@ const (
 
 func NewWsConnInfo(conn *websocket.Conn) *ConnInfo {
 	c := ConnInfo{
-		WsConn:     conn,
-		ReadCh:     make(chan *ReqGamePacket, 1),
-		WriteCh:    make(chan *RspGamePacket, 1),
-		clientType: WebSockClient,
+		wsConn:   conn,
+		ReadCh:   make(chan *ReqGamePacket, 1),
+		WriteCh:  make(chan *RspGamePacket, 1),
+		connType: WebSockConn,
 	}
 	go c.wsReadLoop()
 	go c.wsWriteLoop()
@@ -159,18 +158,18 @@ func NewWsConnInfo(conn *websocket.Conn) *ConnInfo {
 
 func (c *ConnInfo) wsReadLoop() {
 	defer func() {
-		c.WsConn.Close()
+		c.wsConn.Close()
 		close(c.ReadCh)
 	}()
-	c.WsConn.SetReadLimit(maxMessageSize)
-	c.WsConn.SetReadDeadline(time.Now().Add(pongWait))
-	c.WsConn.SetPongHandler(func(string) error {
-		c.WsConn.SetReadDeadline(time.Now().Add(pongWait))
+	c.wsConn.SetReadLimit(maxMessageSize)
+	c.wsConn.SetReadDeadline(time.Now().Add(pongWait))
+	c.wsConn.SetPongHandler(func(string) error {
+		c.wsConn.SetReadDeadline(time.Now().Add(pongWait))
 		return nil
 	})
 	for {
 		var v ReqGamePacket
-		err := c.WsConn.ReadJSON(&v)
+		err := c.wsConn.ReadJSON(&v)
 		if err != nil {
 			break
 		}
@@ -179,14 +178,14 @@ func (c *ConnInfo) wsReadLoop() {
 }
 
 func (c *ConnInfo) write(mt int, payload []byte) error {
-	c.WsConn.SetWriteDeadline(time.Now().Add(writeWait))
-	return c.WsConn.WriteMessage(mt, payload)
+	c.wsConn.SetWriteDeadline(time.Now().Add(writeWait))
+	return c.wsConn.WriteMessage(mt, payload)
 }
 
 func (c *ConnInfo) wsWriteLoop() {
 	timerPing := time.Tick(pingPeriod)
 	defer func() {
-		c.WsConn.Close()
+		c.wsConn.Close()
 	}()
 	for {
 		select {

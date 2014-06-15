@@ -8,33 +8,6 @@ import (
 	"os"
 )
 
-type GameObjectType int
-
-const (
-	GameObjNil GameObjectType = iota
-	GameObjMain
-	GameObjShield
-	GameObjBullet
-	GameObjHommingBullet
-	GameObjSuperBullet
-	GameObjDeco
-	GameObjMark
-	GameObjHard
-	GameObjFood
-	GameObjEnd
-)
-
-type ClientActionType int
-
-const (
-	ActionAccel ClientActionType = iota
-	ActionBullet
-	ActionSuperBullet
-	ActionHommingBullet
-	ActionBurstBullet
-	ActionEnd
-)
-
 type GameConfig struct {
 	TcpListen            string
 	WsListen             string
@@ -66,7 +39,7 @@ type GameConfig struct {
 	AP         [ActionEnd]int
 }
 
-func ValidateConfig(config *GameConfig) {
+func (config *GameConfig) Validate() {
 	config.WorldDiag = config.WorldCube.DiagLen()
 	config.WorldCube2 = &HyperRect{
 		Min: config.WorldCube.Min.Sub(Vector3D{100, 100, 100}),
@@ -107,6 +80,53 @@ func ValidateConfig(config *GameConfig) {
 		}
 	}
 }
+
+func (config *GameConfig) Save(filename string) bool {
+	j, err := json.MarshalIndent(config, "", "    ")
+	if err != nil {
+		log.Printf("err in make json %v", err)
+		return false
+	}
+	fd, err := os.Create(filename)
+	if err != nil {
+		log.Printf("err in create %v", err)
+		return false
+	}
+	defer fd.Close()
+	n, err := fd.Write(j)
+	if err != nil {
+		log.Printf("err in write %v %v", n, err)
+		return false
+	}
+	return true
+}
+
+func (config *GameConfig) Load(filename string) bool {
+	fd, err := os.Open(filename)
+	if err != nil {
+		log.Printf("err in open %v", err)
+		return false
+	}
+	defer fd.Close()
+
+	dec := json.NewDecoder(fd)
+	err = dec.Decode(config)
+	if err != nil {
+		log.Printf("err in decode %v ", err)
+		return false
+	}
+	config.Validate()
+	return true
+}
+
+func (config *GameConfig) SaveLoad(filename string) {
+	config.Validate()
+	config.Save(filename)
+	config.Load(filename)
+	log.Printf("%v", config)
+}
+
+// -------------------
 
 const WorldSize = 500
 const WorldSizeY = 0
@@ -210,52 +230,7 @@ var defaultConfig = GameConfig{
 
 var GameConst = defaultConfig
 
-func SaveConfig(config *GameConfig, filename string) bool {
-	j, err := json.MarshalIndent(config, "", "    ")
-	if err != nil {
-		log.Printf("err in make json %v", err)
-		return false
-	}
-	fd, err := os.Create(filename)
-	if err != nil {
-		log.Printf("err in create %v", err)
-		return false
-	}
-	defer fd.Close()
-	n, err := fd.Write(j)
-	if err != nil {
-		log.Printf("err in write %v %v", n, err)
-		return false
-	}
-	return true
-}
-
-func LoadConfig(config *GameConfig, filename string) bool {
-	fd, err := os.Open(filename)
-	if err != nil {
-		log.Printf("err in open %v", err)
-		return false
-	}
-	defer fd.Close()
-
-	dec := json.NewDecoder(fd)
-	err = dec.Decode(config)
-	if err != nil {
-		log.Printf("err in decode %v ", err)
-		return false
-	}
-	ValidateConfig(config)
-	return true
-}
-
-func SaveLoad(config *GameConfig, filename string) {
-	ValidateConfig(config)
-	SaveConfig(config, filename)
-	LoadConfig(config, filename)
-	log.Printf("%v", config)
-}
-
 func init() {
-	ValidateConfig(&GameConst)
-	//SaveLoad(&defaultConfig, "default.json")
+	GameConst.Validate()
+	//defaultConfig.SaveLoad("default.json")
 }

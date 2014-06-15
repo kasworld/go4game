@@ -44,23 +44,7 @@ func NewTeam(conn interface{}, tt TeamType) *Team {
 		NearStat:      *NewActionStat(),
 		Type:          tt,
 	}
-	switch tt {
-	default:
-		log.Printf("unknown team type %#v", tt)
-	case TeamTypePlayer, TeamTypeAI:
-		t.makeMainObj()
-		o := t.addObject(NewGameObject(t.ID).MakeHomeMarkObj())
-		t.HomeObjID = o.ID
-	case TeamTypeObserver:
-	case TeamTypeFood:
-		t.addFood()
-	case TeamTypeDeco:
-		t.addRevolutionDeco()
-	case TeamTypeTerrain:
-		//t.addMaze()
-		t.addTerrain()
-	}
-
+	t.SetType(tt)
 	if conn != nil {
 		t.AddConn(conn)
 	}

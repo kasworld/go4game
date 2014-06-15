@@ -176,7 +176,7 @@ func (w *World) Do1Frame(ftime time.Time) bool {
 
 func (w *World) Loop() {
 	defer func() {
-		wi := w.makeWorldInfo()
+		wi := w.makeWorldInfoWeb()
 		fmt.Println(wi)
 		for id, t := range w.Teams {
 			w.removeTeam(id)

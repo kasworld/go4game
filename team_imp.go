@@ -1,6 +1,7 @@
 package go4game
 
 import (
+	"log"
 	"math/rand"
 )
 
@@ -14,6 +15,26 @@ const (
 	TeamTypeDeco
 	TeamTypeEnd
 )
+
+func (t *Team) SetType(tt TeamType) *Team {
+	switch tt {
+	default:
+		log.Printf("unknown team type %#v", tt)
+	case TeamTypePlayer, TeamTypeAI:
+		t.makeMainObj()
+		o := t.addObject(NewGameObject(t.ID).MakeHomeMarkObj())
+		t.HomeObjID = o.ID
+	case TeamTypeObserver:
+	case TeamTypeFood:
+		t.addFood()
+	case TeamTypeDeco:
+		t.addRevolutionDeco()
+	case TeamTypeTerrain:
+		//t.addMaze()
+		t.addTerrain()
+	}
+	return t
+}
 
 func (t *Team) addFood() {
 	hr := GameConst.WorldCube

@@ -17,7 +17,7 @@ import (
 	"strconv"
 )
 
-type TeamInfo struct {
+type TeamInfoWeb struct {
 	ID         int64
 	ClientInfo string
 	Objs       int
@@ -30,8 +30,8 @@ type TeamInfo struct {
 	Score      int
 }
 
-func (t *Team) NewTeamInfo() *TeamInfo {
-	return &TeamInfo{
+func (t *Team) NewTeamInfoWeb() *TeamInfoWeb {
+	return &TeamInfoWeb{
 		ID:         t.ID,
 		ClientInfo: t.ClientConnInfo.String(),
 		Objs:       len(t.GameObjs),
@@ -45,42 +45,42 @@ func (t *Team) NewTeamInfo() *TeamInfo {
 	}
 }
 
-type ByScore []TeamInfo
+type ByTeamScore []TeamInfoWeb
 
-func (s ByScore) Len() int {
+func (s ByTeamScore) Len() int {
 	return len(s)
 }
-func (s ByScore) Swap(i, j int) {
+func (s ByTeamScore) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
-func (s ByScore) Less(i, j int) bool {
+func (s ByTeamScore) Less(i, j int) bool {
 	return s[i].Score > s[j].Score
 }
 
 var WorldTextTemplate *ttemplate.Template
 
-type WorldInfo struct {
+type WorldInfoWeb struct {
 	ID    int64
 	Disp  string
-	Teams []TeamInfo
+	Teams []TeamInfoWeb
 }
 
-func (m *World) makeWorldInfo() *WorldInfo {
-	rtn := &WorldInfo{
+func (m *World) makeWorldInfoWeb() *WorldInfoWeb {
+	rtn := &WorldInfoWeb{
 		ID:    m.ID,
 		Disp:  m.String(),
-		Teams: make([]TeamInfo, 0, len(m.Teams)),
+		Teams: make([]TeamInfoWeb, 0, len(m.Teams)),
 	}
 	for _, t := range m.Teams {
 		if t.Type == TeamTypeAI || t.Type == TeamTypePlayer {
-			rtn.Teams = append(rtn.Teams, *t.NewTeamInfo())
+			rtn.Teams = append(rtn.Teams, *t.NewTeamInfoWeb())
 		}
 	}
-	sort.Sort(ByScore(rtn.Teams))
+	sort.Sort(ByTeamScore(rtn.Teams))
 	return rtn
 }
 
-func (wi WorldInfo) String() string {
+func (wi WorldInfoWeb) String() string {
 	var w bytes.Buffer
 	WorldTextTemplate.Execute(&w, wi)
 	return w.String()
@@ -192,7 +192,7 @@ func (g *GameService) Stat(w http.ResponseWriter, r *http.Request) {
 		})
 	} else {
 		if g.Worlds[worldid] != nil {
-			wi := g.Worlds[worldid].makeWorldInfo()
+			wi := g.Worlds[worldid].makeWorldInfoWeb()
 			WorldHtmlTemplate.Execute(w, wi)
 		}
 	}

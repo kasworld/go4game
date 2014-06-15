@@ -34,8 +34,8 @@ func main() {
 	}
 	service := *go4game.NewGameService()
 	go service.Loop()
-	service.CmdCh <- go4game.Cmd{Cmd: "start"}
+	service.CmdCh <- go4game.GoCmd{Cmd: "start"}
 	time.Sleep(time.Duration(*rundur) * time.Second)
-	service.CmdCh <- go4game.Cmd{Cmd: "quit"}
+	service.CmdCh <- go4game.GoCmd{Cmd: "quit"}
 	time.Sleep(1 * time.Second)
 }

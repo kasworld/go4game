@@ -17,7 +17,7 @@ type World struct {
 	ID    int64
 	Teams map[int64]*Team
 
-	CmdCh           chan Cmd
+	CmdCh           chan GoCmd
 	pService        *GameService
 	worldSerial     *WorldDisp
 	octree          *Octree
@@ -33,7 +33,7 @@ func NewWorld(g *GameService) *World {
 	maxclientCount := GameConst.MaxTcpClientPerWorld + GameConst.MaxWsClientPerWorld + GameConst.AICountPerWorld
 	w := World{
 		ID:       <-IdGenCh,
-		CmdCh:    make(chan Cmd, maxclientCount),
+		CmdCh:    make(chan GoCmd, maxclientCount),
 		pService: g,
 		Teams:    make(map[int64]*Team),
 	}
@@ -48,7 +48,7 @@ func (w *World) addAITeamsFromString(anames []string, n int) {
 			continue
 		}
 		rsp := make(chan interface{})
-		w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(newteam, TeamTypeAI), Rsp: rsp}
+		w.CmdCh <- GoCmd{Cmd: "AddTeam", Args: NewTeam(newteam, TeamTypeAI), Rsp: rsp}
 		<-rsp
 	}
 }
@@ -169,7 +169,7 @@ func (w *World) Do1Frame(ftime time.Time) bool {
 		//log.Printf("move team%v from world%v to world%v", id, w.ID, nw.ID)
 		t := w.Teams[id]
 		w.removeTeam(id)
-		nw.CmdCh <- Cmd{Cmd: "AddTeam", Args: t}
+		nw.CmdCh <- GoCmd{Cmd: "AddTeam", Args: t}
 	}
 	return true
 }
@@ -182,7 +182,7 @@ func (w *World) Loop() {
 			w.removeTeam(id)
 			t.endTeam()
 		}
-		w.pService.CmdCh <- Cmd{Cmd: "delWorld", Args: w}
+		w.pService.CmdCh <- GoCmd{Cmd: "delWorld", Args: w}
 	}()
 
 	timer60Ch := time.Tick(time.Duration(1000/GameConst.FramePerSec) * time.Millisecond)

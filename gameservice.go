@@ -15,7 +15,7 @@ import (
 
 type GameService struct {
 	ID     int64
-	CmdCh  chan Cmd
+	CmdCh  chan GoCmd
 	Worlds map[int64]*World
 
 	clientConnectionCh   chan net.Conn
@@ -30,7 +30,7 @@ func (m GameService) String() string {
 func NewGameService() *GameService {
 	g := GameService{
 		ID:                   <-IdGenCh,
-		CmdCh:                make(chan Cmd, 10),
+		CmdCh:                make(chan GoCmd, 10),
 		Worlds:               make(map[int64]*World),
 		clientConnectionCh:   make(chan net.Conn),
 		wsClientConnectionCh: make(chan *websocket.Conn),
@@ -64,12 +64,12 @@ func (g *GameService) addNewWorld() *World {
 	w.addAITeamsFromString(GameConst.AINames, GameConst.AICountPerWorld)
 	if GameConst.SetTerrain {
 		rsp := make(chan interface{})
-		w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(nil, TeamTypeTerrain), Rsp: rsp}
+		w.CmdCh <- GoCmd{Cmd: "AddTeam", Args: NewTeam(nil, TeamTypeTerrain), Rsp: rsp}
 		<-rsp
 	}
 	if GameConst.SetFood {
 		rsp := make(chan interface{})
-		w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(nil, TeamTypeFood), Rsp: rsp}
+		w.CmdCh <- GoCmd{Cmd: "AddTeam", Args: NewTeam(nil, TeamTypeFood), Rsp: rsp}
 		<-rsp
 	}
 	return w
@@ -113,19 +113,19 @@ loop:
 		case conn := <-g.clientConnectionCh: // new team
 			w := g.findFreeWorld(GameConst.MaxTcpClientPerWorld, TCPConn)
 			rsp := make(chan interface{})
-			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(conn, TeamTypePlayer), Rsp: rsp}
+			w.CmdCh <- GoCmd{Cmd: "AddTeam", Args: NewTeam(conn, TeamTypePlayer), Rsp: rsp}
 			<-rsp
 		case conn := <-g.wsClientConnectionCh: // new team
 			w := g.findFreeWorld(GameConst.MaxWsClientPerWorld, WebSockConn)
 			rsp := make(chan interface{})
-			w.CmdCh <- Cmd{Cmd: "AddTeam", Args: NewTeam(conn, TeamTypeObserver), Rsp: rsp}
+			w.CmdCh <- GoCmd{Cmd: "AddTeam", Args: NewTeam(conn, TeamTypeObserver), Rsp: rsp}
 			<-rsp
 		case cmd := <-g.CmdCh:
 			//log.Println(cmd)
 			switch cmd.Cmd {
 			case "quit":
 				for _, v := range g.Worlds {
-					v.CmdCh <- Cmd{Cmd: "quit"}
+					v.CmdCh <- GoCmd{Cmd: "quit"}
 				}
 				break loop
 			case "delWorld":

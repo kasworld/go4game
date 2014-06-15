@@ -44,7 +44,7 @@ func init() {
 	}()
 }
 
-type Cmd struct {
+type GoCmd struct {
 	Cmd  string
 	Args interface{}
 	Rsp  chan<- interface{}

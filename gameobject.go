@@ -1,27 +1,15 @@
 package go4game
 
 import (
-	"fmt"
-	//"math"
-	//"log"
-	//"math/rand"
-	//"reflect"
 	"time"
 )
 
-type GameObjectType int
-
-func (m GameObject) String() string {
-	return fmt.Sprintf("GameObject:%v Type:%v Team%v",
-		m.ID, m.ObjType, m.TeamID)
+func (o GameObject) String() string {
+	return o.SPObj.String()
 }
 
 type GameObject struct {
-	ID         int64
-	TeamID     int64
-	PosVector  Vector3D
-	MoveVector Vector3D
-	ObjType    GameObjectType
+	*SPObj
 
 	colcount     int64
 	enabled      bool
@@ -40,8 +28,10 @@ type GameObject struct {
 
 func NewGameObject(teamID int64) *GameObject {
 	o := GameObject{
-		ID:                <-IdGenCh,
-		TeamID:            teamID,
+		SPObj: &SPObj{
+			ID:     <-IdGenCh,
+			TeamID: teamID,
+		},
 		enabled:           true,
 		startTime:         time.Now(),
 		lastMoveTime:      time.Now(),
@@ -53,6 +43,14 @@ func NewGameObject(teamID int64) *GameObject {
 	return &o
 }
 
+func (o *GameObject) ToSPObj() *SPObj {
+	if o == nil {
+		return nil
+	}
+	rtn := *o.SPObj
+	return &rtn
+}
+
 type ActionFnEnvInfo struct {
 	frameTime time.Time
 	world     *World
@@ -60,25 +58,17 @@ type ActionFnEnvInfo struct {
 	clist     IDList
 }
 
-func (o *GameObject) IsCollision(s *SPObj) bool {
-	o.colcount++
-	if (s.TeamID != o.TeamID) &&
-		GameConst.IsInteract[o.ObjType][s.ObjType] &&
-		(s.PosVector.Sqd(o.PosVector) <= GameConst.ObjSqd[s.ObjType][o.ObjType]) {
-		return true
-	}
-	return false
-}
-
 func (e *ActionFnEnvInfo) doPartMainObj(v *SPObj) bool {
-	if e.o.IsCollision(v) {
+	e.o.colcount++
+	if (e.o.TeamID != v.TeamID) && e.o.SPObj.IsCollision(v) {
 		e.clist = append(e.clist, v.TeamID)
 	}
 	return false
 }
 
 func (e *ActionFnEnvInfo) doPartOtherObj(v *SPObj) bool {
-	if e.o.IsCollision(v) {
+	e.o.colcount++
+	if (e.o.TeamID != v.TeamID) && e.o.SPObj.IsCollision(v) {
 		return true
 	}
 	return false

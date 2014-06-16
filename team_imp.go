@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	TeamTypeNil = iota
+	TeamTypeNil TeamType = iota
 	TeamTypePlayer
 	TeamTypeAI
 	TeamTypeObserver

@@ -10,29 +10,6 @@ const (
 	MaxOctreeData = 8
 )
 
-type SPObj struct {
-	ID         int64
-	TeamID     int64
-	PosVector  Vector3D
-	MoveVector Vector3D
-	ObjType    GameObjectType
-}
-
-func NewSPObj(o *GameObject) *SPObj {
-	if o == nil {
-		return nil
-	}
-	return &SPObj{
-		ID:         o.ID,
-		TeamID:     o.TeamID,
-		PosVector:  o.PosVector,
-		MoveVector: o.MoveVector,
-		ObjType:    o.ObjType,
-	}
-}
-
-type SPObjList []*SPObj
-
 type Octree struct {
 	BoundCube *HyperRect
 	Center    Vector3D
@@ -57,7 +34,7 @@ func MakeOctree(w *World) *Octree {
 		for _, obj := range t.GameObjs {
 			// add only interactible obj
 			if obj != nil && !GameConst.NoInteract[obj.ObjType] {
-				rtn.Insert(NewSPObj(obj))
+				rtn.Insert(obj.ToSPObj())
 			}
 		}
 	}

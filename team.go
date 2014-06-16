@@ -18,10 +18,10 @@ type Team struct {
 	Color       int
 	ActionPoint int
 	Score       int
-	MainObjID   int64
-	HomeObjID   int64
 	GameObjs    map[int64]*GameObject
 
+	MainObjID      int64
+	HomeObjID      int64
 	PacketStat     ActionStat
 	CollisionStat  ActionStat
 	NearStat       ActionStat
@@ -141,7 +141,7 @@ func (t *Team) processClientReq(ftime time.Time, w *World) bool {
 		rp = RspGamePacket{
 			Cmd:       RspWorldInfo,
 			WorldInfo: w.worldSerial,
-			TeamInfo:  &TeamInfoPacket{SPObj: NewSPObj(t.findMainObj())},
+			TeamInfo:  &TeamInfoPacket{SPObj: t.findMainObj().ToSPObj()},
 		}
 	case ReqNearInfo:
 		t.applyClientAction(ftime, p.ClientAct)
@@ -149,7 +149,7 @@ func (t *Team) processClientReq(ftime time.Time, w *World) bool {
 			Cmd:      RspNearInfo,
 			NearObjs: w.octree.makeNearObjs(t, w.clientViewRange),
 			TeamInfo: &TeamInfoPacket{
-				SPObj:       NewSPObj(t.findMainObj()),
+				SPObj:       t.findMainObj().ToSPObj(),
 				ActionPoint: t.ActionPoint,
 				Score:       t.Score,
 				HomePos:     t.findHomeObj().PosVector,

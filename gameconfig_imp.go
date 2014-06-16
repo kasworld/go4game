@@ -3,12 +3,12 @@ package go4game
 // -------------------
 
 const WorldSize = 500
-const WorldSizeY = 0
+const WorldSizeY = 500
 
 var defaultConfig = GameConfig{
-	AICountPerWorld: 6,
+	AICountPerWorld: 1000,
 	SetTerrain:      false,
-	SetFood:         true,
+	SetFood:         false,
 	StartWorldCount: 1,
 	AINames: []string{
 		// "Nothing-0-0-0-0-0",
@@ -16,12 +16,12 @@ var defaultConfig = GameConfig{
 		// "Home-2-0-0-0-0",
 		// "Cloud-2-0-0-1-0",
 		// "Random-3-1-1-1-1",
-		"Adv-4-3-3-2-2",
-		"Adv-4-4-4-2-2",
+		// "Adv-4-3-3-2-2",
+		// "Adv-4-4-4-2-2",
 		"Adv-5-5-5-2-2",
-		"Adv-5-3-3-2-2",
-		"Adv-5-4-4-2-2",
-		"Adv-4-5-5-2-2",
+		// "Adv-5-3-3-2-2",
+		// "Adv-5-4-4-2-2",
+		// "Adv-4-5-5-2-2",
 	},
 	APIncFrame:           10,
 	ShieldCount:          8,

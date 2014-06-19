@@ -1,10 +1,11 @@
-package go4game
+package shootbase
 
 import (
 	// "net/http"
 	// "strconv"
 	"fmt"
 	"github.com/gorilla/websocket"
+	"github.com/kasworld/go4game"
 	"log"
 	//"math/rand"
 	"net"
@@ -15,7 +16,7 @@ import (
 
 type GameService struct {
 	ID     int64
-	CmdCh  chan GoCmd
+	CmdCh  chan go4game.GoCmd
 	Worlds map[int64]*World
 
 	clientConnectionCh   chan net.Conn
@@ -24,13 +25,13 @@ type GameService struct {
 
 func (m GameService) String() string {
 	return fmt.Sprintf("GameService%v Worlds:%v goroutine:%v IDs:%v",
-		m.ID, len(m.Worlds), runtime.NumGoroutine(), <-IdGenCh)
+		m.ID, len(m.Worlds), runtime.NumGoroutine(), <-go4game.IdGenCh)
 }
 
 func NewGameService() *GameService {
 	g := GameService{
-		ID:                   <-IdGenCh,
-		CmdCh:                make(chan GoCmd, 10),
+		ID:                   <-go4game.IdGenCh,
+		CmdCh:                make(chan go4game.GoCmd, 10),
 		Worlds:               make(map[int64]*World),
 		clientConnectionCh:   make(chan net.Conn),
 		wsClientConnectionCh: make(chan *websocket.Conn),
@@ -47,8 +48,8 @@ func NewGameService() *GameService {
 	return &g
 }
 
-func (g *GameService) worldIDList() IDList {
-	rtn := make(IDList, 0, len(g.Worlds))
+func (g *GameService) worldIDList() go4game.IDList {
+	rtn := make(go4game.IDList, 0, len(g.Worlds))
 	for id, _ := range g.Worlds {
 		rtn = append(rtn, id)
 	}
@@ -64,12 +65,12 @@ func (g *GameService) addNewWorld() *World {
 	w.addAITeamsFromString(GameConst.AINames, GameConst.AICountPerWorld)
 	if GameConst.SetTerrain {
 		rsp := make(chan interface{})
-		w.CmdCh <- GoCmd{Cmd: "AddTeam", Args: NewTeam(nil, TeamTypeTerrain), Rsp: rsp}
+		w.CmdCh <- go4game.GoCmd{Cmd: "AddTeam", Args: NewTeam(nil, TeamTypeTerrain), Rsp: rsp}
 		<-rsp
 	}
 	if GameConst.SetFood {
 		rsp := make(chan interface{})
-		w.CmdCh <- GoCmd{Cmd: "AddTeam", Args: NewTeam(nil, TeamTypeFood), Rsp: rsp}
+		w.CmdCh <- go4game.GoCmd{Cmd: "AddTeam", Args: NewTeam(nil, TeamTypeFood), Rsp: rsp}
 		<-rsp
 	}
 	return w
@@ -93,7 +94,7 @@ func (g *GameService) nextWorld(wid int64) *World {
 		return nil
 	}
 	worldids := g.worldIDList()
-	pos := worldids.findIndex(wid)
+	pos := worldids.FindIndex(wid)
 	if pos < len(worldids) && worldids[pos] == wid { // find and normal
 		wid2 := worldids[(pos+1)%len(worldids)]
 		return g.Worlds[wid2]
@@ -113,19 +114,19 @@ loop:
 		case conn := <-g.clientConnectionCh: // new team
 			w := g.findFreeWorld(GameConst.MaxTcpClientPerWorld, TCPConn)
 			rsp := make(chan interface{})
-			w.CmdCh <- GoCmd{Cmd: "AddTeam", Args: NewTeam(conn, TeamTypePlayer), Rsp: rsp}
+			w.CmdCh <- go4game.GoCmd{Cmd: "AddTeam", Args: NewTeam(conn, TeamTypePlayer), Rsp: rsp}
 			<-rsp
 		case conn := <-g.wsClientConnectionCh: // new team
 			w := g.findFreeWorld(GameConst.MaxWsClientPerWorld, WebSockConn)
 			rsp := make(chan interface{})
-			w.CmdCh <- GoCmd{Cmd: "AddTeam", Args: NewTeam(conn, TeamTypeObserver), Rsp: rsp}
+			w.CmdCh <- go4game.GoCmd{Cmd: "AddTeam", Args: NewTeam(conn, TeamTypeObserver), Rsp: rsp}
 			<-rsp
 		case cmd := <-g.CmdCh:
 			//log.Println(cmd)
 			switch cmd.Cmd {
 			case "quit":
 				for _, v := range g.Worlds {
-					v.CmdCh <- GoCmd{Cmd: "quit"}
+					v.CmdCh <- go4game.GoCmd{Cmd: "quit"}
 				}
 				break loop
 			case "delWorld":

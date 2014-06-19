@@ -1,4 +1,4 @@
-package go4game
+package shootbase
 
 import (
 	//"encoding/binary"
@@ -10,6 +10,7 @@ import (
 	"log"
 	"net"
 	//"reflect"
+	//"github.com/kasworld/go4game"
 	"time"
 )
 

@@ -1,6 +1,7 @@
-package go4game
+package shootbase
 
 import (
+	"github.com/kasworld/go4game"
 	//"encoding/json"
 	//"errors"
 	"fmt"
@@ -11,7 +12,7 @@ type GameObjectDisp struct {
 	ID int64
 	P  [3]int32
 	R  int
-	// P  Vector3D
+	// P  go4game.Vector3D
 	// R  float64
 }
 
@@ -47,8 +48,8 @@ func NewTeamDisp(t *Team) *TeamDisp {
 
 type WorldDisp struct {
 	ID       int64
-	B1       *HyperRect
-	B2       *HyperRect
+	B1       *go4game.HyperRect
+	B2       *go4game.HyperRect
 	TeamList []TeamDisp
 }
 
@@ -108,13 +109,13 @@ type TeamInfoPacket struct {
 	*SPObj
 	ActionPoint int
 	Score       int
-	HomePos     Vector3D
+	HomePos     go4game.Vector3D
 }
 
 type ClientActionPacket struct {
-	Accel           *Vector3D
-	NormalBulletMv  *Vector3D
+	Accel           *go4game.Vector3D
+	NormalBulletMv  *go4game.Vector3D
 	BurstShot       int
-	HommingTargetID IDList
-	SuperBulletMv   *Vector3D
+	HommingTargetID go4game.IDList
+	SuperBulletMv   *go4game.Vector3D
 }

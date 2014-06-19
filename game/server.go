@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"github.com/kasworld/go4game"
+	"github.com/kasworld/go4game/shootbase"
 	"log"
 	"os"
 	"runtime/pprof"
@@ -18,7 +19,7 @@ func main() {
 		*rundur, *profilefilename, *config)
 
 	if *config != "" {
-		ok := go4game.GameConst.Load(*config)
+		ok := shootbase.GameConst.Load(*config)
 		if !ok {
 			log.Fatal("config load fail")
 		}
@@ -32,7 +33,7 @@ func main() {
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 	}
-	service := *go4game.NewGameService()
+	service := *shootbase.NewGameService()
 	go service.Loop()
 	service.CmdCh <- go4game.GoCmd{Cmd: "start"}
 	time.Sleep(time.Duration(*rundur) * time.Second)

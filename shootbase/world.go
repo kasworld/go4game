@@ -1,10 +1,11 @@
-package go4game
+package shootbase
 
 import (
 	"math"
 	//"math/rand"
 	//"net"
 	//"bytes"
+	"github.com/kasworld/go4game"
 	//"reflect"
 	//"sort"
 	//"text/template"
@@ -17,11 +18,11 @@ type World struct {
 	ID    int64
 	Teams map[int64]*Team
 
-	CmdCh           chan GoCmd
+	CmdCh           chan go4game.GoCmd
 	pService        *GameService
 	worldSerial     *WorldDisp
-	octree          *Octree
-	clientViewRange *HyperRect
+	octree          *go4game.Octree
+	clientViewRange *go4game.HyperRect
 }
 
 func (w World) String() string {
@@ -32,12 +33,26 @@ func (w World) String() string {
 func NewWorld(g *GameService) *World {
 	maxclientCount := GameConst.MaxTcpClientPerWorld + GameConst.MaxWsClientPerWorld + GameConst.AICountPerWorld
 	w := World{
-		ID:       <-IdGenCh,
-		CmdCh:    make(chan GoCmd, maxclientCount),
+		ID:       <-go4game.IdGenCh,
+		CmdCh:    make(chan go4game.GoCmd, maxclientCount),
 		pService: g,
 		Teams:    make(map[int64]*Team),
 	}
 	return &w
+}
+
+func (w *World) MakeOctree() *go4game.Octree {
+	//log.Printf("make octree")
+	rtn := go4game.NewOctree(GameConst.WorldCube2)
+	for _, t := range w.Teams {
+		for _, obj := range t.GameObjs {
+			// add only interactible obj
+			if obj != nil && !GameConst.NoInteract[obj.ObjType] {
+				rtn.Insert(obj.ToOctreeObj())
+			}
+		}
+	}
+	return rtn
 }
 
 func (w *World) addAITeamsFromString(anames []string, n int) {
@@ -48,7 +63,7 @@ func (w *World) addAITeamsFromString(anames []string, n int) {
 			continue
 		}
 		rsp := make(chan interface{})
-		w.CmdCh <- GoCmd{Cmd: "AddTeam", Args: NewTeam(newteam, TeamTypeAI), Rsp: rsp}
+		w.CmdCh <- go4game.GoCmd{Cmd: "AddTeam", Args: NewTeam(newteam, TeamTypeAI), Rsp: rsp}
 		<-rsp
 	}
 }
@@ -78,7 +93,7 @@ func (w *World) removeTeam(id int64) {
 	}
 }
 
-func (w *World) decideClientViewRange() *HyperRect {
+func (w *World) decideClientViewRange() *go4game.HyperRect {
 	ocount := 0
 	for _, t := range w.Teams {
 		ocount += len(t.GameObjs)
@@ -93,7 +108,7 @@ func (w *World) decideClientViewRange() *HyperRect {
 			hs[i] = GameConst.MaxObjectRadius * 3
 		}
 	}
-	hr := HyperRect{
+	hr := go4game.HyperRect{
 		Min: hs.Neg(),
 		Max: hs,
 	}
@@ -111,14 +126,14 @@ func (w *World) updateEnv() {
 		chwsrl <- NewWorldDisp(w)
 	}()
 
-	chcvr := make(chan *HyperRect)
+	chcvr := make(chan *go4game.HyperRect)
 	go func() {
 		chcvr <- w.decideClientViewRange()
 	}()
 
-	choctree := make(chan *Octree)
+	choctree := make(chan *go4game.Octree)
 	go func() {
-		choctree <- MakeOctree(w)
+		choctree <- w.MakeOctree()
 	}()
 
 	w.worldSerial = <-chwsrl
@@ -169,7 +184,7 @@ func (w *World) Do1Frame(ftime time.Time) bool {
 		//log.Printf("move team%v from world%v to world%v", id, w.ID, nw.ID)
 		t := w.Teams[id]
 		w.removeTeam(id)
-		nw.CmdCh <- GoCmd{Cmd: "AddTeam", Args: t}
+		nw.CmdCh <- go4game.GoCmd{Cmd: "AddTeam", Args: t}
 	}
 	return true
 }
@@ -182,7 +197,7 @@ func (w *World) Loop() {
 			w.removeTeam(id)
 			t.endTeam()
 		}
-		w.pService.CmdCh <- GoCmd{Cmd: "delWorld", Args: w}
+		w.pService.CmdCh <- go4game.GoCmd{Cmd: "delWorld", Args: w}
 	}()
 
 	timer60Ch := time.Tick(time.Duration(1000/GameConst.FramePerSec) * time.Millisecond)

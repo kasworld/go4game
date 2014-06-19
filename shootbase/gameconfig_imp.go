@@ -1,4 +1,8 @@
-package go4game
+package shootbase
+
+import (
+	"github.com/kasworld/go4game"
+)
 
 // -------------------
 
@@ -33,9 +37,9 @@ var defaultConfig = GameConfig{
 	WsListen:             "0.0.0.0:8080",
 	FramePerSec:          60.0,
 	KillScore:            1,
-	WorldCube: &HyperRect{
-		Vector3D{-WorldSize, -WorldSizeY, -WorldSize},
-		Vector3D{WorldSize, WorldSizeY, WorldSize}},
+	WorldCube: &go4game.HyperRect{
+		go4game.Vector3D{-WorldSize, -WorldSizeY, -WorldSize},
+		go4game.Vector3D{WorldSize, WorldSizeY, WorldSize}},
 	MoveLimit: [GameObjEnd]float64{
 		GameObjMain:          100,
 		GameObjShield:        200,

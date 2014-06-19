@@ -1,20 +1,15 @@
-package go4game
+package shootbase
 
 import (
-	//"fmt"
-	"log"
-	//"math"
-	//"math/rand"
-	//"net"
+	//"github.com/kasworld/go4game"
 	"bytes"
-	//"reflect"
+	"github.com/gorilla/websocket"
 	htemplate "html/template"
+	"log"
 	"net/http"
 	"sort"
-	ttemplate "text/template"
-	//"time"
-	"github.com/gorilla/websocket"
 	"strconv"
+	ttemplate "text/template"
 )
 
 type TeamInfoWeb struct {

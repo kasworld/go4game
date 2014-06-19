@@ -1,7 +1,8 @@
-package go4game
+package shootbase
 
 import (
 	"fmt"
+	"github.com/kasworld/go4game"
 )
 
 type GameObjectType int
@@ -9,8 +10,8 @@ type GameObjectType int
 type SPObj struct {
 	ID         int64
 	TeamID     int64
-	PosVector  Vector3D
-	MoveVector Vector3D
+	PosVector  go4game.Vector3D
+	MoveVector go4game.Vector3D
 	ObjType    GameObjectType
 }
 
@@ -26,4 +27,8 @@ type SPObjList []*SPObj
 
 func (o SPObj) String() string {
 	return fmt.Sprintf("ID:%v Type:%v Team%v", o.ID, o.ObjType, o.TeamID)
+}
+
+func (o SPObj) Pos() go4game.Vector3D {
+	return o.PosVector
 }

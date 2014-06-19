@@ -1,6 +1,7 @@
-package go4game
+package shootbase
 
 import (
+	"github.com/kasworld/go4game"
 	"log"
 	//"time"
 	"encoding/json"
@@ -21,9 +22,9 @@ type GameConfig struct {
 	SetTerrain           bool
 	SetFood              bool
 	TcpClientEncode      string // gob , json
-	WorldCube            *HyperRect
+	WorldCube            *go4game.HyperRect
 	WorldDiag            float64
-	WorldCube2           *HyperRect // for octree
+	WorldCube2           *go4game.HyperRect // for octree
 	WorldDiag2           float64
 	APIncFrame           int
 	KillScore            int
@@ -41,9 +42,9 @@ type GameConfig struct {
 
 func (config *GameConfig) Validate() {
 	config.WorldDiag = config.WorldCube.DiagLen()
-	config.WorldCube2 = &HyperRect{
-		Min: config.WorldCube.Min.Sub(Vector3D{100, 100, 100}),
-		Max: config.WorldCube.Max.Add(Vector3D{100, 100, 100}),
+	config.WorldCube2 = &go4game.HyperRect{
+		Min: config.WorldCube.Min.Sub(go4game.Vector3D{100, 100, 100}),
+		Max: config.WorldCube.Max.Add(go4game.Vector3D{100, 100, 100}),
 	}
 	config.WorldDiag2 = config.WorldCube2.DiagLen()
 

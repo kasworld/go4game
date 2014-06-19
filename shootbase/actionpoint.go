@@ -1,14 +1,18 @@
-package go4game
+package shootbase
+
+import (
+	"github.com/kasworld/go4game"
+)
 
 type ActionPoint struct {
 	point int
-	as    [ActionEnd]ActionStat
+	as    [ActionEnd]go4game.ActionStat
 }
 
 func NewActionPoint() *ActionPoint {
 	r := ActionPoint{}
 	for i := ActionAccel; i < ActionEnd; i++ {
-		r.as[i] = *NewActionStat()
+		r.as[i] = *go4game.NewActionStat()
 	}
 	return &r
 }

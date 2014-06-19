@@ -1,9 +1,10 @@
-package go4game
+package shootbase
 
 import (
 	//"errors"
 	"fmt"
 	"github.com/gorilla/websocket"
+	"github.com/kasworld/go4game"
 	"log"
 	"math/rand"
 	"net"
@@ -13,20 +14,20 @@ import (
 type TeamType int
 
 type Team struct {
-	ID          int64
-	Type        TeamType
-	Color       int
-	ActionPoint int
-	Score       int
-	GameObjs    map[int64]*GameObject
-
-	MainObjID      int64
-	HomeObjID      int64
-	PacketStat     ActionStat
-	CollisionStat  ActionStat
-	NearStat       ActionStat
+	ID             int64
+	Type           TeamType
+	GameObjs       map[int64]*GameObject
 	ClientConnInfo *ConnInfo
-	chStep         <-chan IDList
+	PacketStat     go4game.ActionStat
+
+	Color         int
+	ActionPoint   int
+	Score         int
+	MainObjID     int64
+	HomeObjID     int64
+	CollisionStat go4game.ActionStat
+	NearStat      go4game.ActionStat
+	chStep        <-chan go4game.IDList
 }
 
 func (m Team) String() string {
@@ -36,12 +37,12 @@ func (m Team) String() string {
 
 func NewTeam(conn interface{}, tt TeamType) *Team {
 	t := Team{
-		ID:            <-IdGenCh,
+		ID:            <-go4game.IdGenCh,
 		GameObjs:      make(map[int64]*GameObject, 10),
 		Color:         rand.Intn(0x1000000),
-		PacketStat:    *NewActionStat(),
-		CollisionStat: *NewActionStat(),
-		NearStat:      *NewActionStat(),
+		PacketStat:    *go4game.NewActionStat(),
+		CollisionStat: *go4game.NewActionStat(),
+		NearStat:      *go4game.NewActionStat(),
 		Type:          tt,
 	}
 	t.SetType(tt)
@@ -96,14 +97,15 @@ type NearInfo struct {
 	t  *Team
 }
 
-func (ni *NearInfo) gather(o *SPObj) bool {
+func (ni *NearInfo) gather(oo go4game.OctreeObj) bool {
+	o := oo.(*SPObj)
 	if ni.t.ID != o.TeamID {
 		ni.sl = append(ni.sl, o)
 	}
 	return false
 }
 
-func (ot *Octree) makeNearObjs(t *Team, hr *HyperRect) SPObjList {
+func (t *Team) makeNearObjs(ot *go4game.Octree, hr *go4game.HyperRect) SPObjList {
 	mainobj := t.findMainObj()
 	if mainobj == nil {
 		return nil
@@ -147,7 +149,7 @@ func (t *Team) processClientReq(ftime time.Time, w *World) bool {
 		t.applyClientAction(ftime, p.ClientAct)
 		rp = RspGamePacket{
 			Cmd:      RspNearInfo,
-			NearObjs: w.octree.makeNearObjs(t, w.clientViewRange),
+			NearObjs: t.makeNearObjs(w.octree, w.clientViewRange),
 			TeamInfo: &TeamInfoPacket{
 				SPObj:       t.findMainObj().ToSPObj(),
 				ActionPoint: t.ActionPoint,
@@ -163,8 +165,8 @@ func (t *Team) processClientReq(ftime time.Time, w *World) bool {
 	return true
 }
 
-func (t *Team) actByTime(world *World, ftime time.Time) IDList {
-	clist := make(IDList, 0)
+func (t *Team) actByTime(world *World, ftime time.Time) go4game.IDList {
+	clist := make(go4game.IDList, 0)
 	for _, v := range t.GameObjs {
 		v.colcount = 0
 		clist = append(clist, v.ActByTime(world, ftime)...)
@@ -182,14 +184,14 @@ func (t *Team) actByTime(world *World, ftime time.Time) IDList {
 	return clist
 }
 
-func (t *Team) Do1Frame(world *World, ftime time.Time) <-chan IDList {
+func (t *Team) Do1Frame(world *World, ftime time.Time) <-chan go4game.IDList {
 	ap := t.CalcAP()
 	if ap < 0 {
 		log.Printf("invalid ap team%v %v", t.ID, ap)
 	}
 	t.ActionPoint += ap
 
-	chRtn := make(chan IDList)
+	chRtn := make(chan go4game.IDList)
 	go func() {
 		rtn := t.processClientReq(ftime, world)
 		if !rtn {
@@ -256,12 +258,12 @@ func (t *Team) fireBullet(ObjType GameObjectType, args interface{}) *GameObject 
 		log.Printf("invalid GameObjectType %v", t)
 		return nil
 	case GameObjBullet:
-		o.MakeBullet(mo, args.(Vector3D))
+		o.MakeBullet(mo, args.(go4game.Vector3D))
 	case GameObjSuperBullet:
-		o.MakeSuperBullet(mo, args.(Vector3D))
+		o.MakeSuperBullet(mo, args.(go4game.Vector3D))
 	case GameObjHommingBullet:
-		targetid := args.(IDList)[0]
-		targetteamid := args.(IDList)[1]
+		targetid := args.(go4game.IDList)[0]
+		targetteamid := args.(go4game.IDList)[1]
 		o.MakeHommingBullet(mo, targetteamid, targetid)
 	}
 	return t.addObject(o)

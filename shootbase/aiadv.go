@@ -1,10 +1,11 @@
-package go4game
+package shootbase
 
 import (
 	//"log"
 	"fmt"
 	//"math"
 	//"math/rand"
+	"github.com/kasworld/go4game"
 	"sort"
 	"time"
 )
@@ -21,8 +22,8 @@ const (
 )
 
 type FactorCalcFn func(a *AIAdv, o *AIAdvAimTarget) float64
-type VectorMakeFn func(a *AIAdv) *Vector3D
-type IDListMakeFn func(a *AIAdv) IDList
+type VectorMakeFn func(a *AIAdv) *go4game.Vector3D
+type IDListMakeFn func(a *AIAdv) go4game.IDList
 type IntMakeFn func(a *AIAdv) int
 
 type AIVector3DAct struct {
@@ -55,7 +56,7 @@ type AIAdv struct {
 	me              *SPObj
 	ActionPoint     int
 	Score           int
-	HomePos         Vector3D
+	HomePos         go4game.Vector3D
 	preparedTargets [ActionEnd]AIAdvAimTargetList
 	lastTargets     [ActionEnd]map[int64]time.Time
 }

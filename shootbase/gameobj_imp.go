@@ -1,6 +1,7 @@
-package go4game
+package shootbase
 
 import (
+	"github.com/kasworld/go4game"
 	"time"
 )
 
@@ -36,21 +37,21 @@ func (o *GameObject) MakeShield(mo *GameObject) *GameObject {
 	o.ObjType = GameObjShield
 	return o
 }
-func (o *GameObject) MakeBullet(mo *GameObject, MoveVector Vector3D) *GameObject {
+func (o *GameObject) MakeBullet(mo *GameObject, MoveVector go4game.Vector3D) *GameObject {
 	o.endTime = o.startTime.Add(time.Second * 10)
 	o.PosVector = mo.PosVector
 	o.MoveVector = MoveVector
 	o.borderActionFn = borderActionFn_B2_Disable
-	o.accelVector = Vector3D{0, 0, 0}
+	o.accelVector = go4game.Vector3D{0, 0, 0}
 	o.ObjType = GameObjBullet
 	return o
 }
-func (o *GameObject) MakeSuperBullet(mo *GameObject, MoveVector Vector3D) *GameObject {
+func (o *GameObject) MakeSuperBullet(mo *GameObject, MoveVector go4game.Vector3D) *GameObject {
 	o.endTime = o.startTime.Add(time.Second * 10)
 	o.PosVector = mo.PosVector
 	o.MoveVector = MoveVector
 	o.borderActionFn = borderActionFn_B2_Disable
-	o.accelVector = Vector3D{0, 0, 0}
+	o.accelVector = go4game.Vector3D{0, 0, 0}
 	o.ObjType = GameObjSuperBullet
 	return o
 }
@@ -58,9 +59,9 @@ func (o *GameObject) MakeHommingBullet(mo *GameObject, targetteamid int64, targe
 	o.endTime = o.startTime.Add(time.Second * 60)
 	o.PosVector = mo.PosVector
 	o.borderActionFn = borderActionFn_B2_Disable
-	o.accelVector = Vector3D{0, 0, 0}
+	o.accelVector = go4game.Vector3D{0, 0, 0}
 
-	o.MoveVector = Vector3D{0, 0, 0}
+	o.MoveVector = go4game.Vector3D{0, 0, 0}
 	o.targetObjID = targetid
 	o.targetTeamID = targetteamid
 	o.moveByTimeFn = moveByTimeFn_homming
@@ -84,7 +85,7 @@ func (o *GameObject) MakeHomeMarkObj() *GameObject {
 	return o
 }
 
-func (o *GameObject) MakeHardObj(pos Vector3D) *GameObject {
+func (o *GameObject) MakeHardObj(pos go4game.Vector3D) *GameObject {
 	o.PosVector = pos
 	o.moveByTimeFn = moveByTimeFn_none
 	o.borderActionFn = borderActionFn_None
@@ -92,7 +93,7 @@ func (o *GameObject) MakeHardObj(pos Vector3D) *GameObject {
 	return o
 }
 
-func (o *GameObject) MakeFoodObj(pos Vector3D) *GameObject {
+func (o *GameObject) MakeFoodObj(pos go4game.Vector3D) *GameObject {
 	o.PosVector = pos
 	o.moveByTimeFn = moveByTimeFn_none
 	o.borderActionFn = borderActionFn_None

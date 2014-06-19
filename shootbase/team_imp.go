@@ -1,6 +1,7 @@
-package go4game
+package shootbase
 
 import (
+	"github.com/kasworld/go4game"
 	"log"
 	"math/rand"
 )
@@ -54,7 +55,7 @@ func (t *Team) addTerrain() {
 				if rand.Float64() < 0.5 {
 					continue
 				}
-				pos := Vector3D{i, j, k}
+				pos := go4game.Vector3D{i, j, k}
 				o := NewGameObject(t.ID).MakeHardObj(pos)
 				t.addObject(o)
 			}
@@ -71,7 +72,7 @@ func (t *Team) addMaze() {
 			if rand.Float64() < 0.8 {
 				continue
 			}
-			pos := Vector3D{i, j, k}
+			pos := go4game.Vector3D{i, j, k}
 			o := NewGameObject(t.ID).MakeHardObj(pos)
 			t.addObject(o)
 		}

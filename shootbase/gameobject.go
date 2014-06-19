@@ -1,6 +1,7 @@
-package go4game
+package shootbase
 
 import (
+	"github.com/kasworld/go4game"
 	"time"
 )
 
@@ -15,7 +16,7 @@ type GameObject struct {
 	enabled      bool
 	startTime    time.Time
 	endTime      time.Time
-	accelVector  Vector3D
+	accelVector  go4game.Vector3D
 	targetObjID  int64
 	targetTeamID int64
 	lastMoveTime time.Time
@@ -29,7 +30,7 @@ type GameObject struct {
 func NewGameObject(teamID int64) *GameObject {
 	o := GameObject{
 		SPObj: &SPObj{
-			ID:     <-IdGenCh,
+			ID:     <-go4game.IdGenCh,
 			TeamID: teamID,
 		},
 		enabled:           true,
@@ -41,6 +42,14 @@ func NewGameObject(teamID int64) *GameObject {
 		expireActionFn:    expireFn_default,
 	}
 	return &o
+}
+
+func (o *GameObject) ToOctreeObj() go4game.OctreeObj {
+	if o == nil {
+		return nil
+	}
+	rtn := *o.SPObj
+	return &rtn
 }
 
 func (o *GameObject) ToSPObj() *SPObj {
@@ -55,10 +64,11 @@ type ActionFnEnvInfo struct {
 	frameTime time.Time
 	world     *World
 	o         *GameObject
-	clist     IDList
+	clist     go4game.IDList
 }
 
-func (e *ActionFnEnvInfo) doPartMainObj(v *SPObj) bool {
+func (e *ActionFnEnvInfo) doPartMainObj(oo go4game.OctreeObj) bool {
+	v := oo.(*SPObj)
 	e.o.colcount++
 	if (e.o.TeamID != v.TeamID) && e.o.SPObj.IsCollision(v) {
 		e.clist = append(e.clist, v.TeamID)
@@ -66,7 +76,8 @@ func (e *ActionFnEnvInfo) doPartMainObj(v *SPObj) bool {
 	return false
 }
 
-func (e *ActionFnEnvInfo) doPartOtherObj(v *SPObj) bool {
+func (e *ActionFnEnvInfo) doPartOtherObj(oo go4game.OctreeObj) bool {
+	v := oo.(*SPObj)
 	e.o.colcount++
 	if (e.o.TeamID != v.TeamID) && e.o.SPObj.IsCollision(v) {
 		return true
@@ -74,7 +85,7 @@ func (e *ActionFnEnvInfo) doPartOtherObj(v *SPObj) bool {
 	return false
 }
 
-func (o *GameObject) ActByTime(world *World, t time.Time) IDList {
+func (o *GameObject) ActByTime(world *World, t time.Time) go4game.IDList {
 	defer func() {
 		o.lastMoveTime = t
 	}()
@@ -83,7 +94,7 @@ func (o *GameObject) ActByTime(world *World, t time.Time) IDList {
 		frameTime: t,
 		world:     world,
 		o:         o,
-		clist:     make(IDList, 0),
+		clist:     make(go4game.IDList, 0),
 	}
 	// check expire
 	if !o.endTime.IsZero() && o.endTime.Before(t) {
@@ -96,7 +107,7 @@ func (o *GameObject) ActByTime(world *World, t time.Time) IDList {
 	}
 
 	var isCollision bool
-	hr := NewHyperRectByCR(o.PosVector, GameConst.Radius[o.ObjType]+GameConst.MaxObjectRadius)
+	hr := go4game.NewHyperRectByCR(o.PosVector, GameConst.Radius[o.ObjType]+GameConst.MaxObjectRadius)
 	if o.ObjType == GameObjMain {
 		envInfo.world.octree.QueryByHyperRect(envInfo.doPartMainObj, hr)
 	} else {
@@ -171,7 +182,7 @@ func moveByTimeFn_shield(m *GameObject, envInfo *ActionFnEnvInfo) bool {
 		return false
 	}
 	dur := float64(envInfo.frameTime.Sub(m.startTime)) / float64(time.Second)
-	//axis := &Vector3D{0, math.Copysign(20, m.MoveVector[0]), 0}
+	//axis := &go4game.Vector3D{0, math.Copysign(20, m.MoveVector[0]), 0}
 	axis := mo.MoveVector // .NormalizedTo(20)
 	//p := m.accelVector.NormalizedTo(20)
 	p := mo.MoveVector.Cross(m.MoveVector).NormalizedTo(20)

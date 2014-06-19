@@ -23,7 +23,7 @@ func (s IDList) Less(i, j int) bool {
 	return s[i] < s[j]
 }
 
-func (s IDList) findIndex(id int64) int {
+func (s IDList) FindIndex(id int64) int {
 	return sort.Search(len(s), func(i int) bool { return s[i] >= id })
 }
 

@@ -10,12 +10,12 @@ const (
 	MaxOctreeData = 8
 )
 
-type OctreeObj interface {
+type OctreeObjI interface {
 	Pos() Vector3D
 	String() string
 }
 
-type OctreeObjList []OctreeObj
+type OctreeObjList []OctreeObjI
 
 type Octree struct {
 	BoundCube *HyperRect
@@ -46,7 +46,7 @@ func (ot *Octree) Split() {
 	}
 }
 
-func (ot *Octree) Insert(o OctreeObj) bool {
+func (ot *Octree) Insert(o OctreeObjI) bool {
 	//log.Printf("insert to octree obj%v %v", o.ID, o.Pos())
 	if !o.Pos().IsIn(ot.BoundCube) {
 		log.Printf("invalid Insert Octree %v %v", ot.BoundCube, o.Pos())
@@ -63,7 +63,7 @@ func (ot *Octree) Insert(o OctreeObj) bool {
 	}
 }
 
-func (ot *Octree) QueryByHyperRect(fn func(OctreeObj) bool, hr *HyperRect) bool {
+func (ot *Octree) QueryByHyperRect(fn func(OctreeObjI) bool, hr *HyperRect) bool {
 	if !ot.BoundCube.IsOverlap(hr) {
 		return false
 	}

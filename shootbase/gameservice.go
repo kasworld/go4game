@@ -124,6 +124,8 @@ loop:
 		case cmd := <-g.CmdCh:
 			//log.Println(cmd)
 			switch cmd.Cmd {
+			default:
+				log.Printf("unknown cmd %v", cmd)
 			case "quit":
 				for _, v := range g.Worlds {
 					v.CmdCh <- go4game.GoCmd{Cmd: "quit"}
@@ -131,8 +133,6 @@ loop:
 				break loop
 			case "delWorld":
 				g.delWorld(cmd.Args.(*World))
-			default:
-				log.Printf("unknown cmd %v", cmd)
 			}
 		case <-timer60Ch:
 			// do frame action

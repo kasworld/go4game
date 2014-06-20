@@ -97,7 +97,7 @@ type NearInfo struct {
 	t  *Team
 }
 
-func (ni *NearInfo) gather(oo go4game.OctreeObj) bool {
+func (ni *NearInfo) gather(oo go4game.OctreeObjI) bool {
 	o := oo.(*SPObj)
 	if ni.t.ID != o.TeamID {
 		ni.sl = append(ni.sl, o)

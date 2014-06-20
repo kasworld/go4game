@@ -44,7 +44,7 @@ func NewGameObject(teamID int64) *GameObject {
 	return &o
 }
 
-func (o *GameObject) ToOctreeObj() go4game.OctreeObj {
+func (o *GameObject) ToOctreeObj() go4game.OctreeObjI {
 	if o == nil {
 		return nil
 	}
@@ -67,7 +67,7 @@ type ActionFnEnvInfo struct {
 	clist     go4game.IDList
 }
 
-func (e *ActionFnEnvInfo) doPartMainObj(oo go4game.OctreeObj) bool {
+func (e *ActionFnEnvInfo) doPartMainObj(oo go4game.OctreeObjI) bool {
 	v := oo.(*SPObj)
 	e.o.colcount++
 	if (e.o.TeamID != v.TeamID) && e.o.SPObj.IsCollision(v) {
@@ -76,7 +76,7 @@ func (e *ActionFnEnvInfo) doPartMainObj(oo go4game.OctreeObj) bool {
 	return false
 }
 
-func (e *ActionFnEnvInfo) doPartOtherObj(oo go4game.OctreeObj) bool {
+func (e *ActionFnEnvInfo) doPartOtherObj(oo go4game.OctreeObjI) bool {
 	v := oo.(*SPObj)
 	e.o.colcount++
 	if (e.o.TeamID != v.TeamID) && e.o.SPObj.IsCollision(v) {

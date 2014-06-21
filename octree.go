@@ -12,7 +12,6 @@ const (
 
 type OctreeObjI interface {
 	Pos() Vector3D
-	String() string
 }
 
 type OctreeObjList []OctreeObjI

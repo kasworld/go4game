@@ -35,7 +35,6 @@ func run_main(sc snakebase.GameConfigI) {
 	}
 	service := sc.NewService()
 	go service.Loop()
-	service.SendGoCmd("start", nil, nil)
 	time.Sleep(time.Duration(*rundur) * time.Second)
 	service.SendGoCmd("quit", nil, nil)
 	time.Sleep(1 * time.Second)

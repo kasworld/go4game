@@ -22,29 +22,34 @@ type GameConfigI interface {
 
 type ServiceI interface {
 	CmdReceiver
-	String() string
+	ID() int64
 	NewWorld() WorldI
+	AddWorld(WorldI)
+	RemoveWorld(id int64)
 }
 
 type WorldI interface {
 	CmdReceiver
-	String() string
+	ID() int64
 	AddObjGroup(ObjGroupI)
 	RemoveObjGroup(id int64)
 }
 
 type ObjGroupI interface {
+	ID() int64
 	AddGameObj(GameObjI)
 	RemoveGameObj(id int64)
 	DoFrameAction(ftime time.Time) <-chan interface{}
+	AddInitMembers()
+}
+
+type OGActor interface {
+	FrameAction() go4game.Vector3D
 }
 
 type GameObjI interface {
+	ID() int64
 	go4game.OctreeObjI
 	ToOctreeObj() go4game.OctreeObjI
-	ActByTime(WorldI, t time.Time) go4game.IDList
-	// MoveByTime(envInfo *ActionFnEnvInfo) bool
-	// BorderAction(envInfo *ActionFnEnvInfo) bool
-	// CollisionAction(envInfo *ActionFnEnvInfo) bool
-	// ExpireAction(envInfo *ActionFnEnvInfo) bool
+	ActByTime(w WorldI, t time.Time)
 }

@@ -69,16 +69,6 @@ func (config *SnakeConfig) SaveLoad(filename string) {
 	config.Load(filename)
 	log.Printf("%v", config)
 }
-func (config *SnakeConfig) NewService() ServiceI {
-	g := SnakeService{
-		id:     <-go4game.IdGenCh,
-		cmdCh:  make(chan go4game.GoCmd, 10),
-		Worlds: make(map[int64]WorldI),
-		config: config,
-	}
-	g.AddWorld(g.NewWorld())
-	return &g
-}
 
 const WorldSize = 500
 const WorldSizeY = 500

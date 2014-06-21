@@ -17,6 +17,17 @@ type SnakeService struct {
 	cmdCh  chan go4game.GoCmd
 }
 
+func NewService(config *SnakeConfig) *SnakeService {
+	g := SnakeService{
+		id:     <-go4game.IdGenCh,
+		cmdCh:  make(chan go4game.GoCmd, 10),
+		Worlds: make(map[int64]WorldI),
+		config: config,
+	}
+	g.AddWorld(NewWorld(&g))
+	return &g
+}
+
 func (s *SnakeService) ID() int64 {
 	return s.id
 }
@@ -52,20 +63,6 @@ loop:
 		case <-timer1secCh:
 		}
 	}
-}
-func (s *SnakeService) NewWorld() WorldI {
-	w := World{
-		id:        <-go4game.IdGenCh,
-		ObjGroups: make(map[int64]ObjGroupI),
-		cmdCh:     make(chan go4game.GoCmd, 1),
-		pService:  s,
-		config:    s.config,
-	}
-	w.AddObjGroup(w.NewSnake())
-	w.AddObjGroup(w.NewStageWalls())
-	w.AddObjGroup(w.NewStageApples())
-	w.AddObjGroup(w.NewStagePlums())
-	return &w
 }
 
 func (s *SnakeService) AddWorld(w WorldI) {

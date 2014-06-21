@@ -12,21 +12,19 @@ type CmdReceiver interface {
 	Loop()
 }
 
-type GameConfigI interface {
-	Validate()
-	Save(filename string) bool
-	Load(filename string) bool
-	SaveLoad(filename string)
-	NewService() ServiceI
-}
+// type GameConfigI interface {
+// 	Validate()
+// 	Save(filename string) bool
+// 	Load(filename string) bool
+// 	SaveLoad(filename string)
+// }
 
-type ServiceI interface {
-	CmdReceiver
-	ID() int64
-	NewWorld() WorldI
-	AddWorld(WorldI)
-	RemoveWorld(id int64)
-}
+// type ServiceI interface {
+// 	CmdReceiver
+// 	ID() int64
+// 	AddWorld(WorldI)
+// 	RemoveWorld(id int64)
+// }
 
 type WorldI interface {
 	CmdReceiver
@@ -39,7 +37,8 @@ type ObjGroupI interface {
 	ID() int64
 	AddGameObj(GameObjI)
 	RemoveGameObj(id int64)
-	DoFrameAction(ftime time.Time) <-chan interface{}
+	StartFrameAction(w WorldI, ftime time.Time)
+	FrameActionResult() interface{}
 	AddInitMembers()
 }
 

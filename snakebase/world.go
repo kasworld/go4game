@@ -18,6 +18,21 @@ type World struct {
 	pService  *SnakeService
 }
 
+func NewWorld(s *SnakeService) *World {
+	w := World{
+		id:        <-go4game.IdGenCh,
+		ObjGroups: make(map[int64]ObjGroupI),
+		cmdCh:     make(chan go4game.GoCmd, 1),
+		pService:  s,
+		config:    s.config,
+	}
+	w.AddObjGroup(NewSnake(&w))
+	w.AddObjGroup(NewStageWalls(&w))
+	w.AddObjGroup(NewStageApples(&w))
+	w.AddObjGroup(NewStagePlums(&w))
+	return &w
+}
+
 func (w *World) ID() int64 {
 	return w.id
 }
@@ -31,6 +46,15 @@ func (w *World) SendGoCmd(Cmd string, Args interface{}, Rsp chan<- interface{}) 
 }
 func (w World) String() string {
 	return fmt.Sprintf("World%v ", w.ID)
+}
+func (w *World) Do1Frame(ftime time.Time) bool {
+	for _, og := range w.ObjGroups {
+		go og.StartFrameAction(w, ftime)
+	}
+	for _, og := range w.ObjGroups {
+		og.FrameActionResult()
+	}
+	return true
 }
 func (w *World) Loop() {
 	timer1secCh := time.Tick(1 * time.Second)
@@ -47,8 +71,11 @@ loop:
 			case "quit":
 				break loop
 			}
-		case <-timer60Ch:
-			// do frame action
+		case ftime := <-timer60Ch:
+			ok := w.Do1Frame(ftime)
+			if !ok {
+				break loop
+			}
 		case <-timer1secCh:
 		}
 	}
@@ -58,40 +85,4 @@ func (w *World) AddObjGroup(og ObjGroupI) {
 }
 func (w *World) RemoveObjGroup(id int64) {
 	delete(w.ObjGroups, id)
-}
-func (w *World) NewObjGroup() ObjGroupI {
-	og := ObjGroupBase{
-		id:       <-go4game.IdGenCh,
-		GameObjs: make(map[int64]GameObjI),
-		config:   w.config,
-	}
-	return &og
-}
-func (w *World) NewSnake() ObjGroupI {
-	og := Snake{
-		ObjGroupBase: *w.NewObjGroup().(*ObjGroupBase),
-	}
-	og.AddInitMembers()
-	return &og
-}
-func (w *World) NewStageWalls() ObjGroupI {
-	og := StageWalls{
-		ObjGroupBase: *w.NewObjGroup().(*ObjGroupBase),
-	}
-	og.AddInitMembers()
-	return &og
-}
-func (w *World) NewStagePlums() ObjGroupI {
-	og := StagePlums{
-		ObjGroupBase: *w.NewObjGroup().(*ObjGroupBase),
-	}
-	og.AddInitMembers()
-	return &og
-}
-func (w *World) NewStageApples() ObjGroupI {
-	og := StageApples{
-		ObjGroupBase: *w.NewObjGroup().(*ObjGroupBase),
-	}
-	og.AddInitMembers()
-	return &og
 }

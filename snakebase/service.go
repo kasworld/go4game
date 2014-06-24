@@ -25,6 +25,7 @@ func NewService(config *SnakeConfig) *SnakeService {
 		config: config,
 	}
 	g.AddWorld(NewWorld(&g))
+	go g.Loop()
 	return &g
 }
 

@@ -10,14 +10,6 @@ import (
 	//"time"
 )
 
-type SnakeConfig struct {
-	WorldCube   *go4game.HyperRect
-	WorldDiag   float64
-	WorldCube2  *go4game.HyperRect // for octree
-	WorldDiag2  float64
-	FramePerSec float64
-}
-
 func (config *SnakeConfig) Validate() {
 	config.WorldDiag = config.WorldCube.DiagLen()
 	config.WorldCube2 = &go4game.HyperRect{
@@ -70,10 +62,18 @@ func (config *SnakeConfig) SaveLoad(filename string) {
 	log.Printf("%v", config)
 }
 
+type SnakeConfig struct {
+	WorldCube   *go4game.HyperRect
+	WorldDiag   float64
+	WorldCube2  *go4game.HyperRect // for octree
+	WorldDiag2  float64
+	FramePerSec float64
+}
+
 const WorldSize = 500
 const WorldSizeY = 500
 
-var GameConst = SnakeConfig{
+var SnakeDefault = SnakeConfig{
 	WorldCube: &go4game.HyperRect{
 		go4game.Vector3D{-WorldSize, -WorldSizeY, -WorldSize},
 		go4game.Vector3D{WorldSize, WorldSizeY, WorldSize}},

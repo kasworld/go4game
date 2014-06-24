@@ -31,6 +31,7 @@ type WorldI interface {
 	ID() int64
 	AddObjGroup(ObjGroupI)
 	RemoveObjGroup(id int64)
+	CollideList(o GameObjI) []GameObjI
 }
 
 type ObjGroupI interface {
@@ -48,7 +49,18 @@ type OGActor interface {
 
 type GameObjI interface {
 	ID() int64
-	go4game.OctreeObjI
-	ToOctreeObj() go4game.OctreeObjI
+	OctreeVolObjI
+	ToOctreeVolObj() OctreeVolObjI
 	ActByTime(w WorldI, t time.Time)
+}
+
+func test_interfaces() {
+	test_WorldI()
+	test_ObjGroupI()
+	test_GameObjI()
+	test_Collider()
+}
+
+func init() {
+	test_interfaces()
 }

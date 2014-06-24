@@ -287,6 +287,15 @@ func (h1 *HyperRect) IsOverlap(h2 *HyperRect) bool {
 	// return true
 }
 
+func (h1 *HyperRect) IsIn(h2 *HyperRect) bool {
+	for i := 0; i < 3; i++ {
+		if h1.Min[i] < h2.Min[i] || h1.Max[i] > h2.Max[i] {
+			return false
+		}
+	}
+	return true
+}
+
 func (p Vector3D) IsIn(hr *HyperRect) bool {
 	return hr.Min[0] <= p[0] && p[0] <= hr.Max[0] &&
 		hr.Min[1] <= p[1] && p[1] <= hr.Max[1] &&

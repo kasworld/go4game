@@ -23,7 +23,7 @@ func NewObjGroup(w *World) *ObjGroupBase {
 		id:       <-go4game.IdGenCh,
 		GameObjs: make(map[int64]GameObjI),
 		config:   w.config,
-		chStep:   make(chan interface{}),
+		chStep:   make(chan interface{}, 1),
 	}
 	return &og
 }
@@ -37,6 +37,9 @@ func (og *ObjGroupBase) RemoveGameObj(id int64) {
 	delete(og.GameObjs, id)
 }
 func (og *ObjGroupBase) StartFrameAction(world WorldI, ftime time.Time) {
+	for _, o := range og.GameObjs {
+		o.ActByTime(world, ftime)
+	}
 	og.chStep <- nil
 }
 func (og *ObjGroupBase) FrameActionResult() interface{} {
@@ -47,14 +50,14 @@ func (og *ObjGroupBase) AddInitMembers() {
 
 type Snake struct {
 	ObjGroupBase
-	Color  int
+	Color  uint32
 	HeadID int64
 }
 
 func NewSnake(w *World) *Snake {
 	og := Snake{
 		ObjGroupBase: *NewObjGroup(w),
-		Color:        rand.Intn(0x1000000),
+		Color:        rand.Uint32(),
 	}
 	og.AddInitMembers()
 	//log.Printf("%#v", og)
@@ -70,6 +73,9 @@ func (og *Snake) RemoveGameObj(id int64) {
 	og.ObjGroupBase.RemoveGameObj(id)
 }
 func (og *Snake) StartFrameAction(world WorldI, ftime time.Time) {
+	for _, o := range og.GameObjs {
+		o.ActByTime(world, ftime)
+	}
 	og.chStep <- nil
 }
 func (og *Snake) FrameActionResult() interface{} {
@@ -104,6 +110,9 @@ func (og *StageWalls) RemoveGameObj(id int64) {
 	og.ObjGroupBase.RemoveGameObj(id)
 }
 func (og *StageWalls) StartFrameAction(world WorldI, ftime time.Time) {
+	for _, o := range og.GameObjs {
+		o.ActByTime(world, ftime)
+	}
 	og.chStep <- nil
 }
 func (og *StageWalls) FrameActionResult() interface{} {
@@ -134,6 +143,9 @@ func (og *StagePlums) RemoveGameObj(id int64) {
 	og.ObjGroupBase.RemoveGameObj(id)
 }
 func (og *StagePlums) StartFrameAction(world WorldI, ftime time.Time) {
+	for _, o := range og.GameObjs {
+		o.ActByTime(world, ftime)
+	}
 	og.chStep <- nil
 }
 func (og *StagePlums) FrameActionResult() interface{} {
@@ -164,10 +176,23 @@ func (og *StageApples) RemoveGameObj(id int64) {
 	og.ObjGroupBase.RemoveGameObj(id)
 }
 func (og *StageApples) StartFrameAction(world WorldI, ftime time.Time) {
+	for _, o := range og.GameObjs {
+		o.ActByTime(world, ftime)
+	}
 	og.chStep <- nil
 }
 func (og *StageApples) FrameActionResult() interface{} {
 	return <-og.chStep
 }
 func (og *StageApples) AddInitMembers() {
+}
+
+func test_ObjGroupI() {
+	var og ObjGroupI
+	og = &ObjGroupBase{}
+	og = &Snake{}
+	og = &StageWalls{}
+	og = &StagePlums{}
+	og = &StageApples{}
+	_ = og
 }

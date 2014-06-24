@@ -19,7 +19,7 @@ func run_main(sc *snakebase.SnakeConfig) {
 		*rundur, *profilefilename, *config)
 
 	if *config != "" {
-		ok := snakebase.GameConst.Load(*config)
+		ok := snakebase.SnakeDefault.Load(*config)
 		if !ok {
 			log.Fatal("config load fail")
 		}
@@ -34,12 +34,11 @@ func run_main(sc *snakebase.SnakeConfig) {
 		defer pprof.StopCPUProfile()
 	}
 	service := snakebase.NewService(sc)
-	go service.Loop()
 	time.Sleep(time.Duration(*rundur) * time.Second)
 	service.SendGoCmd("quit", nil, nil)
 	time.Sleep(1 * time.Second)
 }
 
 func main() {
-	run_main(&snakebase.GameConst)
+	run_main(&snakebase.SnakeDefault)
 }

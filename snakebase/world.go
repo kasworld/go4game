@@ -30,6 +30,7 @@ func NewWorld(s *SnakeService) *World {
 	w.AddObjGroup(NewStageWalls(&w))
 	w.AddObjGroup(NewStageApples(&w))
 	w.AddObjGroup(NewStagePlums(&w))
+	go w.Loop()
 	return &w
 }
 
@@ -85,4 +86,13 @@ func (w *World) AddObjGroup(og ObjGroupI) {
 }
 func (w *World) RemoveObjGroup(id int64) {
 	delete(w.ObjGroups, id)
+}
+func (w *World) CollideList(o GameObjI) []GameObjI {
+	rtn := make([]GameObjI, 0)
+	return rtn
+}
+
+func test_WorldI() {
+	var w WorldI = &World{}
+	_ = w
 }

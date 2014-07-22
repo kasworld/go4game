@@ -13,9 +13,9 @@ import (
 type World struct {
 	id        int64
 	ObjGroups map[int64]ObjGroupI
-	config    *SnakeConfig
 	cmdCh     chan go4game.GoCmd
 	pService  *SnakeService
+	octree    *OctreeVol
 }
 
 func NewWorld(s *SnakeService) *World {
@@ -24,7 +24,6 @@ func NewWorld(s *SnakeService) *World {
 		ObjGroups: make(map[int64]ObjGroupI),
 		cmdCh:     make(chan go4game.GoCmd, 1),
 		pService:  s,
-		config:    s.config,
 	}
 	w.AddObjGroup(NewSnake(&w))
 	w.AddObjGroup(NewStageWalls(&w))
@@ -33,11 +32,9 @@ func NewWorld(s *SnakeService) *World {
 	go w.Loop()
 	return &w
 }
-
 func (w *World) ID() int64 {
 	return w.id
 }
-
 func (w *World) SendGoCmd(Cmd string, Args interface{}, Rsp chan<- interface{}) {
 	w.cmdCh <- go4game.GoCmd{
 		Cmd:  Cmd,
@@ -48,7 +45,15 @@ func (w *World) SendGoCmd(Cmd string, Args interface{}, Rsp chan<- interface{}) 
 func (w World) String() string {
 	return fmt.Sprintf("World%v ", w.ID)
 }
+func (w *World) MakeOctreeVol() *OctreeVol {
+	ot := NewOctreeVol(SnakeDefault.WorldCube)
+	for _, og := range w.ObjGroups {
+		og.AddToOctreeVol(ot)
+	}
+	return ot
+}
 func (w *World) Do1Frame(ftime time.Time) bool {
+	w.octree = w.MakeOctreeVol()
 	for _, og := range w.ObjGroups {
 		go og.StartFrameAction(w, ftime)
 	}
@@ -78,6 +83,13 @@ loop:
 				break loop
 			}
 		case <-timer1secCh:
+			log.Printf("%v %v", w, <-go4game.IdGenCh)
+
+			log.Printf("%v", w.octree)
+			ol := w.ListNearObj(SnakeDefault.WorldCube)
+			for _, o := range ol {
+				log.Printf("%v", o)
+			}
 		}
 	}
 }
@@ -90,6 +102,25 @@ func (w *World) RemoveObjGroup(id int64) {
 func (w *World) CollideList(o GameObjI) []GameObjI {
 	rtn := make([]GameObjI, 0)
 	return rtn
+}
+
+type NearInfo struct {
+	ol []GameObjI
+	//og ObjGroupI
+}
+
+func (ni *NearInfo) collectNearObj(o OctreeVolObjI) bool {
+	ni.ol = append(ni.ol, o.(GameObjI))
+	log.Printf("%v", o)
+	return false
+}
+func (w *World) ListNearObj(hr *go4game.HyperRect) []GameObjI {
+	//log.Printf("list near obj")
+	rtn := &NearInfo{
+		ol: make([]GameObjI, 0),
+	}
+	w.octree.QueryByHyperRect(rtn.collectNearObj, hr)
+	return rtn.ol
 }
 
 func test_WorldI() {

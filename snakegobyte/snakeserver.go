@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func run_main(sc *snakebase.SnakeConfig) {
+func run_main() {
 	var rundur = flag.Int("rundur", 3, "run time sec")
 	var profilefilename = flag.String("pfilename", "", "profile filename")
 	var config = flag.String("config", "", "config filename")
@@ -33,12 +33,12 @@ func run_main(sc *snakebase.SnakeConfig) {
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 	}
-	service := snakebase.NewService(sc)
+	service := snakebase.NewService()
 	time.Sleep(time.Duration(*rundur) * time.Second)
 	service.SendGoCmd("quit", nil, nil)
 	time.Sleep(1 * time.Second)
 }
 
 func main() {
-	run_main(&snakebase.SnakeDefault)
+	run_main()
 }

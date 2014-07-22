@@ -13,16 +13,14 @@ import (
 type SnakeService struct {
 	id     int64
 	Worlds map[int64]WorldI
-	config *SnakeConfig
 	cmdCh  chan go4game.GoCmd
 }
 
-func NewService(config *SnakeConfig) *SnakeService {
+func NewService() *SnakeService {
 	g := SnakeService{
 		id:     <-go4game.IdGenCh,
 		cmdCh:  make(chan go4game.GoCmd, 10),
 		Worlds: make(map[int64]WorldI),
-		config: config,
 	}
 	g.AddWorld(NewWorld(&g))
 	go g.Loop()

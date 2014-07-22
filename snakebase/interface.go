@@ -41,6 +41,8 @@ type ObjGroupI interface {
 	StartFrameAction(w WorldI, ftime time.Time)
 	FrameActionResult() interface{}
 	AddInitMembers()
+	GameObjI() map[int64]GameObjI
+	AddToOctreeVol(ot *OctreeVol)
 }
 
 type OGActor interface {

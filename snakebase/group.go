@@ -13,16 +13,14 @@ import (
 
 type ObjGroupBase struct {
 	id       int64
-	GameObjs map[int64]GameObjI
-	config   *SnakeConfig
+	gameObjs map[int64]GameObjI
 	chStep   chan interface{}
 }
 
 func NewObjGroup(w *World) *ObjGroupBase {
 	og := ObjGroupBase{
 		id:       <-go4game.IdGenCh,
-		GameObjs: make(map[int64]GameObjI),
-		config:   w.config,
+		gameObjs: make(map[int64]GameObjI),
 		chStep:   make(chan interface{}, 1),
 	}
 	return &og
@@ -31,13 +29,13 @@ func (og *ObjGroupBase) ID() int64 {
 	return og.id
 }
 func (og *ObjGroupBase) AddGameObj(o GameObjI) {
-	og.GameObjs[o.ID()] = o
+	og.gameObjs[o.ID()] = o
 }
 func (og *ObjGroupBase) RemoveGameObj(id int64) {
-	delete(og.GameObjs, id)
+	delete(og.gameObjs, id)
 }
 func (og *ObjGroupBase) StartFrameAction(world WorldI, ftime time.Time) {
-	for _, o := range og.GameObjs {
+	for _, o := range og.gameObjs {
 		o.ActByTime(world, ftime)
 	}
 	og.chStep <- nil
@@ -46,6 +44,14 @@ func (og *ObjGroupBase) FrameActionResult() interface{} {
 	return <-og.chStep
 }
 func (og *ObjGroupBase) AddInitMembers() {
+}
+func (og *ObjGroupBase) GameObjI() map[int64]GameObjI {
+	return og.gameObjs
+}
+func (og *ObjGroupBase) AddToOctreeVol(ot *OctreeVol) {
+	for _, o := range og.gameObjs {
+		ot.Insert(o.ToOctreeVolObj())
+	}
 }
 
 type Snake struct {
@@ -73,7 +79,7 @@ func (og *Snake) RemoveGameObj(id int64) {
 	og.ObjGroupBase.RemoveGameObj(id)
 }
 func (og *Snake) StartFrameAction(world WorldI, ftime time.Time) {
-	for _, o := range og.GameObjs {
+	for _, o := range og.gameObjs {
 		o.ActByTime(world, ftime)
 	}
 	og.chStep <- nil
@@ -85,6 +91,12 @@ func (og *Snake) AddInitMembers() {
 	o := NewSnakeHead(og)
 	og.HeadID = o.ID()
 	og.AddGameObj(o)
+}
+func (og *Snake) GameObjI() map[int64]GameObjI {
+	return og.gameObjs
+}
+func (og *Snake) AddToOctreeVol(ot *OctreeVol) {
+	og.ObjGroupBase.AddToOctreeVol(ot)
 }
 
 type StageWalls struct {
@@ -110,7 +122,7 @@ func (og *StageWalls) RemoveGameObj(id int64) {
 	og.ObjGroupBase.RemoveGameObj(id)
 }
 func (og *StageWalls) StartFrameAction(world WorldI, ftime time.Time) {
-	for _, o := range og.GameObjs {
+	for _, o := range og.gameObjs {
 		o.ActByTime(world, ftime)
 	}
 	og.chStep <- nil
@@ -119,6 +131,12 @@ func (og *StageWalls) FrameActionResult() interface{} {
 	return <-og.chStep
 }
 func (og *StageWalls) AddInitMembers() {
+}
+func (og *StageWalls) GameObjI() map[int64]GameObjI {
+	return og.gameObjs
+}
+func (og *StageWalls) AddToOctreeVol(ot *OctreeVol) {
+	og.ObjGroupBase.AddToOctreeVol(ot)
 }
 
 type StagePlums struct {
@@ -143,7 +161,7 @@ func (og *StagePlums) RemoveGameObj(id int64) {
 	og.ObjGroupBase.RemoveGameObj(id)
 }
 func (og *StagePlums) StartFrameAction(world WorldI, ftime time.Time) {
-	for _, o := range og.GameObjs {
+	for _, o := range og.gameObjs {
 		o.ActByTime(world, ftime)
 	}
 	og.chStep <- nil
@@ -152,6 +170,12 @@ func (og *StagePlums) FrameActionResult() interface{} {
 	return <-og.chStep
 }
 func (og *StagePlums) AddInitMembers() {
+}
+func (og *StagePlums) GameObjI() map[int64]GameObjI {
+	return og.gameObjs
+}
+func (og *StagePlums) AddToOctreeVol(ot *OctreeVol) {
+	og.ObjGroupBase.AddToOctreeVol(ot)
 }
 
 type StageApples struct {
@@ -176,7 +200,7 @@ func (og *StageApples) RemoveGameObj(id int64) {
 	og.ObjGroupBase.RemoveGameObj(id)
 }
 func (og *StageApples) StartFrameAction(world WorldI, ftime time.Time) {
-	for _, o := range og.GameObjs {
+	for _, o := range og.gameObjs {
 		o.ActByTime(world, ftime)
 	}
 	og.chStep <- nil
@@ -185,6 +209,12 @@ func (og *StageApples) FrameActionResult() interface{} {
 	return <-og.chStep
 }
 func (og *StageApples) AddInitMembers() {
+}
+func (og *StageApples) GameObjI() map[int64]GameObjI {
+	return og.gameObjs
+}
+func (og *StageApples) AddToOctreeVol(ot *OctreeVol) {
+	og.ObjGroupBase.AddToOctreeVol(ot)
 }
 
 func test_ObjGroupI() {

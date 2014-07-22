@@ -4,6 +4,8 @@ import (
 	//"log"
 	//"math"
 	//"time"
+	"bytes"
+	"fmt"
 	"github.com/kasworld/go4game"
 )
 
@@ -106,4 +108,20 @@ func (ot *OctreeVol) QueryByHyperRect(fn func(OctreeVolObjI) bool, hr *go4game.H
 		}
 	}
 	return false
+}
+
+func (ot OctreeVol) String() string {
+	var b bytes.Buffer
+	fmt.Fprintf(&b, "%v %v \n", ot.BoundCube, ot.Center)
+	for _, d := range ot.DataList {
+		fmt.Fprintf(&b, "%v ", d)
+	}
+	fmt.Fprintf(&b, "\n")
+	if ot.Children[0] != nil {
+		for _, cot := range ot.Children {
+			b.WriteString(cot.String())
+		}
+	}
+	fmt.Fprintf(&b, "\n")
+	return b.String()
 }

@@ -75,7 +75,7 @@ type SnakeTail struct {
 
 func NewSnakeTail(og ObjGroupI, pos go4game.Vector3D) *SnakeTail {
 	o := SnakeTail{
-		GameObjBase: MakeGameObjBase(og, pos),
+		GameObjBase: MakeGameObjBase(og, rand.Uint32()),
 		endTime:     time.Now().Add(time.Second * 10),
 	}
 	return &o

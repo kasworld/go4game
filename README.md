@@ -1,6 +1,8 @@
 go4game
 =======
 
+# updated project https://github.com/kasworld/gowasm3dgame
+
 ### game server framework using  golang
 
 ![web client screenshot](/Screenshot.png?raw=true)
